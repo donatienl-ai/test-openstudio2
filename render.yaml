@@ -40,12 +40,15 @@ services:
         value: "3577"
       - key: OPUSCLIP_CREDITS_PER_MINUTE
         value: "1"
+      # Stockage compatible S3. Tests : Backblaze B2, bucket privé en Europe (eu-central-003, Amsterdam).
+      # Pour passer sur Cloudflare R2 : bucket R2, endpoint https://<ID_COMPTE>.r2.cloudflarestorage.com,
+      # région « auto », et les clés R2 dans STORAGE_ACCESS_KEY / STORAGE_SECRET_KEY.
       - key: STORAGE_BUCKET
-        sync: false
+        value: openstudio-tests-om
       - key: STORAGE_ENDPOINT
-        sync: false
+        value: https://s3.eu-central-003.backblazeb2.com
       - key: STORAGE_REGION
-        value: auto
+        value: eu-central-003
       - key: STORAGE_ACCESS_KEY
         sync: false
       - key: STORAGE_SECRET_KEY
