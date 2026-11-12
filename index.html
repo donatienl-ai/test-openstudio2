@@ -622,6 +622,10 @@ h3{font-weight:600;letter-spacing:-.015em}
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- Back-end OpenStudio (commandes, OpusClip, sous-titres) : URL du service Render, ex. https://openstudio-backend.onrender.com.
+     Vide = mode démonstration (aucun appel). Voir docs/openstudio/INTEGRATION.md. -->
+<script>window.OPENSTUDIO_API = window.OPENSTUDIO_API || '';</script>
+<script src="openstudio-api.js"></script>
 <script>
 /* ================= Données de démonstration ================= */
 const TODAY = new Date(2026, 8, 30, 10, 0);
@@ -1189,6 +1193,105 @@ function opusMore(j) {
   S.modal = { type: 'opus-more' }; render();
 }
 
+/* ================= Back-end OpenStudio (openstudio-backend) : commandes Capsules vidéo et Sous-titres =================
+   Actif quand window.OPENSTUDIO_API est renseignée (voir openstudio-api.js et docs/openstudio/INTEGRATION.md).
+   - Capsules : étape 1 = vidéos du package du client (OpenStudio.getMyVideos), étape 2 = durée / format / style,
+     étape 3 = récapitulatif. OpusClip ne part qu'au bouton final « Valider ma commande » (validation + paiement),
+     jamais sur « Proposer mes capsules ».
+   - Sous-titres : la vidéo et la transcription sont envoyées au stockage, puis la commande est validée.
+   Les fichiers finaux se retrouvent dans mes-commandes.html. Sans OPENSTUDIO_API : mode démonstration inchangé. */
+const bkOn = () => !!(window.OPENSTUDIO_API && window.OpenStudio);
+const BK = { videos: null, loading: false, err: '', client: null, submitting: false, prog: '' };
+const BK_PROGRAMMES = [['bfm-business', 'BFM Business'], ['bfm', 'BFM'], ['immersion', 'Immersion']];
+const bkVideo = x => ({ id: 'bk-' + x.id, bkId: x.id, title: x.title || 'Vidéo', media: x.programme || '', programmeId: x.programmeId || '', kind: x.programme || '', type: 'plateau', duration: 0, date: x.broadcastDate ? new Date(x.broadcastDate) : null, pal: ['#1C1C62', '#3B3BFA'], highlights: [] });
+const bkMedia = v => MEDIAS.find(m => v && m.name.toLowerCase() === String(v.media).toLowerCase()) || mediaById('openmedias');
+const bkContact = () => { const c = client(); return c ? { name: c.contact, email: c.email, company: c.name } : undefined; };
+const bkNoSession = () => !OpenStudio.clientSession();
+// Lien d'accès de l'équipe (?client=…&clientToken=…) : mémorisé dès l'ouverture de la page, avant toute navigation.
+if (bkOn()) { try { OpenStudio.clientSession(); } catch (e) {} }
+async function bkLoadVideos(force) {
+  if (!bkOn() || BK.loading || (BK.videos && !force)) return;
+  BK.loading = true; BK.err = '';
+  try { const r = await OpenStudio.getMyVideos(); BK.client = r.client || null; BK.videos = (r.videos || []).map(bkVideo); }
+  catch (e) { BK.videos = []; BK.err = e.status === 401 ? "Votre espace n'est pas encore relié aux vidéos de votre package : ouvrez le lien d'accès envoyé par l'équipe OpenMedias." : e.message; }
+  BK.loading = false;
+  if (S.view === 'client' && S.page === 'capsules') { S.keepScroll = true; render(); }
+}
+function bkCapsulesPage(c) {
+  const k = S.cap; if (!BK.videos && !BK.loading) setTimeout(bkLoadVideos, 0);
+  const durs = CAP_OPTIONS.kinds[0].durs; if (!durs.includes(k.dur)) k.dur = 30;
+  const v = (BK.videos || []).find(x => x.bkId === k.bkVideoId) || null;
+  const stepN = v ? (k.bkStep || 1) : 1;
+  const steps = ['Vidéo', 'Réglages', 'Propositions'].map((l, i) => `<span class="${stepN === i + 1 ? 'on' : stepN > i + 1 ? 'done' : ''}"><b>${stepN > i + 1 ? '✓' : i + 1}</b>${l}</span>`).join('<hr>');
+  const fmt = CAP_OPTIONS.fmts.find(x => x[0] === k.fmt) || CAP_OPTIONS.fmts[0]; const st = CAP_OPTIONS.styles.find(x => x[0] === k.style) || CAP_OPTIONS.styles[0];
+  let body = '';
+  if (stepN === 1) {
+    if (BK.loading || !BK.videos) body = `<div class="panel"><div class="thinking" aria-live="polite"><i></i>Chargement des vidéos de votre package…</div></div>`;
+    else if (BK.err) body = `<div class="empty">${I('video')}<h3>Vos vidéos ne sont pas accessibles</h3><p style="max-width:52ch">${esc(BK.err)}</p><button class="btn btn-ghost" data-a="bk-reload">${I('refresh')}Réessayer</button></div>`;
+    else if (!BK.videos.length) body = `<div class="empty">${I('video')}<h3>Vos vidéos arrivent bientôt</h3><p>Elles apparaîtront ici dès que l'équipe OpenMedias les aura ajoutées à votre package.</p></div>`;
+    else body = `<div class="grid g3">${BK.videos.map(x => `<button class="pick" data-a="bk-video" data-arg="${esc(x.bkId)}" aria-pressed="${k.bkVideoId === x.bkId}"><div class="thumb">${scene(x)}<div class="lower3"><span class="l1">${esc(x.media)}</span><span class="l2">${esc(x.title)}</span></div></div><div class="meta"><b>${esc(x.title)}</b><span class="tag" style="margin:4px 0">${esc(x.media || 'Vidéo')}</span><div class="small muted">${x.date ? 'Diffusée le ' + fmtD(x.date) : 'Vidéo de votre package'}</div></div></button>`).join('')}</div>
+      <div class="row" style="justify-content:flex-end;margin-top:20px"><button class="btn btn-primary" data-a="bk-step" data-arg="2" ${k.bkVideoId ? '' : 'disabled'}>Continuer</button></div>`;
+  } else if (stepN === 2) {
+    const m = bkMedia(v);
+    body = `<div class="panel stack" style="gap:26px">
+      <div class="field"><span class="lab">Durée de chaque capsule</span><div class="seg-ctl" role="group" aria-label="Durée">${durs.map(d => `<button data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>
+      <div class="field"><span class="lab">Format</span><div class="row" role="group" aria-label="Format">${CAP_OPTIONS.fmts.map(([f, l, u, w, h]) => `<button class="fmt-opt" data-a="cap-fmt" data-arg="${f}" aria-pressed="${k.fmt === f}"><i style="width:${w}px;height:${h}px"></i><b>${l} ${f}</b><small>${u}</small></button>`).join('')}</div></div>
+      <div class="field"><span class="lab">Style des sous-titres</span><div class="seg-ctl" role="group" aria-label="Style des sous-titres">${CAP_OPTIONS.styles.map(([s, l]) => `<button data-a="cap-style" data-arg="${s}" aria-pressed="${k.style === s}">${l}</button>`).join('')}</div></div>
+      <div class="row" style="gap:20px;align-items:center"><div><div class="frame ${fmtClass(k.fmt)}" data-style="${k.style}" style="--hl:${m.accent}">${scene(v)}${capMarks(m)}<p class="sub sub-${k.style}">${subHtml('Aperçu du *style* de vos sous-titres', k.style)}</p></div></div><p class="muted small" style="max-width:36ch">Aperçu du rendu avec « ${esc(v.title)} ». Le logo de votre entreprise est ajouté en haut de la capsule, celui du média en haut à droite.</p></div>
+      <div class="row between"><div class="row"><button class="btn btn-quiet" data-a="bk-step" data-arg="1">${I('back')}Changer de vidéo</button></div><button class="btn btn-primary" data-a="bk-step" data-arg="3">${I('spark')}Proposer mes capsules</button></div></div>`;
+  } else {
+    const row = (l, val) => `<div class="li"><div class="grow"><span class="small muted">${l}</span><b>${esc(val)}</b></div></div>`;
+    body = `<div class="panel stack" style="gap:18px"><div><h2>Votre commande</h2><p class="muted small" style="margin-top:4px;max-width:62ch">Vérifiez vos choix puis validez. La préparation de vos capsules démarre une fois la commande validée et payée ; elle prend en général quelques minutes. Vous les retrouverez dans « Mes commandes ».</p></div>
+      <div class="list">${row('Vidéo', `${v.media ? v.media + ' — ' : ''}${v.title}`)}${row('Durée de chaque capsule', `${k.dur} s`)}${row('Format', `${fmt[1]} ${fmt[0]}`)}${row('Style des sous-titres', st[1])}</div>
+      <div class="row between"><button class="btn btn-quiet" data-a="bk-step" data-arg="2">${I('edit')}Modifier les réglages</button><button class="btn btn-primary" data-a="bk-submit" ${BK.submitting ? 'disabled' : ''}>${I('check')}${BK.submitting ? 'Validation en cours…' : 'Valider ma commande'}</button></div></div>`;
+  }
+  return `<div class="page-head"><div><h1>Capsules vidéo</h1><p>Choisissez une vidéo de votre package : l'IA repère les meilleurs moments et les prépare au format des réseaux sociaux, sous-titrés.</p></div><a class="btn btn-ghost" href="mes-commandes.html">${I('folder')}Mes commandes</a></div>
+  ${freeBox(c)}
+  <div class="steps-h" aria-label="Étapes">${steps}</div>${body}
+  ${upsellTip(['capsules-pro', 'teaser'], 'Vous préférez des capsules montées par nos monteurs ?')}`;
+}
+async function bkSubmitCapsules() {
+  const k = S.cap; const v = (BK.videos || []).find(x => x.bkId === k.bkVideoId); if (!v || BK.submitting) return;
+  const fmt = CAP_OPTIONS.fmts.find(x => x[0] === k.fmt) || CAP_OPTIONS.fmts[0]; const st = CAP_OPTIONS.styles.find(x => x[0] === k.style) || CAP_OPTIONS.styles[0];
+  BK.submitting = true; S.keepScroll = true; render();
+  try {
+    const { link } = await OpenStudio.submitOrder('capsules', { videoId: v.bkId, duration: `${k.dur} s`, format: `${fmt[1]} ${fmt[0]}`, subtitleStyle: st[1] }, bkContact());
+    location.href = link;
+  } catch (e) { BK.submitting = false; S.keepScroll = true; render(); toast(e.message); }
+}
+// Sous-titres : bloc de validation (remplace le bouton d'enregistrement local quand le back-end est actif).
+function bkSubsCta(cs) {
+  const noSession = bkNoSession();
+  return `<div class="row between"><div><b>Commander la vidéo sous-titrée</b><p class="small muted" style="margin-top:2px">${cs.length ? `Vos sous-titres en ${LANGS[SUB.lang].toLowerCase()} sont incrustés par nos serveurs` : 'Sans fichier de transcription, la vidéo est transcrite automatiquement, puis sous-titrée'}, avec le logo de votre entreprise. Vous recevez la vidéo et les fichiers .srt et .vtt dans « Mes commandes ».</p></div>
+    <button class="btn btn-primary" data-a="bk-subs" ${SUB.file && !BK.submitting && !noSession ? '' : 'disabled'}>${(SUB.lang === 'fr' ? canStFr(SUB.name) : unlocked('st-lang')) ? I('check') : I('lock')}${BK.submitting ? 'Envoi en cours…' : 'Valider ma commande'}</button></div>
+    ${noSession ? `<p class="small" style="color:var(--warn)">Pour commander, ouvrez le lien d'accès à votre espace envoyé par l'équipe OpenMedias : il relie la commande au logo de votre entreprise.</p>` : ''}
+    <p class="small muted" id="bk-prog" aria-live="polite">${esc(BK.prog)}</p>`;
+}
+async function bkSubmitSubtitles() {
+  if (BK.submitting || !SUB.file) return;
+  const setP = t => { BK.prog = t; const el = document.getElementById('bk-prog'); if (el) el.textContent = t; };
+  BK.submitting = true; BK.prog = 'Préparation de l’envoi…'; S.keepScroll = true; render();
+  try {
+    const videoKey = await OpenStudio.uploadFile(SUB.file, 'video', p => setP(`Envoi de la vidéo : ${p} %`));
+    let transcriptKey = null;
+    if (SUB.cues.length) {
+      // Transcription telle qu'affichée (corrections et décalage compris), dans la langue parlée.
+      setP('Envoi des sous-titres…');
+      const txt = SUB.cues.map((q, i) => `${i + 1}\n${fmtTs(q.s + SUB.offset)} --> ${fmtTs(q.e + SUB.offset)}\n${q.t}\n`).join('\n');
+      transcriptKey = await OpenStudio.uploadFile(new File([txt], `${subBase()}.srt`, { type: 'application/x-subrip' }), 'transcript');
+    }
+    setP('Validation de la commande…');
+    const { link } = await OpenStudio.submitOrder('subtitles', {
+      videoKey, transcriptKey,
+      spokenLanguage: LANGS[SUB.srcLang], subtitleLanguage: LANGS[SUB.lang],
+      splitLongLines: SUB.split,
+      size: String(Math.round(SUB.fsz)), outline: String(Math.round(SUB.stroke)),
+      programmeId: SUB.programme || null
+    }, bkContact());
+    location.href = link;
+  } catch (e) { BK.submitting = false; BK.prog = ''; S.keepScroll = true; render(); toast(e.message); }
+}
+
 let AI = null, DL = null;
 
 // Téléchargements : fonctionnent directement dans le navigateur
@@ -1486,7 +1589,7 @@ function viewClient() {
   return imp + `<div class="app">
   <aside class="side" aria-label="Navigation de l'espace client">
     ${c.logo ? `<div class="company" style="flex-direction:column;align-items:flex-start;gap:8px"><img src="${c.logo}" alt="${esc(c.name)}" style="height:22px;width:auto;display:block"><span class="small muted">${esc(c.sector)}</span></div>` : `<div class="company"><span class="logo-tile" style="background:${c.color}">${initials(c.name)}</span><div><b>${esc(c.name)}</b><span class="small muted">${esc(c.sector)}</span></div></div>`}
-    <nav class="nav">${CNAV.map(([k, l, ic]) => `<a href="#" data-a="nav" data-arg="${k}" class="${cur === k ? 'on' : ''}" ${cur === k ? 'aria-current="page"' : ''}>${I(ic)}${l}</a>`).join('')}</nav>
+    <nav class="nav">${CNAV.map(([k, l, ic]) => `<a href="#" data-a="nav" data-arg="${k}" class="${cur === k ? 'on' : ''}" ${cur === k ? 'aria-current="page"' : ''}>${I(ic)}${l}</a>`).join('')}${bkOn() ? `<a href="mes-commandes.html">${I('folder')}Mes commandes</a>` : ''}</nav>
     <div class="side-foot">
       <span class="tag ${left <= 7 ? 'warn' : ''} num">${I('clock')} ${left} jours restants</span>
       <a href="https://openmedias.fr/" target="_blank" rel="noopener" class="btn btn-quiet btn-sm" style="justify-content:flex-start">${I('back')}Retour au site</a>
@@ -1611,6 +1714,7 @@ function frameHtml(v, cap, fmt, style, key) {
   <p class="sub sub-${style}" data-sub>${subHtml(cap.lines[0], style)}</p><span class="ftime num" data-ft>0:00 / 0:${String(cap.dur).padStart(2, '0')}</span><i class="fprog" data-fp></i></div>`;
 }
 function pCapsules(c) {
+  if (bkOn()) return bkCapsulesPage(c); /* Back-end OpenStudio : vidéos du package, validation finale */
   const k = S.cap; const v = video(k.videoId);
   const oj = curJob(); const opusBusy = !!(oj && !k.results && oj.status !== 'done'); /* OpusClip */
   const stepN = k.results ? 3 : (k.analyzing >= 0 || opusBusy ? 3 : k.step);
@@ -2756,9 +2860,10 @@ function pSubs(c) {
   <div class="pub-layout" style="grid-template-columns:340px 1fr">
     <div class="stack" style="gap:16px">
       <div class="panel stack" style="gap:12px"><h3>1. Votre vidéo</h3>
-        ${SUB.url ? `<div class="small"><b>${esc(SUB.name)}</b><br><span class="muted" id="sp-meta">${SUB.duration ? `${tc(SUB.duration)}, ${SUB.w} × ${SUB.h}` : 'Lecture des informations…'}</span></div>` : '<p class="small muted">Elle reste sur votre ordinateur : elle n\'est envoyée nulle part.</p>'}
+        ${SUB.url ? `<div class="small"><b>${esc(SUB.name)}</b><br><span class="muted" id="sp-meta">${SUB.duration ? `${tc(SUB.duration)}, ${SUB.w} × ${SUB.h}` : 'Lecture des informations…'}</span></div>` : (bkOn() ? '<p class="small muted">Elle est envoyée de façon sécurisée pour créer votre vidéo sous-titrée, puis supprimée au bout de 30 jours.</p>' : '<p class="small muted">Elle reste sur votre ordinateur : elle n\'est envoyée nulle part.</p>')}
         <p class="err-msg" id="sp-err">${esc(SUB.err)}</p>
         <label class="btn btn-ghost btn-sm" style="cursor:pointer;align-self:flex-start">${I('upload')}${SUB.url ? 'Changer de vidéo' : 'Choisir une vidéo'}<input type="file" accept="video/*" class="visually-hidden" data-in="sp-video"></label>
+        ${bkOn() ? `<div class="field"><label for="sp-prog">Programme <span class="small muted" style="font-weight:500">(facultatif)</span></label><select class="select" id="sp-prog" data-in="sp-prog"><option value="">Non précisé</option>${BK_PROGRAMMES.map(([id, l]) => `<option value="${id}" ${SUB.programme === id ? 'selected' : ''}>${l}</option>`).join('')}</select><span class="small muted">Ajoute le logo du média sur la vidéo sous-titrée.</span></div>` : ''}
       </div>
       <div class="panel stack" style="gap:12px"><h3>2. Transcription</h3>
         ${SUB.cues.length ? `<p class="small" style="color:var(--ok)">${I('check')} ${SUB.cues.length} sous-titres chargés${SUB.srtName ? ' (' + esc(SUB.srtName) + ')' : ''}</p>
@@ -2785,7 +2890,7 @@ function pSubs(c) {
     <div class="stack" style="gap:14px">
       ${SUB.url ? `<div class="sp-player"><video id="sp-v" src="${SUB.url}" controls controlslist="nodownload noremoteplayback" disablepictureinpicture playsinline preload="metadata"></video><p class="sp-line sp-charte" id="sp-line"></p></div>
       <div class="panel stack sp-cta" style="gap:10px">${SUB.rec ? `<b>Création de la vidéo sous-titrée</b><div class="prog"><i id="sp-prog" style="width:${SUB.recProg}%"></i></div><p class="small muted" id="sp-rectxt">Enregistrement en cours, laissez cet onglet ouvert.</p><button class="btn btn-quiet btn-sm" style="align-self:flex-start" data-a="sp-recstop">Arrêter</button>`
-        : `<div class="row between"><div><b>Télécharger la vidéo sous-titrée</b><p class="small muted" style="margin-top:2px">${cs.length ? `Les sous-titres en ${LANGS[SUB.lang].toLowerCase()} sont incrustés dans l'image. La création prend la durée de la vidéo (${SUB.duration ? tc(SUB.duration) : '…'}).` : "Importez d'abord la transcription à l'étape 2."}</p></div><button class="btn btn-primary" data-a="sp-rec" ${cs.length ? '' : 'disabled'}>${(SUB.lang === 'fr' ? canStFr(SUB.name) : unlocked('st-lang')) ? I('down') : I('lock')}${SUB.lang === 'fr' ? (unlocked('st-fr') ? 'Télécharger la vidéo sous-titrée' : canStFr(SUB.name) ? 'Télécharger mon sous-titrage offert' : 'Débloquer les sous-titres (' + fmtPrice(OFFERS.find(o => o.id === 'st-fr')) + ')') : (unlocked('st-lang') ? 'Télécharger la vidéo sous-titrée' : 'Débloquer cette langue (' + fmtPrice(OFFERS.find(o => o.id === 'st-lang')) + ')')}</button></div>
+        : bkOn() ? bkSubsCta(cs) : `<div class="row between"><div><b>Télécharger la vidéo sous-titrée</b><p class="small muted" style="margin-top:2px">${cs.length ? `Les sous-titres en ${LANGS[SUB.lang].toLowerCase()} sont incrustés dans l'image. La création prend la durée de la vidéo (${SUB.duration ? tc(SUB.duration) : '…'}).` : "Importez d'abord la transcription à l'étape 2."}</p></div><button class="btn btn-primary" data-a="sp-rec" ${cs.length ? '' : 'disabled'}>${(SUB.lang === 'fr' ? canStFr(SUB.name) : unlocked('st-lang')) ? I('down') : I('lock')}${SUB.lang === 'fr' ? (unlocked('st-fr') ? 'Télécharger la vidéo sous-titrée' : canStFr(SUB.name) ? 'Télécharger mon sous-titrage offert' : 'Débloquer les sous-titres (' + fmtPrice(OFFERS.find(o => o.id === 'st-fr')) + ')') : (unlocked('st-lang') ? 'Télécharger la vidéo sous-titrée' : 'Débloquer cette langue (' + fmtPrice(OFFERS.find(o => o.id === 'st-lang')) + ')')}</button></div>
         <p class="small muted">L'aperçu ci-dessus affiche les sous-titres par-dessus la vidéo d'origine : seul ce bouton produit un fichier avec les sous-titres intégrés.</p>`}</div>` : `<div class="empty">${I('video')}<h3>Ajoutez votre vidéo</h3><p style="max-width:46ch">Puis importez sa transcription pour voir les sous-titres défiler, les corriger et les télécharger.</p></div>`}
       ${cs.length ? `<div class="panel" style="padding:0"><div class="row between" style="padding:14px 16px;border-bottom:1px solid var(--line)"><h3>Sous-titres (${cs.length}) en ${LANGS[SUB.lang].toLowerCase()}</h3><span class="small muted">Cliquez sur un minutage pour aller au passage</span></div>
         <div class="sp-list" id="sp-list">${cs.map((q, k) => `<div class="sp-row" data-spk="${k}"><button class="sp-time num" data-a="sp-seek" data-arg="${k}">${fmtTs(q.s + SUB.offset).slice(3, 11).replace('.', ',')}</button><textarea rows="1" class="textarea" data-in="sp-cue" data-arg="${k}" aria-label="Sous-titre ${k + 1}">${esc(q.t)}</textarea><span class="small num ${q.t.length > 84 ? 'warn-c' : 'muted'}" data-spc="${k}">${q.t.length}</span></div>`).join('')}</div></div>` : SUB.loading ? `<div class="panel"><div class="thinking"><i></i>${esc(SUB.prog)}</div></div>` : ''}
@@ -3700,6 +3805,12 @@ const A = {
   'sp-vtt': () => (SUB.lang !== 'fr' && !unlocked('st-lang')) ? needOffer('st-lang') : (SUB.lang === 'fr' && !canStFr(SUB.name)) ? needOffer('st-fr') : (SUB.lang === 'fr' && (ent().stFrVideo = SUB.name), saveFile(`${subBase()}_${SUB.lang}.vtt`, buildSrt(true))),
   'sp-rec': () => { if (SUB.lang !== 'fr' && !unlocked('st-lang')) { needOffer('st-lang'); return; } if (SUB.lang === 'fr' && !canStFr(SUB.name)) { needOffer('st-fr'); return; } if (SUB.lang === 'fr') ent().stFrVideo = SUB.name; subRecord(); },
   'sp-recstop': () => { subRecStop = true; },
+  /* Back-end OpenStudio */
+  'bk-video': a => { S.cap.bkVideoId = a; S.keepScroll = true; render(); },
+  'bk-step': a => { if (+a > 1 && !S.cap.bkVideoId) { toast('Choisissez d’abord une vidéo.'); return; } S.cap.bkStep = +a; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+  'bk-submit': () => bkSubmitCapsules(),
+  'bk-reload': () => { BK.videos = null; BK.err = ''; render(); bkLoadVideos(true); },
+  'bk-subs': () => { if (SUB.lang !== 'fr' && !unlocked('st-lang')) { needOffer('st-lang'); return; } if (SUB.lang === 'fr' && !canStFr(SUB.name)) { needOffer('st-fr'); return; } if (SUB.lang === 'fr') ent().stFrVideo = SUB.name; bkSubmitSubtitles(); },
   'do-login': () => { const inp = document.getElementById('code'); doLogin(normCode(inp ? inp.value : '')); },
   'quick-test': () => { const c = CLIENTS.find(x => x.id === 'c1'); S.clientId = 'c1'; S.asAdmin = false; S.preview = null; c.lastLogin = new Date(TODAY); resetClientState(); go('client', 'test'); },
   't-nosubs': () => { T.cues = []; T.cuesName = ''; T.results = null; S.keepScroll = true; render(); },
@@ -3812,6 +3923,7 @@ document.addEventListener('change', e => {
   if (k === 'nf-files') { saveNf(); addFiles([...el.files]); }
   if (k === 'sp-video') { const f = el.files && el.files[0]; if (!f) return; if (SUB.url && !VIDEOS.some(x => x.url === SUB.url)) URL.revokeObjectURL(SUB.url); SUB.url = URL.createObjectURL(f); SUB.file = f; SUB.name = f.name; SUB.duration = 0; SUB.err = ''; S.keepScroll = true; render(); }
   if (k === 'sp-srt') { const f = el.files && el.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const cues = parseSubs(decodeText(rd.result)); if (!cues.length) { toast("Aucun sous-titre horodaté trouvé dans ce fichier"); return; } SUB.raw = cues; SUB.cues = SUB.split ? splitLong(cues, 84) : cues.map(c => ({ ...c })); SUB.tr = {}; SUB.lang = SUB.srcLang; SUB.srtName = f.name; spLast = -2; fixSubTiming(); S.keepScroll = true; render(); }; rd.readAsArrayBuffer(f); }
+  if (k === 'sp-prog') { SUB.programme = el.value; } /* Back-end OpenStudio : programme d'origine (logo du média) */
   if (k === 'sp-src') { SUB.srcLang = el.value; SUB.tr = {}; SUB.lang = el.value; S.keepScroll = true; render(); }
   if (k === 'ord' && S.modal) { S.modal[el.dataset.arg] = el.value; }
   if (k === 'ent-unlock') { const [cid, oid] = el.dataset.arg.split('|'); const c = CLIENTS.find(x => x.id === cid); const e = ent(c); if (el.checked) { if (!e.unlocked.includes(oid)) e.unlocked.push(oid); } else e.unlocked = e.unlocked.filter(x => x !== oid); S.keepScroll = true; render(); }

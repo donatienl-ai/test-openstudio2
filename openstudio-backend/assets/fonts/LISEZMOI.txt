@@ -1,0 +1,3 @@
+Déposez ici les fichiers .ttf/.otf des polices proposées pour les sous-titres en mode SRT client
+(ex. Montserrat-Bold.ttf, Roboto-Bold.ttf). Le nom de famille de la police doit correspondre
+aux valeurs de subtitles.srtStyle.fonts dans src/opusclip.config.js.
