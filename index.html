@@ -608,6 +608,13 @@ h3{font-weight:600;letter-spacing:-.015em}
 .thumb,.frame,.player{border-radius:16px}
 .foot-site{border-top:1px solid var(--line)}
 @media (max-width:880px){.main{padding:22px 16px 110px}.login-wrap{padding:0}.login-side{padding:40px 20px 8px}.hero{padding:26px}}
+/* OpusClip / Habillage : aperçu des propositions avec les logos en surimpression (mêmes positions que BRAND_LAYOUT) */
+.oframe{container-type:inline-size}
+.oframe video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+.oframe .om-mark{position:absolute;z-index:4;pointer-events:none;object-fit:contain;width:auto}
+.oframe .om-txt{color:#fff;font-weight:800;line-height:1.1;white-space:nowrap;max-width:44cqw;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 .8cqw rgba(0,0,0,.6)}
+.oframe .sub{z-index:3}
+.oframe .fplay{top:auto;bottom:24px;z-index:6}
 </style>
 </head>
 <body>
@@ -778,6 +785,409 @@ const S = {
    Le serveur doit exposer POST /ai/json : reçoit { prompt } et renvoie le JSON généré.
    La clé API IA reste sur le serveur, jamais dans ce fichier. */
 const CONFIG = { API_URL: '' };
+
+/* ================= OpusClip et habillage : parcours réel (actif seulement si CONFIG.API_URL est renseignée) =================
+   1. L'équipe dépose la vidéo brute : elle part une seule fois vers notre stockage (URL signée par le serveur).
+   2. Le client choisit vidéo, type et options : le serveur crée le projet OpusClip (la clé OpusClip reste sur le serveur).
+   3. OpusClip découpe, recadre et sous-titre (modèles de marque sans logo).
+   4. Au téléchargement, le serveur ajoute l'habillage OpenMedias avec FFmpeg (logos, mention, jingle, son normalisé).
+   En attendant une base de données côté serveur, vidéos, créations et projets sont mémorisés dans ce navigateur. */
+CONFIG.OPUS_DEBUG = /[?&]debug=opus\b/.test(location.search); // affiche la requête envoyée à OpusClip
+
+/* OpusClip : options proposées au client, traduites par buildOpusPayload (server/lib/opus.js). */
+const CAP_OPTIONS = {
+  unlimited: true, // V1 : capsules et teasers inclus dans le package de base, sans limite de demandes
+  kinds: [
+    { id: 'capsule', label: 'Capsule', durs: [15, 30, 45, 60], dur: 30, fmt: '9:16', run: 'Proposer mes capsules', one: 'capsule', many: 'capsules', proposed: 'capsules proposées', dl: 'Télécharger la capsule' },
+    { id: 'teaser', label: 'Teaser', durs: [20, 30, 40], dur: 30, fmt: '16:9', run: 'Proposer mes teasers', one: 'teaser', many: 'teasers', proposed: 'teasers proposés', dl: 'Télécharger le teaser' }
+  ],
+  fmts: [['9:16', 'Vertical', 'Reels, TikTok, Stories', 18, 32], ['1:1', 'Carré', 'Fil LinkedIn, Instagram', 26, 26], ['16:9', 'Horizontal', 'YouTube, site web', 36, 20]],
+  styles: [['impact', 'Impact'], ['classique', 'Classique'], ['minimal', 'Discret']],
+  lang: 'fr',
+  perPage: 4,
+  poll: { first: 15000, factor: 1.25, max: 60000, limit: 30 * 60000 }
+};
+const capKind = id => CAP_OPTIONS.kinds.find(k => k.id === (id || S.cap.kind)) || CAP_OPTIONS.kinds[0];
+
+/* Habillage : copie de BRAND_LAYOUT (server/lib/brand.js) pour l'aperçu CSS. Modifier les deux ensemble.
+   ratio = hauteur / largeur du cadre ; les valeurs sont des fractions de la largeur (ou de la hauteur pour topH). */
+const BRAND_LAYOUT = {
+  formats: { '9:16': { topH: 0.08, ratio: 16 / 9 }, '1:1': { topH: null, ratio: 1 }, '16:9': { topH: null, ratio: 9 / 16 } },
+  marginW: 0.045, logoHW: 0.055, mediaScale: 1.15, maxWW: 0.34, textW: 0.032, shadow: { opacity: 0.45, blurW: 0.012 }
+};
+
+const opusOn = () => !!CONFIG.API_URL;
+const isOpusVideo = v => !!(opusOn() && v && v.uploaded && v.upload);
+const opusReady = v => isOpusVideo(v) && v.upload.status === 'ready' && !!v.storageKey;
+
+/* ---- Appels au serveur ---- */
+const apiUrl = p => CONFIG.API_URL.replace(/\/$/, '') + p;
+async function api(path, opts = {}) {
+  let r;
+  try { r = await fetch(apiUrl(path), { method: opts.body ? 'POST' : 'GET', headers: opts.body ? { 'Content-Type': 'application/json' } : {}, body: opts.body ? JSON.stringify(opts.body) : undefined, signal: opts.signal }); }
+  catch (e) { throw Object.assign(new Error('Connexion au serveur OpenStudio impossible. Vérifiez votre connexion, puis réessayez.'), { code: 'network' }); }
+  let d = null; try { d = await r.json(); } catch (e) {}
+  if (!r.ok) throw Object.assign(new Error((d && d.error) || 'Le serveur OpenStudio ne répond pas. Réessayez dans un instant.'), { code: d && d.code, status: r.status });
+  return d;
+}
+/* Emails automatiques : événements envoyés au serveur (POST /api/events), qui pilote les parcours Mailjet.
+   File d'attente dans ce navigateur : un événement non transmis (réseau coupé) est renvoyé plus tard,
+   sans risque de doublon grâce à sa clé d'idempotence. */
+const EVQ_KEY = 'om-main-events-v1';
+const evUser = c => ({ id: c.id, email: c.email, name: c.name, contact: c.contact });
+function queueApi(path, body) {
+  let q = []; try { q = JSON.parse(localStorage.getItem(EVQ_KEY) || '[]'); } catch (e) {}
+  q.push({ path, body }); try { localStorage.setItem(EVQ_KEY, JSON.stringify(q.slice(-50))); } catch (e) {}
+  flushEvents();
+}
+function trackEvent(type, metadata, key) {
+  if (!opusOn()) return; const c = client(); if (!c || !c.email) return;
+  queueApi('/api/events', { event_type: type, idempotency_key: String(key), client_time: new Date().toISOString(), user: evUser(c), metadata: metadata || {} });
+}
+// « Confirmer la commande » : le serveur valide la commande et émet lui-même order.confirmed.
+function confirmOrderServer(order) {
+  if (!opusOn()) return; const c = client(); if (!c || !c.email) return;
+  queueApi('/api/orders/confirm', { ...order, user: evUser(c), manager: c.manager });
+}
+// Un même « Commander » répété pour la même offre (non confirmée) garde la même référence de commande.
+const DRAFT_KEY = 'om-main-order-drafts-v1';
+function draftOrderId(c, offerId, clear) {
+  let d = {}; try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}'); } catch (e) {}
+  const k = c.id + '|' + offerId;
+  if (clear) { delete d[k]; } else if (!d[k]) d[k] = 'o' + Date.now().toString(36);
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) {}
+  return d[k];
+}
+let evFlushing = false;
+async function flushEvents() {
+  if (!opusOn() || evFlushing) return; evFlushing = true;
+  try {
+    let q = []; try { q = JSON.parse(localStorage.getItem(EVQ_KEY) || '[]'); } catch (e) {}
+    while (q.length) {
+      const it = q[0].path ? q[0] : { path: '/api/events', body: q[0] };
+      let r; try { r = await fetch(apiUrl(it.path), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(it.body), keepalive: true }); } catch (e) { break; }
+      if (r.status >= 500 || r.status === 429) break; // on réessaiera plus tard
+      q.shift(); try { localStorage.setItem(EVQ_KEY, JSON.stringify(q)); } catch (e) {} // 2xx, ou 4xx qui ne passera jamais
+    }
+  } finally { evFlushing = false; }
+}
+setTimeout(flushEvents, 3000);
+function putWithProgress(url, file, type, onProg) {
+  return new Promise((res, rej) => {
+    const x = new XMLHttpRequest(); x.open('PUT', url); x.setRequestHeader('Content-Type', type);
+    x.upload.onprogress = e => { if (e.lengthComputable) onProg(e.loaded / e.total); };
+    x.onload = () => x.status < 300 ? res() : rej(new Error("L'hébergement a refusé le fichier."));
+    x.onerror = () => rej(new Error("La connexion s'est interrompue pendant l'envoi."));
+    x.send(file);
+  });
+}
+async function uploadAsset(kind, file, owner, onProg) {
+  const type = file.type || (kind === 'logo' ? 'image/png' : 'video/mp4');
+  const u = await api('/storage/upload-url', { body: { kind, name: file.name || kind, type, size: file.size, owner } });
+  await putWithProgress(u.url, file, type, onProg || (() => {}));
+  if (kind === 'logo') return (await api('/storage/logo-finalize', { body: { key: u.key } })).key;
+  return u.key;
+}
+
+/* ---- Dépôt admin : vidéo brute, statut d'envoi, mémorisation ---- */
+const UPLOAD_LABEL = { uploading: "En cours d'envoi", ready: 'Prête', error: "Erreur d'envoi" };
+function uploadTag(v) {
+  if (!isOpusVideo(v)) return '';
+  const st = v.upload.status;
+  return `<span class="tag ${st === 'ready' ? 'ok' : st === 'error' ? 'red' : 'warn'}" data-up="${v.id}">${UPLOAD_LABEL[st]}${st === 'uploading' ? ` ${Math.round((v.upload.pct || 0) * 100)} %` : ''}</span>`;
+}
+async function uploadVideo(v, c) {
+  if (v.storageKey || !v.file) return;
+  v.upload = { status: 'uploading', pct: 0 }; saveUploads();
+  document.querySelectorAll(`[data-up="${v.id}"]`).forEach(el => { el.className = 'tag warn'; el.textContent = UPLOAD_LABEL.uploading; });
+  try {
+    v.storageKey = await uploadAsset('video', v.file, c.id, p => { v.upload.pct = p; document.querySelectorAll(`[data-up="${v.id}"]`).forEach(el => { el.textContent = `${UPLOAD_LABEL.uploading} ${Math.round(p * 100)} %`; }); });
+    v.upload = { status: 'ready', pct: 1 };
+    toast(`« ${v.title} » est prête : ${c.name} peut lancer ses capsules et teasers.`);
+  } catch (e) {
+    v.upload = { status: 'error', pct: 0, msg: e.message };
+    toast(`Erreur d'envoi pour « ${v.title} » : ${e.message}`);
+  }
+  saveUploads(); S.keepScroll = true; if (!S.modal && T.recording < 0) render();
+}
+function saveUploads() {
+  try {
+    const list = VIDEOS.filter(v => v.uploaded && v.upload && v.clientId && CLIENTS.some(c => (c.videos || []).includes(v.id)))
+      .map(v => { const { url, file, ...rest } = v; return rest; });
+    localStorage.setItem('om-main-videos-v1', JSON.stringify(list));
+  } catch (e) {}
+}
+function loadUploads() {
+  if (!opusOn()) return;
+  try {
+    const arr = JSON.parse(localStorage.getItem('om-main-videos-v1') || 'null'); if (!Array.isArray(arr)) return;
+    arr.forEach(x => {
+      if (!x || !x.id || VIDEOS.some(v => v.id === x.id)) return;
+      const v = { ...x, date: new Date(x.date), url: '', file: null, restored: true };
+      if (v.upload && v.upload.status === 'uploading') v.upload = { status: 'error', pct: 0, msg: "Envoi interrompu : déposez la vidéo à nouveau." };
+      VIDEOS.push(v);
+      SOURCES[v.id] = SOURCES[v.id] || { hook: v.title, fact: `notre passage dans « ${v.title} » sur ${v.media}`, quote: '', lesson: '', link: 'openmedias.fr' };
+      const c = CLIENTS.find(cc => cc.id === v.clientId); if (c && !(c.videos || []).includes(v.id)) c.videos = [...(c.videos || []), v.id];
+    });
+  } catch (e) {}
+}
+loadUploads();
+// Lien de lecture temporaire pour une vidéo déposée lors d'une session précédente.
+async function ensureVideoUrl(v) {
+  if (v.url || !v.storageKey || v._urlLoading) return; v._urlLoading = true;
+  try { v.url = (await api(`/storage/read-url?key=${encodeURIComponent(v.storageKey)}`)).url; S.keepScroll = true; render(); }
+  catch (e) { toast(e.message); } finally { v._urlLoading = false; }
+}
+
+/* ---- Logos et jingles : envoi des originaux haute définition ---- */
+async function uploadClientLogo(c, file) {
+  try { c.logoKey = await uploadAsset('logo', file, c.id); saveClients(); }
+  catch (e) { toast(`Le logo haute définition de ${c.name} n'a pas pu être envoyé : la version réduite sera utilisée. ${e.message}`); }
+}
+async function uploadMediaLogo(m, k, file) {
+  try { m[k + 'Key'] = await uploadAsset('logo', file, 'media-' + m.id); saveMedias(); }
+  catch (e) { toast(`Le logo n'a pas pu être envoyé sur l'hébergement : ${e.message}`); }
+}
+// Logos importés avant la configuration du serveur : on envoie la version déjà enregistrée.
+async function ensureBrandKeys(c, m) {
+  const up = async (dataUrl, owner, name) => { const b = dataUrlToBlob(dataUrl); return uploadAsset('logo', new File([b], name, { type: b.type || 'image/png' }), owner); };
+  if (c.logo && !c.logoKey) { try { c.logoKey = await up(c.logo, c.id, 'logo-client.png'); saveClients(); } catch (e) {} }
+  for (const k of ['logoLight', 'logoDark']) if (m[k] && !m[k + 'Key']) { try { m[k + 'Key'] = await up(m[k], 'media-' + m.id, k + '.png'); saveMedias(); } catch (e) {} }
+}
+const JUP = {};
+function jinglePanel(m) {
+  const J = m.jingles || {}; const fm = ['16:9', '9:16', '1:1']; const pos = m.jinglePos || 'debut';
+  const row = f => { const j = J[f]; const st = JUP[m.id + f];
+    return `<div class="row between" style="flex-wrap:nowrap;gap:10px"><div><b style="font-size:14px">Version ${f}</b><div class="small muted" data-jup="${m.id}${f}">${st ? esc(st) : j ? esc(j.name) : 'Aucun fichier'}</div></div>
+      <div class="row" style="gap:6px;flex-wrap:nowrap"><label class="btn btn-ghost btn-sm" style="cursor:pointer">${I('upload')}${j ? 'Remplacer' : 'Importer'}<input type="file" accept="video/*" class="visually-hidden" data-in="m-jingle" data-arg="${f}" ${opusOn() ? '' : 'disabled'}></label>${j ? `<button class="btn btn-quiet btn-sm" data-a="m-jingle-del" data-arg="${f}">${I('trash')}Retirer</button>` : ''}</div></div>`; };
+  const have = fm.filter(f => J[f]); const miss = have.length ? fm.filter(f => !J[f]) : [];
+  return `<div class="panel stack" style="gap:16px"><h3>Jingle vidéo <span class="small muted" style="font-weight:500">(facultatif)</span></h3>
+    <p class="small muted">Ajouté automatiquement au début et/ou à la fin des capsules et teasers de ce média. Importez une version par format pour un rendu parfait.</p>
+    ${opusOn() ? '' : `<p class="small" style="color:var(--warn)">Disponible quand le serveur OpenStudio est configuré.</p>`}
+    ${fm.map(row).join('')}
+    <div class="field"><span class="lab">Position</span><div class="seg-ctl" role="group" aria-label="Position du jingle">${[['debut', 'Au début'], ['fin', 'À la fin'], ['both', 'Début et fin'], ['aucun', 'Aucun']].map(([k, l]) => `<button data-a="m-jpos" data-arg="${k}" aria-pressed="${pos === k}">${l}</button>`).join('')}</div></div>
+    ${miss.length && pos !== 'aucun' ? `<p class="small" style="color:var(--warn)">Pas de version ${miss.join(' ni ')} : le jingle ${have.includes('16:9') ? '16:9' : have[0]} sera recadré automatiquement pour ${miss.length > 1 ? 'ces formats' : 'ce format'}. Une version au bon format serait préférable.</p>` : ''}
+  </div>`;
+}
+async function uploadJingle(m, f, file) {
+  const key = m.id + f; const dims = await new Promise(res => { const v = document.createElement('video'); v.preload = 'metadata'; v.onloadedmetadata = () => res([v.videoWidth, v.videoHeight]); v.onerror = () => res([0, 0]); v.src = URL.createObjectURL(file); });
+  const want = f === '16:9' ? 16 / 9 : f === '9:16' ? 9 / 16 : 1; if (dims[0] && Math.abs(dims[0] / dims[1] - want) > .08) toast(`Attention : ce fichier mesure ${dims[0]} × ${dims[1]}, il ne correspond pas au format ${f}. Il sera recadré.`);
+  JUP[key] = "Envoi en cours… 0 %"; S.keepScroll = true; render();
+  try {
+    const k = await uploadAsset('jingle', file, 'media-' + m.id, p => { JUP[key] = `Envoi en cours… ${Math.round(p * 100)} %`; const el = document.querySelector(`[data-jup="${key}"]`); if (el) el.textContent = JUP[key]; });
+    m.jingles = { ...(m.jingles || {}), [f]: { key: k, name: file.name, w: dims[0], h: dims[1] } }; if (!m.jinglePos) m.jinglePos = 'debut';
+    delete JUP[key]; saveMedias(); toast(`Jingle ${f} enregistré pour ${m.name}`);
+  } catch (e) { JUP[key] = `Erreur d'envoi : ${e.message}`; }
+  S.keepScroll = true; render();
+}
+
+/* ---- Créations du client et projets OpusClip, mémorisés dans ce navigateur ---- */
+function loadSaved(cid) {
+  try { const all = JSON.parse(localStorage.getItem('om-main-saved-v1') || '{}'); return (all[cid] || []).filter(s => video(s.vid)).map(s => ({ ...s, created: new Date(s.created) })); }
+  catch (e) { return []; }
+}
+function saveSaved() {
+  const c = client(); if (!c) return;
+  try { const all = JSON.parse(localStorage.getItem('om-main-saved-v1') || '{}'); all[c.id] = S.saved.filter(s => s.opusId); localStorage.setItem('om-main-saved-v1', JSON.stringify(all)); } catch (e) {}
+}
+const JOBS_KEY = 'om-main-opus-jobs-v1';
+function jobsAll() { try { return JSON.parse(localStorage.getItem(JOBS_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function jobSet(key, j) { const all = jobsAll(); all[key] = { ...(all[key] || {}), ...j }; try { localStorage.setItem(JOBS_KEY, JSON.stringify(all)); } catch (e) {} return all[key]; }
+const curJob = () => S.cap.opusKey ? jobsAll()[S.cap.opusKey] || null : null;
+
+/* ---- Demande OpusClip et suivi ---- */
+function opusOptions(v) {
+  const k = S.cap;
+  return { kind: capKind().id, dur: k.dur, fmt: k.fmt, style: k.style, videoKind: v.kind, momentSec: k.moment != null ? Math.round(k.moment) : null, title: v.title, seed: k.oseed || 0 };
+}
+async function runOpus(v) {
+  const k = S.cap; const c = client(); const options = opusOptions(v);
+  const key = [c.id, v.id, options.kind, options.dur, options.fmt, options.style, options.momentSec ?? '', options.seed].join('|');
+  k.results = null; k.prev = null; k.opusKey = key; k.analyzing = -1;
+  let j = jobsAll()[key];
+  if (j && j.status === 'done' && j.clips) { showOpusResults(j, 0); return; }
+  if (j && j.status === 'running' && j.projectId) { render(); pollOpus(key, 1000); return; }
+  // Demande interrompue avant la réponse (page rechargée) : on la renvoie ; le serveur renvoie le même projet s'il existe déjà.
+  jobSet(key, { key, clientId: c.id, videoId: v.id, options, status: 'running', step: 0, startedAt: j && j.status === 'running' ? j.startedAt : Date.now(), error: null, projectId: null, shown: 0, seen: false, clips: null });
+  render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+  try {
+    const d = await api('/opus/projects', { body: { videoId: v.id, storageKey: v.storageKey, options } });
+    if (d.request) console.info('[OpusClip] requête envoyée', d.request);
+    jobSet(key, { projectId: d.projectId, request: d.request || null, step: 1 });
+  } catch (e) { jobSet(key, { status: 'failed', error: e.message }); opusRefresh(key); return; }
+  opusRefresh(key); pollOpus(key, CAP_OPTIONS.poll.first);
+}
+const OPUS_TIMERS = {};
+function pollOpus(key, delay) {
+  clearTimeout(OPUS_TIMERS[key]); const j = jobsAll()[key]; if (!j || j.status !== 'running' || !j.projectId) return;
+  if (Date.now() - j.startedAt > CAP_OPTIONS.poll.limit) { jobSet(key, { status: 'timeout', error: "L'analyse prend plus de temps que prévu (plus de 30 minutes). Vérifiez à nouveau dans quelques minutes." }); opusRefresh(key); return; }
+  const d0 = delay || CAP_OPTIONS.poll.first;
+  OPUS_TIMERS[key] = setTimeout(async () => {
+    let next = Math.min(CAP_OPTIONS.poll.max, Math.max(CAP_OPTIONS.poll.first, d0 * CAP_OPTIONS.poll.factor));
+    try {
+      const st = await api(`/opus/projects/${encodeURIComponent(j.projectId)}/status`);
+      if (st.status === 'done') { await fetchOpusClips(key); return; }
+      if (st.status === 'failed') { jobSet(key, { status: 'failed', error: st.error }); opusRefresh(key); return; }
+      const est = Math.min(3, 1 + Math.floor((Date.now() - j.startedAt) / 240000)); // estimation si OpusClip ne donne pas l'étape
+      const step = st.step != null ? Math.max(1, Math.min(3, st.step)) : est;
+      if (step !== j.step) { jobSet(key, { step }); opusRefresh(key); }
+    } catch (e) { if (e.code !== 'network') next = Math.max(next, 30000); }
+    pollOpus(key, next);
+  }, d0);
+}
+function resumeOpusPolling() { const c = client(); if (!c || !opusOn()) return; Object.values(jobsAll()).filter(j => j.clientId === c.id && j.status === 'running' && j.projectId).forEach(j => pollOpus(j.key, 2000)); }
+function opusRefresh(key) { if (S.view === 'client' && S.page === 'capsules' && S.cap.opusKey === key && !S.cap.results) { S.keepScroll = true; render(); } }
+async function fetchOpusClips(key) {
+  const j = jobsAll()[key];
+  try {
+    const d = await api(`/opus/projects/${encodeURIComponent(j.projectId)}/clips?dur=${j.options.dur}`);
+    if (!d.clips || !d.clips.length) jobSet(key, { status: 'failed', error: "Aucun extrait n'a été trouvé dans cette vidéo. Essayez une autre durée ou un autre type de vidéo." });
+    else jobSet(key, { status: 'done', step: 4, clips: d.clips, shown: 0 });
+  } catch (e) { jobSet(key, { status: 'failed', error: e.message }); }
+  const nj = jobsAll()[key]; const v = video(nj.videoId);
+  if (S.view === 'client' && S.page === 'capsules' && S.cap.opusKey === key && !S.cap.results) { if (nj.status === 'done') showOpusResults(nj, 0); else { S.keepScroll = true; render(); } }
+  else if (nj.status === 'done') toast(`Vos propositions sont prêtes pour « ${v ? v.title : ''} ». Retrouvez-les dans Capsules vidéo.`);
+}
+function opusResult(cl, j, v) {
+  const text = String(cl.text || '').trim();
+  const lines = (text.match(/[^.!?…]+[.!?…]*/g) || []).map(x => x.trim()).filter(Boolean).slice(0, 6);
+  return { vid: v.id, hi: -1, title: cl.title || 'Extrait', reason: cl.description || '', start: Number(cl.startSec) || 0, dur: Math.max(1, Math.round(Number(cl.durSec) || 0)), lines: lines.length ? lines : [cl.title || v.title], score: null,
+    kind: j.options.kind, fmt: j.options.fmt, opusId: cl.id, projectId: j.projectId, previewUrl: cl.previewUrl, exportUrl: cl.exportUrl, hashtags: cl.hashtags || '', text };
+}
+function showOpusResults(j, from) {
+  const k = S.cap; const v = video(j.videoId); if (!v) return;
+  Object.assign(k, { videoId: j.videoId, kind: j.options.kind, dur: j.options.dur, fmt: j.options.fmt, style: j.options.style, opusKey: j.key, analyzing: -1, step: 2 });
+  const start = from != null ? from : (j.shown || 0);
+  k.results = j.clips.slice(start, start + CAP_OPTIONS.perPage).map(cl => opusResult(cl, j, v)); k.sel = 0;
+  jobSet(j.key, { shown: start, seen: true });
+  if (S.view === 'client' && S.page === 'capsules') render(); else go('client', 'capsules');
+}
+function opusResumeHtml() {
+  const c = client(); if (!c || !opusOn()) return '';
+  const list = Object.values(jobsAll()).filter(j => j.clientId === c.id && j.key !== S.cap.opusKey && video(j.videoId) && (j.status === 'running' || !j.seen)).sort((a, b) => b.startedAt - a.startedAt);
+  const j = list[0]; if (!j) return '';
+  const kk = capKind(j.options.kind); const v = video(j.videoId);
+  const txt = j.status === 'running' ? `Analyse en cours pour « ${esc(v.title)} » (${kk.many}).` : j.status === 'done' ? `${Math.min(CAP_OPTIONS.perPage, j.clips.length)} ${kk.proposed} pour « ${esc(v.title)} ».` : `L'analyse de « ${esc(v.title)} » n'a pas abouti.`;
+  return `<div class="nextstep" style="margin:0 0 20px"><div><b>Reprendre là où vous en étiez</b><p class="muted" style="margin-top:2px">${txt}</p></div><button class="btn btn-primary" data-a="cap-resume" data-arg="${esc(j.key)}">Reprendre</button></div>`;
+}
+function opusProgressHtml(j) {
+  const kk = capKind(j.options.kind);
+  if (j.status === 'failed' || j.status === 'timeout') return `<div class="panel stack" style="gap:12px" role="alert"><h2>L'analyse n'a pas abouti</h2><p class="muted">${esc(j.error || '')}</p>
+    <div class="row">${j.status === 'timeout' ? `<button class="btn btn-primary" data-a="opus-check">${I('refresh')}Vérifier à nouveau</button>` : `<button class="btn btn-primary" data-a="opus-retry">${I('refresh')}Réessayer</button>`}<button class="btn btn-ghost" data-a="opus-reset">${I('edit')}Modifier les réglages</button></div></div>`;
+  const st = ['Demande envoyée', "Analyse de la vidéo par l'IA", 'Découpe et recadrage', 'Ajout des sous-titres', 'Terminé'];
+  const step = Math.max(0, Math.min(4, j.step || 0));
+  return `<div class="panel"><div class="analysis" aria-live="polite"><h2 style="margin-bottom:6px">Préparation de vos ${kk.many}</h2>
+    <p class="muted small" style="margin-bottom:10px;max-width:60ch">Cette opération prend en général plusieurs minutes. Vous pouvez quitter cette page ou fermer l'onglet : vos propositions vous attendront ici.</p>
+    ${st.map((s, i) => `<div class="st ${i < step ? 'done' : i === step ? 'on' : ''}"><i>${i < step ? I('check', 'icon') : ''}</i>${s}</div>`).join('')}</div>
+    ${CONFIG.OPUS_DEBUG && j.request ? `<details style="margin-top:12px"><summary class="small">Requête envoyée à OpusClip</summary><pre class="ai-rules">${esc(JSON.stringify(j.request, null, 2))}</pre></details>` : ''}</div>`;
+}
+
+/* ---- Habillage : aperçu CSS des logos, aux mêmes positions que le rendu final ---- */
+function brandMarks(fmt, v) {
+  const L = BRAND_LAYOUT; const f = L.formats[fmt] || L.formats['9:16']; const c = client() || CLIENTS[0]; const m = mediaById(SRC_MEDIA[v.id]);
+  const top = (f.topH != null ? f.topH * f.ratio : L.marginW) * 100; const mg = L.marginW * 100, lh = L.logoHW * 100, mx = L.maxWW * 100, tx = L.textW * 100;
+  const sh = `filter:drop-shadow(0 0 ${L.shadow.blurW * 100}cqw rgba(0,0,0,${L.shadow.opacity}))`;
+  const cl = c.logo ? `<img class="om-mark" style="top:${top}cqw;left:${mg}cqw;height:${lh}cqw;max-width:${mx}cqw;object-position:left top;${sh}" src="${c.logo}" alt="${esc(c.name)}">`
+    : `<span class="om-mark om-txt" style="top:${top}cqw;left:${mg}cqw;font-size:${tx}cqw">${esc(c.name)}</span>`;
+  const lg = m.logoAllowed !== false && (m.logoLight || m.logoDark);
+  const md = lg ? `<img class="om-mark" style="top:${top}cqw;right:${mg}cqw;height:${lh * L.mediaScale}cqw;max-width:${mx}cqw;object-position:right top;${sh}" src="${m.logoLight || m.logoDark}" alt="${esc(m.name)}">`
+    : `<span class="om-mark om-txt" style="top:${top}cqw;right:${mg}cqw;font-size:${tx}cqw">${esc(mentionLabel(m, true))}</span>`;
+  return cl + md;
+}
+function opusPreviewHtml(v) {
+  const k = S.cap; const m = mediaById(SRC_MEDIA[v.id]); const h = v.highlights && v.highlights[0];
+  return `<div class="frame ${fmtClass(k.fmt)} oframe" data-style="${k.style}" style="--hl:${m.accent}">${scene(v)}${brandMarks(k.fmt, v)}<p class="sub sub-${k.style}">${subHtml(h ? h.lines[0] : 'Aperçu du *style* de vos sous-titres', k.style)}</p></div>`;
+}
+function opusFrameHtml(v, r, i) {
+  return `<div class="frame ${fmtClass(r.fmt)} oframe" data-oframe="${i}"><video src="${esc(r.previewUrl)}" playsinline preload="metadata" data-ov="${i}"></video>${brandMarks(r.fmt, v)}
+    <button class="fplay" data-a="oplay" data-arg="${i}" aria-label="Lire l'aperçu">${IF('play')}</button><span class="ftime num" data-oft="${i}">0:00 / ${tc(r.dur)}</span><i class="fprog" data-ofp="${i}"></i></div>`;
+}
+function oPlay(i) {
+  const v = document.querySelector(`video[data-ov="${i}"]`); const b = document.querySelector(`[data-a="oplay"][data-arg="${i}"]`); if (!v) return;
+  if (!v.paused) { v.pause(); b.innerHTML = IF('play'); return; }
+  document.querySelectorAll('video[data-ov]').forEach(x => { if (x !== v) x.pause(); }); document.querySelectorAll('[data-a="oplay"]').forEach(x => { x.innerHTML = IF('play'); });
+  v.ontimeupdate = () => { const d = v.duration || 1; const ft = document.querySelector(`[data-oft="${i}"]`), fp = document.querySelector(`[data-ofp="${i}"]`); if (ft) ft.textContent = `${tc(v.currentTime)} / ${tc(d)}`; if (fp) fp.style.width = Math.min(100, v.currentTime / d * 100) + '%'; };
+  v.onended = () => { b.innerHTML = IF('play'); };
+  v.play().then(() => { b.innerHTML = IF('pause'); }).catch(() => toast("L'aperçu ne peut pas être lu pour le moment. Réessayez dans un instant."));
+}
+const bKey = s => `${s.opusId}|${s.fmt}`;
+const BR = {};
+function brandStatusText(r) { const st = BR[bKey(r)]; return st ? esc(st.text) : ''; }
+function bstat(s) { const t = (BR[bKey(s)] || {}).text || ''; document.querySelectorAll(`[data-bstat="${CSS.escape(bKey(s))}"]`).forEach(el => { el.textContent = t; }); }
+function opusPropHtml(r, i, v) {
+  const kk = capKind(r.kind); const can = CAP_OPTIONS.unlimited || canCapsule();
+  return `<article class="prop ${i === S.cap.sel ? 'sel' : ''}" id="prop${i}"><div class="frame-wrap">${opusFrameHtml(v, r, i)}</div>
+    <div class="stack" style="gap:10px"><span class="rank">Proposition ${i + 1}</span><h3 style="font-size:20px">${esc(r.title)}</h3>
+      <div class="row" style="gap:16px"><span class="small muted num">De ${tc(r.start)} à ${tc(r.start + r.dur)} (${r.dur} s)</span></div>
+      ${r.reason ? `<p class="reason"><b>Pourquoi cet extrait :</b> ${esc(r.reason)}</p>` : ''}
+      ${r.text ? `<p class="small muted">« ${esc(r.text.length > 260 ? r.text.slice(0, 257) + '…' : r.text)} »</p>` : ''}
+      <div class="row" style="margin-top:4px"><button class="btn btn-primary btn-sm" data-a="cap-save" data-arg="${i}">${can ? I('down') : I('lock')}${can ? kk.dl : capLabel()}</button><button class="btn btn-ghost btn-sm" data-a="cap-post" data-arg="${i}">${I('chat')}Écrire le post</button></div>
+      <p class="small muted" data-bstat="${esc(bKey(r))}" aria-live="polite">${brandStatusText(r)}</p>
+    </div></article>`;
+}
+function opusSave(r) {
+  const c = client(); let s = S.saved.find(x => x.opusId === r.opusId && x.fmt === r.fmt);
+  if (!s) { s = { id: 's' + Date.now(), vid: r.vid, title: r.title, start: r.start, dur: r.dur, fmt: r.fmt, style: S.cap.style, kind: r.kind, lines: [...r.lines], created: new Date(TODAY), opusId: r.opusId, projectId: r.projectId, previewUrl: r.previewUrl, hashtags: r.hashtags, description: r.reason }; S.saved.unshift(s); c.stats.capsules++; saveSaved(); }
+  return s;
+}
+function brandRequest(s, c, m) {
+  return {
+    projectId: s.projectId, clipId: s.opusId, fmt: s.fmt, clientLogoKey: c.logoKey || null, clientName: c.name,
+    media: { name: m.name, mention: mentionLabel(m, true), accent: m.accent, logoAllowed: m.logoAllowed !== false, logoLightKey: m.logoLightKey || null, logoDarkKey: m.logoDarkKey || null,
+      jingles: Object.fromEntries(Object.entries(m.jingles || {}).map(([f, x]) => [f, x.key])), jinglePos: m.jinglePos || 'aucun' },
+    hook: '', fileName: capFile(s),
+    client: { id: c.id, email: c.email, name: c.name, contact: c.contact } // Emails : événement video.generated côté serveur
+  };
+}
+async function fetchAndSave(url, name) {
+  try { const r = await fetch(url); if (!r.ok) throw new Error('http'); return await saveBlob(name, await r.blob()); }
+  catch (e) { window.open(url, '_blank', 'noopener'); toast("Le téléchargement s'ouvre dans un nouvel onglet."); return true; } // CORS bloqué : lien direct
+}
+async function opusDownload(s) {
+  if (!CAP_OPTIONS.unlimited && !s.counted && !canCapsule()) { needOffer('capsules-pro'); return; }
+  const k = bKey(s); if (BR[k] && BR[k].busy) return;
+  const c = client(); const v = video(s.vid); const m = mediaById(SRC_MEDIA[v.id]);
+  BR[k] = { busy: true, text: 'Ajout de vos logos…' }; bstat(s);
+  try {
+    await ensureBrandKeys(c, m);
+    let job = s.renderJobId ? await api(`/render/${encodeURIComponent(s.renderJobId)}`).catch(() => null) : null;
+    if (!job || job.status === 'failed') job = await api('/render/brand', { body: brandRequest(s, c, m) });
+    s.renderJobId = job.jobId; saveSaved(); const t0 = Date.now();
+    while (job.status !== 'done') {
+      if (job.status === 'failed') throw new Error(job.error || "L'ajout de vos logos n'a pas abouti. Réessayez dans un instant.");
+      if (Date.now() - t0 > 20 * 60000) throw new Error("L'ajout de vos logos prend plus de temps que prévu. Réessayez dans quelques minutes.");
+      BR[k].text = job.status === 'queued' && job.position > 1 ? `Ajout de vos logos : ${job.position - 1} vidéo${job.position > 2 ? 's' : ''} avant la vôtre…` : `Ajout de vos logos… ${Math.round((job.progress || 0) * 100)} %`; bstat(s);
+      await new Promise(res => setTimeout(res, 3000));
+      job = await api(`/render/${encodeURIComponent(job.jobId)}`);
+    }
+    BR[k].text = 'Téléchargement…'; bstat(s); s.fileKey = job.fileKey; saveSaved();
+    const ok = await fetchAndSave(job.url, capFile(s)); // lien signé régénéré à chaque appel : jamais expiré
+    if (ok) {
+      c.stats.downloads++;
+      if (!CAP_OPTIONS.unlimited && !s.counted) { ent().capUsed++; s.counted = true; saveSaved(); } // décompté après un téléchargement réussi
+      toast(`${s.kind === 'teaser' ? 'Teaser téléchargé' : 'Capsule téléchargée'} : ${capFile(s)}`);
+    }
+    BR[k] = { busy: false, text: ok ? 'Téléchargée avec vos logos.' : '' };
+  } catch (e) { BR[k] = { busy: false, text: e.message }; toast(e.message); }
+  bstat(s);
+}
+// Point d'entrée commun : « Créer des capsules », « Créer un teaser », moment fort, kit de lancement.
+function capStart(vid, kind, moment) {
+  const k = S.cap; const kd = capKind(kind);
+  if ((k.kind || 'capsule') !== kd.id) { k.dur = kd.dur; k.fmt = kd.fmt; }
+  k.kind = kd.id; if (vid) k.videoId = vid; k.moment = moment != null ? moment : null;
+  k.results = null; k.prev = null; k.analyzing = -1; k.opusKey = null; k.step = vid ? 2 : 1;
+  go('client', 'capsules');
+}
+function opusHistRow(s) {
+  return `<div class="li"><span class="fi">${I('spark')}</span><div class="grow"><b>${esc(s.title)}</b><span class="small muted num">${s.kind === 'teaser' ? 'Teaser, ' : ''}${esc(video(s.vid).title)}, ${s.dur} s, ${s.fmt}, créée le ${fmtShort(s.created)}</span><span class="small muted" style="display:block" data-bstat="${esc(bKey(s))}" aria-live="polite">${brandStatusText(s)}</span></div><button class="btn btn-ghost btn-sm" data-a="dl-brand" data-arg="${s.id}" aria-label="Télécharger ${s.kind === 'teaser' ? 'le teaser' : 'la capsule'}">${I('down')}</button></div>`;
+}
+// « Proposer d'autres extraits » : d'abord les clips déjà reçus et pas encore affichés, puis une nouvelle analyse sur confirmation.
+function opusMore(j) {
+  const next = (j.shown || 0) + CAP_OPTIONS.perPage;
+  if (j.clips && next < j.clips.length) { showOpusResults(j, next); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  S.modal = { type: 'opus-more' }; render();
+}
 
 let AI = null, DL = null;
 
@@ -1003,16 +1413,19 @@ function doLogin(code) {
   if (st.k === 'prep') { S.clientId = c.id; S.view = 'blocked'; render(); return; }
   S.clientId = c.id; S.asAdmin = false;
   if (st.k === 'disabled' || st.k === 'expired') { S.view = 'blocked'; render(); return; }
+  const firstLogin = !c.activatedAt; /* Emails : première connexion */
   if (!c.activatedAt) { c.activatedAt = new Date(TODAY); c.expiresAt = addDays(TODAY, c.duration); S.modal = { type: 'onboarding' }; S.onb = 0; }
   c.lastLogin = new Date(TODAY); c.stats.logins++;
   resetClientState();
+  trackEvent('user.login', { first: firstLogin }, firstLogin ? 'first-login' : 'login-' + Date.now().toString(36)); /* Emails : parcours Activation (1re connexion) */
   go('client', 'dashboard');
 }
 function resetClientState() {
-  S.cap = { step: 1, videoId: (CV()[0] || VIDEOS[0]).id, dur: 30, fmt: '9:16', style: 'impact', results: null, seed: 0, sel: 0, analyzing: -1 };
+  S.cap = { step: 1, videoId: (CV()[0] || VIDEOS[0]).id, dur: 30, fmt: '9:16', style: 'impact', results: null, seed: 0, sel: 0, analyzing: -1, kind: 'capsule', moment: null, opusKey: null };
   S.pub = { source: 'v1', nets: ['linkedin'], tone: 'expert', results: null, loading: false, active: null, mode: null, editing: {}, extra: 'cal' };
   S.vis = { tpl: 'citation', fmt: '1:1', photo: null, results: null, loading: -1, seed: 0 }; S.visSaved = [];
   S.saved = [];
+  if (opusOn()) { S.saved = loadSaved(S.clientId); setTimeout(resumeOpusPolling, 0); } /* OpusClip : créations mémorisées */
 }
 function autoPanel(c) {
   if (c.unlimited) return '';
@@ -1148,7 +1561,7 @@ function timelineHtml(v, segs, sel = -1, act = 'tl-seg') {
   <div class="ticks">${ticks}</div></div>`;
 }
 function pVideo(c, v) {
-  if (v.url) return pVideoReal(c, v);
+  if (v.url || isOpusVideo(v)) return pVideoReal(c, v); /* OpusClip : vidéo déposée lors d'une session précédente */
   const segs = v.highlights.map(h => ({ start: h.start, dur: 40, title: h.title }));
   const allLines = v.highlights.flatMap(h => h.lines.map((l, i) => ({ t: h.start + i * 7, l })));
   return `<div class="row" style="margin-bottom:14px"><button class="btn btn-quiet btn-sm" data-a="nav" data-arg="videos">${I('back')}Mes vidéos</button></div>
@@ -1167,7 +1580,7 @@ function pVideo(c, v) {
     </div>
     <aside class="stack">
       <div class="panel"><h3>Créer à partir de cette vidéo</h3><p class="muted small" style="margin:6px 0 14px">L'IA a déjà repéré ${v.highlights.length} extraits exploitables.</p>
-        <div class="stack"><button class="btn btn-primary" data-a="cap-from" data-arg="${v.id}|-1">${I('spark')}Créer des capsules</button><button class="btn btn-ghost" data-a="pub-from" data-arg="${v.id}">${I('chat')}Écrire une publication</button></div></div>
+        <div class="stack"><button class="btn btn-primary" data-a="cap-from" data-arg="${v.id}|-1">${I('spark')}Créer des capsules</button><button class="btn btn-ghost" data-a="cap-teaser" data-arg="${v.id}">${I('video')}Créer un teaser</button><button class="btn btn-ghost" data-a="pub-from" data-arg="${v.id}">${I('chat')}Écrire une publication</button></div></div>
       <div class="panel"><h3>Formats disponibles</h3><div class="stack" style="margin-top:12px">${v.formats.map(f => `<div class="row between"><div><b style="font-size:14px">${esc(f.label)}</b><div class="small muted">${esc(f.spec)}, ${esc(f.size)}</div></div><button class="btn btn-ghost btn-sm" data-a="dl-sim" data-arg="${esc(f.file)}|${esc(f.size)}" aria-label="Télécharger ${esc(f.label)}">${I('down')}</button></div>`).join('')}</div></div>
       ${YT[v.id] ? `<div class="panel"><h3>Titres proposés pour YouTube</h3><div class="stack" style="margin-top:12px">${YT[v.id].titles.map(t => `<div class="row between" style="flex-wrap:nowrap;align-items:flex-start"><span style="font-size:14px">${esc(t)}</span><button class="btn btn-quiet btn-sm" data-a="copy" data-arg="${esc(t)}" aria-label="Copier le titre">${I('copy')}</button></div>`).join('')}</div><button class="btn btn-ghost btn-sm" style="margin-top:12px" data-a="copy" data-arg="${esc(YT[v.id].desc)}">${I('copy')}Copier la description YouTube</button></div>` : ''}
     </aside>
@@ -1199,18 +1612,20 @@ function frameHtml(v, cap, fmt, style, key) {
 }
 function pCapsules(c) {
   const k = S.cap; const v = video(k.videoId);
-  const stepN = k.results ? 3 : (k.analyzing >= 0 ? 3 : k.step);
+  const oj = curJob(); const opusBusy = !!(oj && !k.results && oj.status !== 'done'); /* OpusClip */
+  const stepN = k.results ? 3 : (k.analyzing >= 0 || opusBusy ? 3 : k.step);
   const steps = ['Vidéo', 'Réglages', 'Propositions'].map((l, i) => `<span class="${stepN === i + 1 ? 'on' : stepN > i + 1 ? 'done' : ''}"><b>${stepN > i + 1 ? '✓' : i + 1}</b>${l}</span>`).join('<hr>');
   let body = '';
-  if (k.analyzing >= 0) {
+  if (opusBusy) body = opusProgressHtml(oj); /* OpusClip : vrai suivi de l'analyse */
+  else if (k.analyzing >= 0) {
     const st = ['Lecture de la transcription', 'Sélection des moments les plus forts', `Recadrage au format ${k.fmt}`, 'Incrustation des sous-titres'];
-    body = `<div class="panel"><div class="analysis" aria-live="polite"><h2 style="margin-bottom:6px">Préparation de vos capsules</h2>${st.map((s, i) => `<div class="st ${i < k.analyzing ? 'done' : i === k.analyzing ? 'on' : ''}"><i>${i < k.analyzing ? I('check', 'icon') : ''}</i>${s}</div>`).join('')}</div></div>`;
+    body = `<div class="panel"><div class="analysis" aria-live="polite"><h2 style="margin-bottom:6px">Préparation de vos ${capKind().many}</h2>${st.map((s, i) => `<div class="st ${i < k.analyzing ? 'done' : i === k.analyzing ? 'on' : ''}"><i>${i < k.analyzing ? I('check', 'icon') : ''}</i>${s}</div>`).join('')}</div></div>`;
   } else if (k.results) {
     const segs = k.results.map(r => ({ start: r.start, dur: r.dur, title: r.title }));
-    body = `<div class="panel" style="margin-bottom:18px"><div class="row between"><div><h2>${k.results.length} capsules proposées</h2><p class="muted small" style="margin-top:4px">${esc(v.title)}, ${k.dur} secondes, format ${k.fmt}, sous-titres ${k.style}</p></div>
+    body = `<div class="panel" style="margin-bottom:18px"><div class="row between"><div><h2>${k.results.length} ${capKind().proposed}</h2><p class="muted small" style="margin-top:4px">${esc(v.title)}, ${k.dur} secondes, format ${k.fmt}, sous-titres ${k.style}</p></div>
       <div class="row"><button class="btn btn-ghost btn-sm" data-a="cap-settings">${I('edit')}Modifier les réglages</button><button class="btn btn-ghost btn-sm" data-a="cap-regen">${I('refresh')}Proposer d'autres extraits</button></div></div>
       <div style="margin-top:16px">${timelineHtml(v, segs, k.sel, 'cap-sel')}</div></div>
-      <div class="stack">${k.results.map((r, i) => `<article class="prop ${i === k.sel ? 'sel' : ''}" id="prop${i}"><div class="frame-wrap">${frameHtml(v, r, k.fmt, k.style, 'r' + i)}</div>
+      <div class="stack">${k.results.map((r, i) => r.opusId ? opusPropHtml(r, i, v) : `<article class="prop ${i === k.sel ? 'sel' : ''}" id="prop${i}"><div class="frame-wrap">${frameHtml(v, r, k.fmt, k.style, 'r' + i)}</div>
         <div class="stack" style="gap:10px"><span class="rank">Proposition ${i + 1}</span><h3 style="font-size:20px">${esc(r.title)}</h3>
           <div class="row" style="gap:16px"><span class="small muted num">De ${tc(r.start)} à ${tc(r.start + r.dur)}</span><span class="score num">${String(r.score).replace('.', ',')}/10<span class="bar"><i style="width:${r.score * 10}%"></i></span></span></div>
           <p class="reason"><b>Pourquoi cet extrait :</b> ${esc(r.reason)}</p>
@@ -1218,27 +1633,31 @@ function pCapsules(c) {
           <div class="row" style="margin-top:4px"><button class="btn btn-primary btn-sm" data-a="cap-save" data-arg="${i}">${canCapsule() ? I('down') : I('lock')}${canCapsule() ? (unlocked('capsules-pro') ? 'Télécharger la capsule' : 'Télécharger ma capsule offerte') : capLabel()}</button><button class="btn btn-ghost btn-sm" data-a="sub-edit" data-arg="${i}">${I('edit')}Modifier les sous-titres</button><button class="btn btn-ghost btn-sm" data-a="cap-post" data-arg="${i}">${I('chat')}Écrire le post</button></div>
         </div></article>`).join('')}</div>`;
   } else if (k.step === 1) {
-    body = `<div class="grid g3">${CV().filter(x => !(x.uploaded && x.version === 'avec')).map(x => `<button class="pick" data-a="cap-video" data-arg="${x.id}" aria-pressed="${k.videoId === x.id}">${thumb(x)}<div class="meta"><b>${esc(x.title)}</b><span class="tag" style="margin:4px 0">Sans sous-titres</span><div class="small muted">${x.highlights.length} moments forts, ${tc(x.duration)}</div></div></button>`).join('')}</div>
+    body = `<div class="grid g3">${CV().filter(x => !(x.uploaded && x.version === 'avec')).map(x => `<button class="pick" data-a="cap-video" data-arg="${x.id}" aria-pressed="${k.videoId === x.id}">${thumb(x)}<div class="meta"><b>${esc(x.title)}</b><span class="tag" style="margin:4px 0">Sans sous-titres</span>${isOpusVideo(x) ? `<div class="row" style="gap:6px;margin-bottom:4px">${uploadTag(x)}</div>` : ''}<div class="small muted">${x.highlights.length ? x.highlights.length + ' moments forts, ' : ''}${tc(x.duration)}</div></div></button>`).join('')}</div>
       <div class="row" style="justify-content:flex-end;margin-top:20px"><button class="btn btn-primary" data-a="cap-step" data-arg="2">Continuer</button></div>`;
   } else {
-    const fm = [['9:16', 'Vertical', 'Reels, TikTok, Stories', 18, 32], ['1:1', 'Carré', 'Fil LinkedIn, Instagram', 26, 26], ['16:9', 'Horizontal', 'YouTube, site web', 36, 20]];
+    const fm = CAP_OPTIONS.fmts; const kk = capKind(); /* OpusClip : formulaire construit à partir de CAP_OPTIONS */
     body = `<div class="panel stack" style="gap:26px">
-      <div class="field"><span class="lab">Durée de chaque capsule</span><div class="seg-ctl" role="group" aria-label="Durée">${[15, 30, 45, 60].map(d => `<button data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>
-      <div class="field"><span class="lab">Format</span><div class="row" role="group" aria-label="Format">${fm.map(([f, l, u, w, h]) => `<button class="fmt-opt" data-a="cap-fmt" data-arg="${f}" aria-pressed="${k.fmt === f}"><i style="width:${w}px;height:${h}px"></i><b>${l} ${f}</b><small>${u}</small></button>`).join('')}</div></div>
-      <div class="field"><span class="lab">Style des sous-titres</span><div class="seg-ctl" role="group" aria-label="Style des sous-titres">${[['impact', 'Impact'], ['classique', 'Classique'], ['minimal', 'Discret']].map(([s, l]) => `<button data-a="cap-style" data-arg="${s}" aria-pressed="${k.style === s}">${l}</button>`).join('')}</div></div>
-      <div class="row" style="gap:20px;align-items:center"><div>${frameHtml(v, { lines: v.highlights[0].lines, dur: k.dur }, k.fmt, k.style, 'preview')}</div><p class="muted small" style="max-width:36ch">Aperçu du rendu avec « ${esc(v.title)} ». Le logo de votre entreprise est ajouté en haut de la capsule.</p></div>
-      <div class="row between"><div class="row"><button class="btn btn-quiet" data-a="cap-step" data-arg="1">${I('back')}Changer de vidéo</button>${k.prev ? `<button class="btn btn-ghost" data-a="cap-back">Revenir aux propositions</button>` : ''}</div><button class="btn btn-primary" data-a="cap-run">${I('spark')}Proposer mes capsules</button></div></div>`;
+      <div class="field"><span class="lab">Type de vidéo</span><div class="seg-ctl" role="group" aria-label="Type de vidéo">${CAP_OPTIONS.kinds.map(x => `<button data-a="cap-kind" data-arg="${x.id}" aria-pressed="${kk.id === x.id}">${x.label}</button>`).join('')}</div></div>
+      <div class="field"><span class="lab">Durée de chaque ${kk.one}</span><div class="seg-ctl" role="group" aria-label="Durée">${kk.durs.map(d => `<button data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div>${isOpusVideo(v) ? `<span class="small muted">Durée visée : la durée réelle de chaque proposition est affichée.</span>` : ''}</div>
+      <div class="field"><span class="lab">Format</span><div class="row" role="group" aria-label="Format">${fm.map(([f, l, u, w, h]) => `<button class="fmt-opt" data-a="cap-fmt" data-arg="${f}" aria-pressed="${k.fmt === f}"><i style="width:${w}px;height:${h}px"></i><b>${l} ${f}</b><small>${u}</small></button>`).join('')}</div>${k.fmt === '16:9' && v.w && v.h && v.h > v.w ? `<span class="small" style="color:var(--warn)">Cette vidéo est verticale : au format horizontal 16:9, elle ne remplira pas tout le cadre. Le format vertical 9:16 donnera un meilleur résultat.</span>` : ''}</div>
+      <div class="field"><span class="lab">Style des sous-titres</span><div class="seg-ctl" role="group" aria-label="Style des sous-titres">${CAP_OPTIONS.styles.map(([s, l]) => `<button data-a="cap-style" data-arg="${s}" aria-pressed="${k.style === s}">${l}</button>`).join('')}</div></div>
+      ${isOpusVideo(v) && k.moment != null ? `<p class="small muted">Extraits recherchés autour du moment choisi, à ${tc(k.moment)}. <a href="#" data-a="cap-moment-clear">Analyser toute la vidéo</a></p>` : ''}
+      <div class="row" style="gap:20px;align-items:center"><div>${isOpusVideo(v) ? opusPreviewHtml(v) : frameHtml(v, { lines: v.highlights[0].lines, dur: k.dur }, k.fmt, k.style, 'preview')}</div><p class="muted small" style="max-width:36ch">Aperçu du rendu avec « ${esc(v.title)} ». Le logo de votre entreprise est ajouté en haut de la ${kk.id === 'teaser' ? 'vidéo' : 'capsule'}.</p></div>
+      ${isOpusVideo(v) && !opusReady(v) ? `<p class="small" style="color:var(--warn)">${v.upload.status === 'error' ? "Cette vidéo n'a pas pu être envoyée sur l'hébergement : l'équipe OpenMedias doit la déposer à nouveau." : "Cette vidéo est en cours d'envoi par l'équipe OpenMedias : vous pourrez lancer votre demande dès qu'elle sera prête."}</p>` : ''}
+      <div class="row between"><div class="row"><button class="btn btn-quiet" data-a="cap-step" data-arg="1">${I('back')}Changer de vidéo</button>${k.prev ? `<button class="btn btn-ghost" data-a="cap-back">Revenir aux propositions</button>` : ''}</div><button class="btn btn-primary" data-a="cap-run" ${isOpusVideo(v) && !opusReady(v) ? 'disabled' : ''}>${I('spark')}${kk.run}</button></div></div>`;
   }
   const hist = S.saved.length ? `<section class="sec"><div class="sec-head"><h2>Mes capsules</h2><span class="small muted">${S.saved.length} capsule${S.saved.length > 1 ? 's' : ''} enregistrée${S.saved.length > 1 ? 's' : ''}</span></div>
-    <div class="list">${S.saved.map(s => `<div class="li"><span class="fi">${I('spark')}</span><div class="grow"><b>${esc(s.title)}</b><span class="small muted num">${esc(video(s.vid).title)}, ${s.dur} s, ${s.fmt}, créée le ${fmtShort(s.created)}</span></div><button class="btn btn-ghost btn-sm" data-a="srt" data-arg="${s.id}">Sous-titres .srt</button><button class="btn btn-ghost btn-sm" data-a="dl-sim" data-arg="${capFile(s)}|18 Mo" aria-label="Télécharger la capsule">${I('down')}</button></div>`).join('')}</div></section>` : '';
-  return `<div class="page-head"><div><h1>Capsules vidéo</h1><p>Choisissez une vidéo : l'IA repère les meilleurs moments et les prépare au format des réseaux sociaux, sous-titrés. Votre première capsule est offerte.</p></div></div>
+    <div class="list">${S.saved.map(s => s.opusId ? opusHistRow(s) : `<div class="li"><span class="fi">${I('spark')}</span><div class="grow"><b>${esc(s.title)}</b><span class="small muted num">${esc(video(s.vid).title)}, ${s.dur} s, ${s.fmt}, créée le ${fmtShort(s.created)}</span></div><button class="btn btn-ghost btn-sm" data-a="srt" data-arg="${s.id}">Sous-titres .srt</button><button class="btn btn-ghost btn-sm" data-a="dl-sim" data-arg="${capFile(s)}|18 Mo" aria-label="Télécharger la capsule">${I('down')}</button></div>`).join('')}</div></section>` : '';
+  return `<div class="page-head"><div><h1>Capsules vidéo</h1><p>Choisissez une vidéo : l'IA repère les meilleurs moments et les prépare au format des réseaux sociaux, sous-titrés. ${opusOn() && CAP_OPTIONS.unlimited ? 'Capsules et teasers sont inclus dans votre espace.' : 'Votre première capsule est offerte.'}</p></div><button class="btn btn-ghost" data-a="cap-teaser" data-arg="">${I('video')}Créer un teaser</button></div>
   ${freeBox(client())}
   
+  ${opusResumeHtml()}
   ${T.libId && (T.results || T.loading) && video(T.libId) ? `<div class="nextstep" style="margin:0 0 20px"><div><b>Reprendre là où vous en étiez</b><p class="muted" style="margin-top:2px">${T.results ? T.results.length + ' capsules proposées' : 'Analyse en cours'} pour « ${esc(video(T.libId).title)} ».</p></div><button class="btn btn-primary" data-a="nav" data-arg="test">Reprendre</button></div>` : ''}
   <div class="steps-h" aria-label="Étapes">${steps}</div>${body}${hist}
   ${upsellTip(['capsules-pro', 'teaser'], 'Vous préférez des capsules montées par nos monteurs ?')}`;
 }
-function capFile(s) { return `capsule_${s.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}_${s.fmt.replace(':', 'x')}_${s.dur}s.mp4`; }
+function capFile(s) { return `${s.kind === 'teaser' ? 'teaser' : 'capsule'}_${s.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}_${s.fmt.replace(':', 'x')}_${s.dur}s.mp4`; }
 function srtOf(s) {
   const per = s.dur / s.lines.length; const t = x => { const ms = Math.round(x * 1000); const h = 0, m = Math.floor(ms / 60000), sec = Math.floor(ms % 60000 / 1000), r = ms % 1000; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')},${String(r).padStart(3, '0')}`; };
   return s.lines.map((l, i) => `${i + 1}\n${t(i * per)} --> ${t((i + 1) * per - .05)}\n${l.replace(/\*/g, '')}\n`).join('\n');
@@ -1406,7 +1825,7 @@ function fallback(c, s, nets, tone, seed) {
 }
 
 /* ================= Bibliothèque des médias ================= */
-const MEDIA_DEF = { mention: 'Vu dans', logoLight: '', logoDark: '', logoAllowed: true, showOM: true, bg: '#111137', accent: '#3B3BFA', text: '#FFFFFF', handle: '', hashtags: '', rules: '', updated: null };
+const MEDIA_DEF = { mention: 'Vu dans', logoLight: '', logoDark: '', logoAllowed: true, showOM: true, bg: '#111137', accent: '#3B3BFA', text: '#FFFFFF', handle: '', hashtags: '', rules: '', updated: null, logoLightKey: '', logoDarkKey: '', jingles: {}, jinglePos: 'debut' }; /* Habillage : clés de stockage et jingle */
 let MEDIAS = [
   { ...MEDIA_DEF, id: 'openmedias', name: 'OpenMedias', mention: 'Reportage', logoLight: LOGO_URI, showOM: false, handle: '@OpenMedias', rules: "Contenus réalisés par OpenMedias : mettre en avant l'entreprise et ses équipes, ton professionnel et chaleureux.", updated: new Date(TODAY) },
   { ...MEDIA_DEF, id: 'bfm-business', name: 'BFM Business' },
@@ -1420,6 +1839,7 @@ function saveMedias() { try { localStorage.setItem('om-main-medias', JSON.string
 try { const sv = JSON.parse(localStorage.getItem('om-main-medias') || 'null'); if (Array.isArray(sv)) sv.forEach(x => { const i = MEDIAS.findIndex(m => m.id === x.id); if (i >= 0) MEDIAS[i] = { ...MEDIAS[i], ...x }; else if (x.id && x.name) MEDIAS.push({ ...MEDIA_DEF, ...x }); }); } catch (e) {}
 const MENTIONS = ['Vu dans', 'Vu sur', 'Diffusé sur', 'Contenu partenaire', 'Reportage', 'Aucune mention'];
 const SRC_MEDIA = { v1: 'bfm-business', v2: 'openmedias', v3: 'capital', a1: 'figaro' };
+VIDEOS.forEach(v => { if (v.restored && v.mediaId) SRC_MEDIA[v.id] = v.mediaId; }); /* OpusClip : vidéos déposées lors d'une session précédente */
 const mediaById = id => MEDIAS.find(m => m.id === id) || MEDIAS[0];
 function mediaOf(srcId) {
   if (!srcId) return MEDIAS[0];
@@ -1477,6 +1897,7 @@ function aMedia(m) {
         <div class="field"><label for="m-mention">Mention accompagnant le logo</label><select class="select" id="m-mention" data-in="m-f" data-arg="mention">${MENTIONS.map(x => `<option ${m.mention === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
         <div class="row between" style="flex-wrap:nowrap"><div><b style="font-size:14px">Afficher le logo OpenMedias</b><div class="small muted">Petit logo en bas à droite des visuels.</div></div><button class="toggle" role="switch" aria-checked="${m.showOM}" aria-label="Logo OpenMedias" data-a="m-toggle" data-arg="showOM"></button></div>
       </div>
+      ${jinglePanel(m)}
       <div class="panel stack" style="gap:16px"><h3>Règles pour l'IA</h3>
         <p class="small muted">Ces consignes sont transmises à l'IA à chaque génération (publications, textes des visuels, titres) pour les contenus de ce média.</p>
         <div class="grid g2" style="gap:14px"><div class="field"><label for="m-handle">Compte officiel à mentionner</label><input class="input" id="m-handle" placeholder="@compte" value="${esc(m.handle)}" data-in="m-f" data-arg="handle"></div>
@@ -2484,7 +2905,7 @@ function addVidHtml(m) {
     <div class="stack" style="gap:8px">${f.docs.map(docRow).join('')}</div>
     <label class="btn btn-ghost btn-sm" style="cursor:pointer;align-self:flex-start">${I('file')}Ajouter des articles ou documents<input type="file" multiple accept=".pdf,.doc,.docx,.odt,.txt,image/*" class="visually-hidden" data-in="av-docs"></label>
   </div>
-  <p class="small muted" style="margin-top:14px">Dans ce prototype, les fichiers restent sur cet ordinateur pendant la session. En production, ils sont envoyés sur l'hébergement et restent disponibles pour le client pendant toute la durée de son accès.</p>
+  ${opusOn() ? `<p class="small muted" style="margin-top:14px">Les vidéos sont envoyées une seule fois sur l'hébergement OpenMedias dès que vous validez. Gardez cette page ouverte jusqu'à la fin de l'envoi : le statut de chaque vidéo s'affiche dans la fiche du client.</p>` : `<p class="small muted" style="margin-top:14px">Dans ce prototype, les fichiers restent sur cet ordinateur pendant la session. En production, ils sont envoyés sur l'hébergement et restent disponibles pour le client pendant toute la durée de son accès.</p>`}
   <p class="err-msg" id="av-err"></p>`;
 }
 function avAddVideos(files) {
@@ -2514,9 +2935,11 @@ function addContents(c, f) {
       cues: r.cues, transcript: r.cues.length ? r.cues.map(q => ({ s: q.s, e: q.e, t: q.t })) : null, summary: r.cues.length ? "Résumé en cours de rédaction par l'IA…" : `${r.kind} réalisé${/^(Émission|Interview|Immersion)$/.test(r.kind) ? 'e' : ''} par OpenMedias.`, summaryAuto: true,
       formats: [{ label: r.kind === 'Émission' ? 'Émission complète' : r.kind, spec: `MP4${r.h ? ' ' + Math.min(r.w, r.h) + 'p' : ''}${r.w && r.h ? ', ' + (r.w > r.h ? '16:9' : r.w === r.h ? '1:1' : '9:16') : ''}`, size: fmtSize(r.file.size), file: r.file.name, real: true }],
       highlights: [], status: r.cues.length ? 'analyse' : 'sans', version: r.version || 'sans' };
+    if (opusOn()) { v.clientId = c.id; v.w = r.w; v.h = r.h; v.upload = { status: 'uploading', pct: 0 }; } /* OpusClip : dimensions réelles et statut d'envoi */
     VIDEOS.push(v); SRC_MEDIA[id] = md.id; SOURCES[id] = { hook: v.title, fact: `notre passage dans « ${v.title} » sur ${md.name}`, quote: '', lesson: '', link: 'openmedias.fr' };
     c.videos = [...(c.videos || []), id]; added.push(v);
   });
+  if (opusOn()) { saveUploads(); added.forEach(v => uploadVideo(v, c)); } /* OpusClip : envoi unique vers notre stockage */
   f.docs.forEach(d => DOCS.push({ id: 'd' + Date.now().toString(36) + d.key, clientId: c.id, title: d.title.trim(), kind: d.kind, file: d.file, name: d.file.name, size: fmtSize(d.file.size), media: md.name, date }));
   const doStills = f.stills !== false; (async () => { for (const v of added) if (v.cues.length) await analyzeUploaded(v); if (doStills) { const src = added.find(v => v.version !== 'avec') || added[0]; if (src) await extractStills(src, c); } if ((!c.kit || c.kit.status !== 'publie') && kitVideo(c)) { c.kit = await buildKit(c); if (c.kit) { toast(`Kit de lancement prêt à valider pour ${c.name}`); S.keepScroll = true; if (!S.modal && T.recording < 0) render(); } } })();
   return f.vids.length + f.docs.length;
@@ -2579,25 +3002,26 @@ Réponds uniquement en JSON : {"resume":"...","moments":[{"debut":12.4,"fin":41.
   v.highlights = moments.map(x => ({ start: x.start, title: x.title, score: x.score, reason: x.reason, lines: x.cues.map(q => q.t).slice(0, 6) }));
   if (v.summaryAuto) v.summary = resume || `${v.kind} « ${v.title} » diffusée sur ${v.media}.`;
   if (v.highlights[0]) SOURCES[v.id] = { ...SOURCES[v.id], hook: v.highlights[0].lines[0] || v.title, quote: v.highlights[0].lines.slice(0, 2).join(' ') };
-  v.status = 'pret'; S.keepScroll = true; if (!S.modal && T.recording < 0) render();
+  v.status = 'pret'; if (v.upload) saveUploads(); S.keepScroll = true; if (!S.modal && T.recording < 0) render();
   toast(`Analyse terminée pour « ${v.title} » : ${v.highlights.length} moment${v.highlights.length > 1 ? 's' : ''} fort${v.highlights.length > 1 ? 's' : ''} repéré${v.highlights.length > 1 ? 's' : ''}`);
 }
 function pVideoReal(c, v) {
+  if (!v.url && v.storageKey) setTimeout(() => ensureVideoUrl(v), 0); /* OpusClip : lien de lecture temporaire */
   return `<div class="row" style="margin-bottom:14px"><button class="btn btn-quiet btn-sm" data-a="nav" data-arg="videos">${I('back')}Mes vidéos</button></div>
   <div class="grid vgrid">
     <div>
-      <div class="sp-player"><video id="vv" src="${v.url}" controls controlslist="nodownload" playsinline preload="metadata"></video><p class="sp-line sp-charte" id="vv-line" style="${S.vsub ? '' : 'display:none'}"></p></div>
+      ${v.url ? `<div class="sp-player"><video id="vv" src="${v.url}" controls controlslist="nodownload" playsinline preload="metadata"></video><p class="sp-line sp-charte" id="vv-line" style="${S.vsub ? '' : 'display:none'}"></p></div>` : `<div class="sp-player"><p class="muted" style="padding:60px 20px;text-align:center">${v.storageKey ? 'Chargement de la vidéo…' : esc((v.upload && v.upload.msg) || "Cette vidéo n'est plus disponible dans ce navigateur.")}</p></div>`}
       <h1 style="margin-top:20px;font-size:28px">${esc(v.title)}</h1>
       <div class="row" style="margin-top:8px;gap:8px"><span class="tag ${S.vsub ? 'ok' : ''}">${S.vsub ? 'Avec sous-titres' : 'Sans sous-titres'}</span><span class="tag">${esc(v.kind)}</span><span class="muted small">${esc(v.media)}, diffusé le ${fmtD(v.date)}, ${tc(v.duration)}</span></div>
       <p style="margin-top:14px;max-width:68ch">${esc(v.summary)}</p>
       <section class="sec" style="margin-top:28px"><div class="sec-head"><h2>Moments forts détectés</h2><span class="small muted">${v.status === 'analyse' ? 'Analyse IA en cours…' : v.highlights.length ? "Repérés par l'IA dans votre vidéo" : 'Disponibles dès que la transcription est ajoutée'}</span></div>
-        ${v.highlights.length ? `<div class="list">${v.highlights.map((h, i) => `<div class="li"><span class="fi num" style="font-weight:700;color:var(--link)">${i + 1}</span><div class="grow"><b>${esc(h.title)}</b><span class="small muted num">à ${tc(h.start)}, « ${esc((h.lines[0] || '').replace(/\*/g, ''))} »</span></div><button class="btn btn-ghost btn-sm" data-a="vv-seek" data-arg="${h.start}">${IF('play').replace('<svg', '<svg class="icon" style="fill:currentColor;stroke:none;width:12px;height:12px"')}Voir</button></div>`).join('')}</div>` : ''}
+        ${v.highlights.length ? `<div class="list">${v.highlights.map((h, i) => `<div class="li"><span class="fi num" style="font-weight:700;color:var(--link)">${i + 1}</span><div class="grow"><b>${esc(h.title)}</b><span class="small muted num">à ${tc(h.start)}, « ${esc((h.lines[0] || '').replace(/\*/g, ''))} »</span></div><button class="btn btn-ghost btn-sm" data-a="vv-seek" data-arg="${h.start}">${IF('play').replace('<svg', '<svg class="icon" style="fill:currentColor;stroke:none;width:12px;height:12px"')}Voir</button>${opusOn() ? `<button class="btn btn-ghost btn-sm" data-a="cap-from" data-arg="${v.id}|${i}">${I('spark')}Créer la capsule</button>` : ''}</div>`).join('')}</div>` : ''}
       </section>
       ${v.transcript ? `<details style="margin-top:28px" class="panel-flat"><summary>Transcription complète</summary><div class="transcript" style="margin-top:10px;max-height:360px;overflow:auto">${v.transcript.map(x => `<p><span class="num">${tc(x.s)}</span>${esc(x.t)}</p>`).join('')}</div></details>` : ''}
     </div>
     <aside class="stack">
       <div class="panel"><h3>Créer à partir de cette vidéo</h3><p class="muted small" style="margin:6px 0 14px">${v.highlights.length ? `L'IA a repéré ${v.highlights.length} extraits exploitables.` : 'Créez des capsules, des sous-titres et des publications.'}</p>
-        <div class="stack"><button class="btn btn-primary" data-a="vid-test" data-arg="${v.id}">${I('spark')}Créer des capsules</button><button class="btn btn-ghost" data-a="vid-subs" data-arg="${v.id}" ${v.cues.length ? '' : 'disabled'}>${I('quote')}Sous-titrer cette vidéo</button><button class="btn btn-ghost" data-a="pub-from" data-arg="${v.id}">${I('chat')}Écrire une publication</button></div></div>
+        <div class="stack">${opusOn() ? `${isOpusVideo(v) && !opusReady(v) ? `<div class="row" style="gap:6px">${uploadTag(v)}</div>` : ''}<button class="btn btn-primary" data-a="cap-from" data-arg="${v.id}|-1">${I('spark')}Créer des capsules</button><button class="btn btn-ghost" data-a="cap-teaser" data-arg="${v.id}">${I('video')}Créer un teaser</button>` : `<button class="btn btn-primary" data-a="vid-test" data-arg="${v.id}">${I('spark')}Créer des capsules</button>`}<button class="btn btn-ghost" data-a="vid-subs" data-arg="${v.id}" ${v.cues.length ? '' : 'disabled'}>${I('quote')}Sous-titrer cette vidéo</button><button class="btn btn-ghost" data-a="pub-from" data-arg="${v.id}">${I('chat')}Écrire une publication</button></div></div>
       <div class="panel"><h3>Formats disponibles</h3><div class="stack" style="margin-top:12px">${v.formats.map(f => `<div class="row between"><div><b style="font-size:14px">${esc(f.label)}</b><div class="small muted">${esc(f.spec)}, ${esc(f.size)}</div></div><button class="btn btn-ghost btn-sm" data-a="dl-real" data-arg="${v.id}" aria-label="Télécharger ${esc(f.label)}">${I('down')}</button></div>`).join('')}</div></div>
     </aside>
   </div>`;
@@ -2723,7 +3147,7 @@ function pCreer(c) {
   <div class="grid g2 create-grid">${CREATE_PAGES.map(([k, l, ic, d]) => { const st = createStatus(k, c); return `<button class="create-card" data-a="nav" data-arg="${k}"><span class="create-ico">${I(ic)}</span><b>${l}</b><span class="muted">${d}</span><span class="tag ${st.free ? 'ok' : ''}" style="margin-top:4px">${st.free ? '' : I('lock') + ' '}${st.label}</span></button>`; }).join('')}</div>`;
 }
 function createStatus(k, c) {
-  if (k === 'capsules') return unlocked('capsules-pro', c) ? { free: true, label: 'Débloqué' } : ent(c).capUsed < 1 ? { free: true, label: '1 capsule offerte' } : { free: false, label: fmtPrice(OFFERS.find(o => o.id === 'capsules-pro')) };
+  if (k === 'capsules') return opusOn() && CAP_OPTIONS.unlimited ? { free: true, label: 'Capsules et teasers inclus' } : unlocked('capsules-pro', c) ? { free: true, label: 'Débloqué' } : ent(c).capUsed < 1 ? { free: true, label: '1 capsule offerte' } : { free: false, label: fmtPrice(OFFERS.find(o => o.id === 'capsules-pro')) };
   if (k === 'sous-titres') return unlocked('st-fr', c) ? { free: true, label: 'Débloqué' } : !ent(c).stFrVideo ? { free: true, label: '1 sous-titrage français offert' } : { free: false, label: fmtPrice(OFFERS.find(o => o.id === 'st-fr')) };
   if (k === 'visuels') return unlocked('pack-com', c) ? { free: true, label: 'Débloqué' } : { free: false, label: 'Pack communication, ' + fmtPrice(OFFERS.find(o => o.id === 'pack-com')) };
   if (k === 'publications') return unlocked('posts-rs', c) ? { free: true, label: 'Débloqué' } : { free: false, label: 'En option, ' + fmtPrice(OFFERS.find(o => o.id === 'posts-rs')).toLowerCase() };
@@ -2803,9 +3227,9 @@ function capLabel(c) { return unlocked('capsules-pro', c) ? 'Générer la capsul
 function needOffer(id) { const o = OFFERS.find(x => x.id === id); S.modal = { type: 'order', offer: id, opt: o.opt === 'langue' ? 'Anglais' : '', note: '', gate: true }; render(); }
 function freeBox(c) {
   const e = ent(c);
-  const capTxt = unlocked('capsules-pro', c) ? 'Capsules débloquées' : e.capUsed < 1 ? '1 capsule vidéo offerte' : 'Capsule offerte utilisée';
+  const capTxt = opusOn() && CAP_OPTIONS.unlimited ? 'Capsules et teasers inclus' : unlocked('capsules-pro', c) ? 'Capsules débloquées' : e.capUsed < 1 ? '1 capsule vidéo offerte' : 'Capsule offerte utilisée';
   const stTxt = unlocked('st-fr', c) ? 'Sous-titres débloqués' : !e.stFrVideo ? '1 sous-titrage en français offert' : 'Sous-titrage offert utilisé';
-  return `<div class="free-box"><span class="small"><b>Inclus dans votre espace</b></span><span class="tag ${e.capUsed < 1 || unlocked('capsules-pro', c) ? 'ok' : ''}">${I('spark')}${capTxt}</span><span class="tag ${!e.stFrVideo || unlocked('st-fr', c) ? 'ok' : ''}">${I('quote')}${stTxt}</span></div>`;
+  return `<div class="free-box"><span class="small"><b>Inclus dans votre espace</b></span><span class="tag ${(opusOn() && CAP_OPTIONS.unlimited) || e.capUsed < 1 || unlocked('capsules-pro', c) ? 'ok' : ''}">${I('spark')}${capTxt}</span><span class="tag ${!e.stFrVideo || unlocked('st-fr', c) ? 'ok' : ''}">${I('quote')}${stTxt}</span></div>`;
 }
 function lockedPage(title, intro, offerId, preview) {
   const o = OFFERS.find(x => x.id === offerId);
@@ -2830,8 +3254,8 @@ function lockedVisuels(c) {
 /* ---- Téléchargements ---- */
 function pDownloads(c) {
   const items = [
-    ...S.saved.map(s => ({ k: 'capsule', name: 'Capsule : ' + s.title, meta: `${s.dur} s, ${s.fmt}, créée le ${fmtShort(s.created)}`, file: capFile(s), size: '18 Mo' })),
-    ...S.saved.map(s => ({ k: 'srt', name: 'Sous-titres : ' + s.title, meta: 'Fichier .srt, compatible YouTube, LinkedIn, Premiere', srt: s.id })),
+    ...S.saved.map(s => ({ k: 'capsule', name: (s.kind === 'teaser' ? 'Teaser : ' : 'Capsule : ') + s.title, meta: `${s.dur} s, ${s.fmt}, créée le ${fmtShort(s.created)}`, file: capFile(s), size: '18 Mo', brand: s.opusId ? s : null })),
+    ...S.saved.filter(s => !s.opusId).map(s => ({ k: 'srt', name: 'Sous-titres : ' + s.title, meta: 'Fichier .srt, compatible YouTube, LinkedIn, Premiere', srt: s.id })),
     ...S.visSaved.map(p => ({ k: 'visuel', name: 'Visuel : ' + TPL[p.tpl].name + ', ' + (p.tpl === 'chiffre' ? p.main + ' ' + p.sub : p.main).slice(0, 60), meta: `PNG 1080 × ${FMT_H[p.fmt]} px, format ${p.fmt}`, vis: p.k })),
   ];
   const f = S.dlFilter; const shown = items.filter(i => f === 'all' || i.k === f);
@@ -2839,7 +3263,7 @@ function pDownloads(c) {
   const ic = { video: 'video', capsule: 'spark', srt: 'file', article: 'file', visuel: 'image' };
   return `<div class="page-head"><div><h1>Mes créations</h1><p>Les capsules, visuels et sous-titres que vous avez créés dans OpenStudio. Vos vidéos et articles d'origine sont dans « Mes médias ».</p></div><button class="btn btn-primary" data-a="dl-sim" data-arg="openmedias_${c.name.toLowerCase().replace(/\W+/g, '-')}_tous-les-contenus.zip|4,6 Go">${I('down')}Tout télécharger (.zip)</button></div>
   <div class="row" style="gap:6px;margin-bottom:14px" role="group" aria-label="Filtrer">${fl.map(([k, l]) => `<button class="chip" data-a="dl-filter" data-arg="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
-  ${shown.length ? `<div class="list">${shown.map(i => `<div class="li"><span class="fi">${I(ic[i.k])}</span><div class="grow"><b>${esc(i.name)}</b><span class="small muted">${esc(i.meta)}</span></div>${i.vis ? `<button class="btn btn-ghost btn-sm" data-a="vis-redl" data-arg="${i.vis}">${I('down')}Télécharger</button>` : i.srt ? `<button class="btn btn-ghost btn-sm" data-a="srt" data-arg="${i.srt}">${I('down')}Télécharger</button>` : `<button class="btn btn-ghost btn-sm" data-a="dl-sim" data-arg="${esc(i.file)}|${esc(i.size)}">${I('down')}Télécharger</button>`}</div>`).join('')}</div>`
+  ${shown.length ? `<div class="list">${shown.map(i => `<div class="li"><span class="fi">${I(ic[i.k])}</span><div class="grow"><b>${esc(i.name)}</b><span class="small muted">${esc(i.meta)}</span></div>${i.brand ? `<span class="small muted" data-bstat="${esc(bKey(i.brand))}"></span><button class="btn btn-ghost btn-sm" data-a="dl-brand" data-arg="${i.brand.id}">${I('down')}Télécharger</button>` : i.vis ? `<button class="btn btn-ghost btn-sm" data-a="vis-redl" data-arg="${i.vis}">${I('down')}Télécharger</button>` : i.srt ? `<button class="btn btn-ghost btn-sm" data-a="srt" data-arg="${i.srt}">${I('down')}Télécharger</button>` : `<button class="btn btn-ghost btn-sm" data-a="dl-sim" data-arg="${esc(i.file)}|${esc(i.size)}">${I('down')}Télécharger</button>`}</div>`).join('')}</div>`
     : `<div class="empty"><h3>Aucune création pour l'instant</h3><p>Les capsules, visuels et sous-titres que vous créez apparaissent ici, prêts à télécharger.</p><button class="btn btn-primary" data-a="nav" data-arg="capsules">Créer une capsule</button></div>`}`;
 }
 
@@ -2925,7 +3349,7 @@ function aClient(c) {
   <section class="sec"><div class="sec-head"><h2>Formats du client</h2><span class="small muted">Offerts et débloqués</span></div><div class="panel stack" style="gap:10px"><div class="row" style="gap:8px">${freeBox(c)}</div><div class="unlock-admin">${OFFERS.filter(o => ['capsules-pro', 'st-fr', 'st-lang', 'posts-rs', 'pack-com'].includes(o.id)).map(o => `<label class="row small" style="gap:8px;flex-wrap:nowrap;cursor:pointer"><input type="checkbox" data-in="ent-unlock" data-arg="${c.id}|${o.id}" ${unlocked(o.id, c) ? 'checked' : ''}> ${esc(o.title)} débloqué</label>`).join('')}</div><span class="small muted">Cochez pour offrir un format à ce client, par exemple en geste commercial.</span></div></section>
   ${kitAdminHtml(c)}
   <section class="sec"><div class="sec-head"><h2>Contenus du client</h2><button class="btn btn-primary btn-sm" data-a="av-open" data-arg="${c.id}">${I('plus')}Ajouter des contenus</button></div>
-    <div class="list">${c.videos.map(id => { const x = video(id); return `<div class="li"><span class="fi" style="width:64px;height:36px;position:relative;overflow:hidden;border-radius:5px">${scene(x)}</span><div class="grow"><b>${esc(x.title)}</b><span class="small muted">Média : ${esc(mediaById(SRC_MEDIA[x.id]).name)}, ${tc(x.duration)}, ${x.version === 'avec' ? 'avec sous-titres' : 'sans sous-titres'}, ${x.stills === 'extraction' ? 'extraction des photos en cours, ' : typeof x.stills === 'number' ? x.stills + ' photos extraites, ' : ''}${x.status === 'analyse' ? 'analyse IA en cours' : x.status === 'sans' ? 'sans transcription' : 'analyse IA terminée'}</span></div>${x.url ? `<button class="btn btn-ghost btn-sm" data-a="a-stills" data-arg="${c.id}|${x.id}" ${x.stills === 'extraction' ? 'disabled' : ''}>${I('image')}${x.stills === 'extraction' ? 'Extraction…' : typeof x.stills === 'number' ? 'Extraire d\'autres photos' : 'Extraire des photos'}</button>` : ''}<button class="btn btn-quiet btn-sm" data-a="a-replace" data-arg="${x.title}">Remplacer</button><button class="btn btn-quiet btn-sm" data-a="a-delvid" data-arg="${c.id}|${id}" aria-label="Supprimer ${esc(x.title)}">${I('trash')}</button></div>`; }).join('') || '<div class="li muted">Aucune vidéo. Ajoutez les vidéos du client pour lancer l’analyse IA.</div>'}${clientDocs(c.id).map(d => `<div class="li"><span class="fi">${I('file')}</span><div class="grow"><b>${esc(d.title)}</b><span class="small muted">${esc(d.kind)}, ${esc(d.size)}</span></div><button class="btn btn-quiet btn-sm" data-a="a-deldoc" data-arg="${d.id}" aria-label="Supprimer ${esc(d.title)}">${I('trash')}</button></div>`).join('')}</div></section>
+    <div class="list">${c.videos.map(id => { const x = video(id); return `<div class="li"><span class="fi" style="width:64px;height:36px;position:relative;overflow:hidden;border-radius:5px">${scene(x)}</span><div class="grow"><b>${esc(x.title)}</b><span class="small muted">Média : ${esc(mediaById(SRC_MEDIA[x.id]).name)}, ${tc(x.duration)}, ${x.version === 'avec' ? 'avec sous-titres' : 'sans sous-titres'}, ${x.stills === 'extraction' ? 'extraction des photos en cours, ' : typeof x.stills === 'number' ? x.stills + ' photos extraites, ' : ''}${x.status === 'analyse' ? 'analyse IA en cours' : x.status === 'sans' ? 'sans transcription' : 'analyse IA terminée'}</span>${isOpusVideo(x) ? `<span class="row" style="gap:6px;margin-top:4px">${uploadTag(x)}${x.upload.status === 'error' && x.upload.msg ? `<span class="small muted">${esc(x.upload.msg)}</span>` : ''}</span>` : ''}</div>${isOpusVideo(x) && x.upload.status === 'error' && x.file ? `<button class="btn btn-ghost btn-sm" data-a="up-retry" data-arg="${x.id}">${I('refresh')}Réessayer l'envoi</button>` : ''}${x.url ? `<button class="btn btn-ghost btn-sm" data-a="a-stills" data-arg="${c.id}|${x.id}" ${x.stills === 'extraction' ? 'disabled' : ''}>${I('image')}${x.stills === 'extraction' ? 'Extraction…' : typeof x.stills === 'number' ? 'Extraire d\'autres photos' : 'Extraire des photos'}</button>` : ''}<button class="btn btn-quiet btn-sm" data-a="a-replace" data-arg="${x.title}">Remplacer</button><button class="btn btn-quiet btn-sm" data-a="a-delvid" data-arg="${c.id}|${id}" aria-label="Supprimer ${esc(x.title)}">${I('trash')}</button></div>`; }).join('') || '<div class="li muted">Aucune vidéo. Ajoutez les vidéos du client pour lancer l’analyse IA.</div>'}${clientDocs(c.id).map(d => `<div class="li"><span class="fi">${I('file')}</span><div class="grow"><b>${esc(d.title)}</b><span class="small muted">${esc(d.kind)}, ${esc(d.size)}</span></div><button class="btn btn-quiet btn-sm" data-a="a-deldoc" data-arg="${d.id}" aria-label="Supprimer ${esc(d.title)}">${I('trash')}</button></div>`).join('')}</div></section>
   ${c.videos.includes('v1') ? `<section class="sec"><div class="sec-head"><h2>Moments forts proposés au client</h2><span class="small muted">« ${esc(v.title)} » : décochez un extrait pour le masquer</span></div>
     <div class="list">${v.highlights.map((h, i) => { const hid = c.id + v.id + i; const on = !S.admin.hidden[hid]; return `<div class="li"><span class="fi num" style="font-weight:700;color:var(--link)">${i + 1}</span><div class="grow"><b>${esc(h.title)}</b><span class="small muted num">à ${tc(h.start)}, score ${String(h.score).replace('.', ',')}, « ${esc(h.lines[0].replace(/\*/g, ''))} »</span></div><button class="toggle" role="switch" aria-checked="${on}" aria-label="Visible par le client" data-a="a-hl" data-arg="${hid}"></button></div>`; }).join('')}</div></section>` : ''}`;
 }
@@ -3000,6 +3424,10 @@ function modalHtml() {
     h = orderModalHtml(m);
     const o = OFFERS.find(x => x.id === m.offer);
     foot = `<button class="btn btn-quiet" data-a="close">Annuler</button><button class="btn btn-primary" data-a="order-confirm">${I('check')}${o.price == null ? 'Envoyer ma demande de devis' : 'Confirmer la commande'}</button>`;
+  } else if (m.type === 'opus-more') { /* OpusClip */
+    title = "Proposer d'autres extraits";
+    h = `<p>Vous avez vu toutes les propositions de cette analyse. Vous pouvez les revoir, ou lancer une nouvelle analyse de la vidéo : elle prend plusieurs minutes.</p>`;
+    foot = `<button class="btn btn-quiet" data-a="close">Annuler</button><button class="btn btn-ghost" data-a="opus-first">Revoir les premières propositions</button><button class="btn btn-primary" data-a="opus-relaunch">${I('refresh')}Lancer une nouvelle analyse</button>`;
   } else if (m.type === 'created') {
     const c = CLIENTS.find(x => x.id === m.id);
     title = 'Espace client créé';
@@ -3164,12 +3592,13 @@ const A = {
   'vid-seg': (a) => { const v = video(S.arg); A['cap-from'](`${v.id}|${a}`); },
   'cap-from': a => {
     const [vid, i] = a.split('|'); const v = video(vid);
+    if (isOpusVideo(v)) { const hh = +i >= 0 ? v.highlights[+i] : null; capStart(vid, 'capsule', hh ? hh.start : null); return; } /* OpusClip : moment choisi -> range */
     S.cap.videoId = vid; S.cap.results = null; S.cap.analyzing = -1;
     if (+i >= 0) { const h = v.highlights[+i]; const n = Math.ceil(S.cap.dur / 10); S.cap.results = [{ vid, hi: +i, title: h.title, reason: h.reason, start: h.start, dur: S.cap.dur, lines: h.lines.slice(0, n), score: h.score }, ...propose(v, S.cap.dur, 0).filter(r => r.hi !== +i).slice(0, 3)]; S.cap.sel = 0; }
     else S.cap.step = 2;
     go('client', 'capsules');
   },
-  'cap-video': a => { const vv = video(a); if (vv && vv.url) { A['vid-test'](a); return; } S.cap.videoId = a; S.keepScroll = true; render(); },
+  'cap-video': a => { const vv = video(a); if (isOpusVideo(vv)) { S.cap.videoId = a; S.cap.moment = null; S.cap.opusKey = null; S.keepScroll = true; render(); return; } /* OpusClip */ if (vv && vv.url) { A['vid-test'](a); return; } S.cap.videoId = a; S.keepScroll = true; render(); },
   'cap-step': a => { S.cap.step = +a; S.keepScroll = true; render(); },
   'cap-dur': a => { S.cap.dur = +a; S.keepScroll = true; render(); },
   'cap-fmt': a => { S.cap.fmt = a; S.keepScroll = true; render(); },
@@ -3177,18 +3606,18 @@ const A = {
   'cap-settings': () => { S.cap.prev = S.cap.results; S.cap.results = null; S.cap.step = 2; render(); },
   'cap-back': () => { if (S.cap.prev) { S.cap.results = S.cap.prev; S.cap.prev = null; render(); } },
   'cap-run': () => runAnalysis(),
-  'cap-regen': () => { S.cap.seed++; runAnalysis(); },
+  'cap-regen': () => { const j = curJob(); if (j && S.cap.results && S.cap.results[0] && S.cap.results[0].opusId) { opusMore(j); return; } /* OpusClip */ S.cap.seed++; runAnalysis(); },
   'cap-sel': a => { S.cap.sel = +a; S.keepScroll = true; render(); const el = document.getElementById('prop' + a); el && el.scrollIntoView({ behavior: 'smooth', block: 'center' }); },
   'fplay': a => playFrame(a),
-  'cap-save': a => { if (!canCapsule()) { needOffer('capsules-pro'); return; } ent().capUsed++;
+  'cap-save': a => { const r0 = S.cap.results && S.cap.results[+a]; if (r0 && r0.opusId) { opusDownload(opusSave(r0)); return; } /* Habillage */ if (!canCapsule()) { needOffer('capsules-pro'); return; } ent().capUsed++;
     const r = S.cap.results[+a]; const c = client();
-    const s = { id: 's' + Date.now(), vid: r.vid, title: r.title, start: r.start, dur: r.dur, fmt: S.cap.fmt, style: S.cap.style, lines: [...r.lines], created: new Date(TODAY) };
+    const s = { id: 's' + Date.now(), kind: S.cap.kind || 'capsule', vid: r.vid, title: r.title, start: r.start, dur: r.dur, fmt: S.cap.fmt, style: S.cap.style, lines: [...r.lines], created: new Date(TODAY) };
     if (!S.saved.some(x => x.vid === s.vid && x.start === s.start && x.dur === s.dur && x.fmt === s.fmt && x.lines.join() === s.lines.join())) { S.saved.unshift(s); c.stats.capsules++; }
     c.stats.downloads++;
     toast(`Capsule enregistrée. En production, « ${capFile(s)} » se télécharge en MP4.`);
     S.keepScroll = true; render();
   },
-  'cap-post': a => { const r = S.cap.results[+a]; A['cap-save'](a); const s = S.saved.find(x => x.start === r.start && x.vid === r.vid); S.pub.source = s ? s.id : r.vid; S.pub.results = null; go('client', 'publications'); },
+  'cap-post': a => { const r = S.cap.results[+a]; if (r.opusId) { const s0 = opusSave(r); S.pub.source = s0.id; S.pub.results = null; go('client', 'publications'); return; } /* OpusClip */ A['cap-save'](a); const s = S.saved.find(x => x.start === r.start && x.vid === r.vid); S.pub.source = s ? s.id : r.vid; S.pub.results = null; go('client', 'publications'); },
   'sub-edit': a => { const r = S.cap.results[+a]; S.modal = { type: 'sub', i: +a, draft: { ...r, lines: [...r.lines] } }; render(); },
   'sub-save': () => { const m = S.modal; const r = S.cap.results[m.i]; const nl = m.draft.lines.map(l => l.trim()).filter(Boolean); if (nl.length) r.lines = nl; S.modal = null; S.keepScroll = true; render(); toast('Sous-titres enregistrés'); },
   'srt': a => { const s = S.saved.find(x => x.id === a); saveFile(capFile(s).replace('.mp4', '.srt'), srtOf(s)); },
@@ -3227,7 +3656,7 @@ const A = {
   'a-toggle': a => { const c = CLIENTS.find(x => x.id === a); c.disabled = !c.disabled; S.keepScroll = true; render(); toast(c.disabled ? `Accès de ${c.name} désactivé` : `Accès de ${c.name} réactivé`); },
   'a-mail': a => { const c = CLIENTS.find(x => x.id === a); toast(`Démo : l'email d'accès serait envoyé à ${c.email}`); },
   'a-replace': a => toast(`Démo : sélectionnez le nouveau fichier pour remplacer « ${a} »`),
-  'a-delvid': a => { const [cid, vid] = a.split('|'); const c = CLIENTS.find(x => x.id === cid); const t = video(vid).title; c.videos = c.videos.filter(x => x !== vid); S.keepScroll = true; render(); toast(`« ${t} » retiré de l'espace de ${c.name}`); },
+  'a-delvid': a => { const [cid, vid] = a.split('|'); const c = CLIENTS.find(x => x.id === cid); const t = video(vid).title; c.videos = c.videos.filter(x => x !== vid); saveUploads(); S.keepScroll = true; render(); toast(`« ${t} » retiré de l'espace de ${c.name}`); },
   'a-hl': a => { S.admin.hidden[a] = !S.admin.hidden[a]; S.keepScroll = true; render(); },
   'impersonate': a => { const c = CLIENTS.find(x => x.id === a); S.clientId = a; S.asAdmin = true; S.preview = (!c.activatedAt || statusOf(c).k === 'expired' || c.disabled) ? { ...c, disabled: false, activatedAt: new Date(TODAY), expiresAt: addDays(TODAY, c.duration) } : null; resetClientState(); go('client', 'dashboard'); },
   'new-client': () => { S.modal = { type: 'new', f: { name: '', sector: '', contact: '', email: '', manager: 'Lola Durand', duration: 30, files: [], code: '', diffusion: isoDate(TODAY), media: (MEDIAS.find(x => x.id !== 'openmedias') || MEDIAS[0]).id, logo: '', vids: [], docs: [] } }; if (S.view !== 'admin') S.view = 'admin'; render(); },
@@ -3239,7 +3668,7 @@ const A = {
     if (f.vids.some(r => !r.title.trim()) || f.docs.some(d => !d.title.trim())) { err.textContent = 'Chaque contenu doit avoir un titre.'; return; }
     const diff = f.diffusion ? new Date(f.diffusion + 'T10:00') : new Date(TODAY);
     const c = mkClient('c' + Date.now(), f.name.trim(), f.sector.trim() || 'Secteur non précisé', f.contact.trim(), f.email.trim(), '', 0, null, { last: null, manager: f.manager, duration: 30, color: CLIENT_PALETTE[CLIENTS.length % CLIENT_PALETTE.length], videos: [] });
-    c.diffusion = diff; c.code = genCode(c.name, diff); c.videos = []; if (f.logo) c.logo = f.logo; c.mediaId = f.media;
+    c.diffusion = diff; c.code = genCode(c.name, diff); c.videos = []; if (f.logo) c.logo = f.logo; c.mediaId = f.media; if (opusOn() && f.logoFile) uploadClientLogo(c, f.logoFile); /* Habillage : logo original HD */
     CLIENTS.unshift(c);
     const fc = { media: f.media, date: f.diffusion || isoDate(TODAY), vids: f.vids, docs: f.docs, stills: f.stills };
     const n = (f.vids.length || f.docs.length) ? addContents(c, fc) : 0;
@@ -3256,7 +3685,7 @@ const A = {
   'm-open': a => { S.admin.page = 'media'; S.admin.arg = a; go('admin'); },
   'm-new': () => { const id = 'm' + Date.now().toString(36); MEDIAS.push({ ...MEDIA_DEF, id, name: 'Nouveau média' }); S.admin.page = 'media'; S.admin.arg = id; go('admin'); setTimeout(() => { const n = document.getElementById('m-name'); n && (n.focus(), n.select()); }, 50); },
   'm-toggle': a => { const m = mediaById(S.admin.arg); m[a] = !m[a]; saveMedias(); S.keepScroll = true; render(); },
-  'm-logo-del': a => { const m = mediaById(S.admin.arg); m[a] = ''; saveMedias(); S.keepScroll = true; render(); },
+  'm-logo-del': a => { const m = mediaById(S.admin.arg); m[a] = ''; m[a + 'Key'] = ''; /* Habillage */ saveMedias(); S.keepScroll = true; render(); },
   'm-save': () => { const m = mediaById(S.admin.arg); m.updated = new Date(TODAY); saveMedias(); toast(`Fiche ${m.name} enregistrée. Elle s'applique dès maintenant à toutes les générations.`); },
   'quick-subs': () => { const c = CLIENTS.find(x => x.id === 'c1'); S.clientId = 'c1'; S.asAdmin = false; S.preview = null; c.lastLogin = new Date(TODAY); resetClientState(); go('client', 'sous-titres'); },
   'sp-split': () => { SUB.split = !SUB.split; if (SUB.raw) { SUB.cues = SUB.split ? splitLong(SUB.raw, 84) : SUB.raw.map(c => ({ ...c })); SUB.tr = {}; SUB.lang = SUB.srcLang; } S.keepScroll = true; render(); },
@@ -3302,9 +3731,14 @@ const A = {
   'md-all': () => { const c = client(); const e = mdEntries(c, true); if (e.length) mdZip(`${slug(c.name)}_medias_openmedias.zip`, e); else A['dl-sim'](`${slug(c.name)}_medias_openmedias.zip|1,4 Go`); },
   'vv-seek': a => { const el = document.getElementById('vv'); if (el) { el.currentTime = Number(a); el.play().catch(() => {}); } },
   'dl-real': async a => { const v = video(a); if (!v || !v.file) return; const ok = await saveBlob(v.file.name, v.file); if (ok) toast('Vidéo téléchargée'); },
-  'offer-order': a => { const o = OFFERS.find(x => x.id === a); S.modal = { type: 'order', offer: a, opt: o.opt === 'langue' ? 'Anglais' : '', note: '' }; render(); },
-  'order-confirm': () => { const m = S.modal; const o = OFFERS.find(x => x.id === m.offer); const c = client(); if (!ent(c).unlocked.includes(o.id)) ent(c).unlocked.push(o.id); ORDERS.push({ id: 'o' + Date.now().toString(36), clientId: c.id, offerId: o.id, title: o.title, price: o.price, opt: m.opt || '', note: m.note || '', date: new Date(TODAY), status: 'Nouvelle' }); saveOrders(); S.modal = null; S.keepScroll = true; render(); toast(o.price == null ? `Demande de devis envoyée à ${c.manager}` : `Commande confirmée : ${c.manager} vous recontacte rapidement`); },
-  'kit-cap': a => { if (!canCapsule()) { needOffer('capsules-pro'); return; } const k = client().kit; const x = k.caps[+a]; const v = video(x.vid); if (v && v.url) { A['vid-test'](v.id); } else A['dl-sim'](`capsule_${slug(x.title)}_9x16.mp4|18 Mo`); },
+  'offer-order': a => { const o = OFFERS.find(x => x.id === a); S.modal = { type: 'order', offer: a, opt: o.opt === 'langue' ? 'Anglais' : '', note: '' };
+    if (o.price != null && opusOn() && client()) { const oid = draftOrderId(client(), o.id); S.modal.orderId = oid; trackEvent('order.started', { order_id: oid, offer_id: o.id, offer_title: o.title, price: o.price }, oid); } /* Emails : parcours Commande */
+    render(); },
+  'order-confirm': () => { const m = S.modal; const o = OFFERS.find(x => x.id === m.offer); const c = client(); if (!ent(c).unlocked.includes(o.id)) ent(c).unlocked.push(o.id); const oid = (o.price != null && m.orderId) || 'o' + Date.now().toString(36);
+    if (o.price != null) { confirmOrderServer({ order_id: oid, offer_id: o.id, option: m.opt || '', note: String(m.note || '').slice(0, 500) }); if (opusOn()) draftOrderId(c, o.id, true); } /* Emails : confirmation + avis J+30 */
+    if (o.price == null) trackEvent('quote.requested', { quote_id: oid, offer_id: o.id, offer_title: o.title, option: m.opt || '', note: String(m.note || '').slice(0, 500), manager: c.manager }, oid); /* Emails : accusé de réception du devis */
+    ORDERS.push({ id: oid, clientId: c.id, offerId: o.id, title: o.title, price: o.price, opt: m.opt || '', note: m.note || '', date: new Date(TODAY), status: 'Nouvelle' }); saveOrders(); S.modal = null; S.keepScroll = true; render(); toast(o.price == null ? `Demande de devis envoyée à ${c.manager}` : `Commande confirmée : ${c.manager} vous recontacte rapidement`); },
+  'kit-cap': a => { const kx = client().kit && client().kit.caps[+a]; const kv = kx && video(kx.vid); if (isOpusVideo(kv)) { capStart(kv.id, 'capsule', kx.start); return; } /* OpusClip */ if (!canCapsule()) { needOffer('capsules-pro'); return; } const k = client().kit; const x = k.caps[+a]; const v = video(x.vid); if (v && v.url) { A['vid-test'](v.id); } else A['dl-sim'](`capsule_${slug(x.title)}_9x16.mp4|18 Mo`); },
   'kit-vis': a => { const k = client().kit; exportVisual(k.visuals[+a]); },
   'kit-post': a => { const k = client().kit; copyText(postText(k.posts[+a])); },
   'kit-publish': a => { const c = CLIENTS.find(x => x.id === a); if (c && c.kit) { c.kit.status = 'publie'; S.keepScroll = true; render(); toast(`Kit de lancement publié dans l'espace de ${c.name}`); } },
@@ -3320,9 +3754,26 @@ const A = {
   't-rec': a => { if (!canCapsule()) { needOffer('capsules-pro'); return; } tRecord(+a); },
   't-paste': () => { const ta = document.querySelector('[data-in="t-paste"]'); const cues = parseSubs(ta ? ta.value : ''); if (!cues.length) { toast("Aucun sous-titre horodaté reconnu. Le texte doit suivre le format .srt ou .vtt."); return; } T.cues = cues; T.cuesName = 'texte collé'; T.results = null; S.keepScroll = true; render(); },
   't-srt': a => { const r = T.results[+a]; const f = x => { const ms = Math.max(0, Math.round(x * 1000)); return `${String(Math.floor(ms / 3600000)).padStart(2, '0')}:${String(Math.floor(ms % 3600000 / 60000)).padStart(2, '0')}:${String(Math.floor(ms % 60000 / 1000)).padStart(2, '0')},${String(ms % 1000).padStart(3, '0')}`; }; saveFile(`capsule_${+a + 1}.srt`, r.cues.map((q, j) => `${j + 1}\n${f(q.s - r.start)} --> ${f(Math.min(q.e, r.end) - r.start)}\n${q.t}\n`).join('\n')); },
+  /* OpusClip */
+  'cap-kind': a => { const kd = capKind(a); S.cap.kind = kd.id; S.cap.dur = kd.dur; S.cap.fmt = kd.fmt; S.keepScroll = true; render(); },
+  'cap-teaser': a => capStart(a || null, 'teaser', null),
+  'cap-moment-clear': () => { S.cap.moment = null; S.keepScroll = true; render(); },
+  'cap-resume': a => { const j = jobsAll()[a]; if (!j) return; if (j.status === 'done' && j.clips) { showOpusResults(j); return; } Object.assign(S.cap, { videoId: j.videoId, kind: j.options.kind, dur: j.options.dur, fmt: j.options.fmt, style: j.options.style, moment: j.options.momentSec, oseed: j.options.seed, opusKey: a, results: null, prev: null, analyzing: -1 }); jobSet(a, { seen: true }); if (j.status === 'running' && !j.projectId) { runAnalysis(); return; } render(); if (j.status === 'running') pollOpus(a, 1000); },
+  'opus-retry': () => { const j = curJob(); if (!j) return; const all = jobsAll(); delete all[j.key]; try { localStorage.setItem(JOBS_KEY, JSON.stringify(all)); } catch (e) {} runAnalysis(); },
+  'opus-check': () => { const j = curJob(); if (!j) return; jobSet(j.key, { status: 'running', startedAt: Date.now(), error: null }); S.keepScroll = true; render(); pollOpus(j.key, 500); },
+  'opus-reset': () => { S.cap.opusKey = null; S.cap.results = null; S.cap.step = 2; S.keepScroll = true; render(); },
+  'opus-first': () => { const j = curJob(); S.modal = null; if (j) showOpusResults(j, 0); },
+  'opus-relaunch': () => { S.modal = null; S.cap.oseed = (S.cap.oseed || 0) + 1; runAnalysis(); },
+  'oplay': a => oPlay(+a),
+  /* Habillage */
+  'dl-brand': a => { const s = S.saved.find(x => x.id === a); if (s) opusDownload(s); },
+  'up-retry': a => { const v = video(a); const c = CLIENTS.find(x => (x.videos || []).includes(a)); if (v && c) uploadVideo(v, c); },
+  'm-jpos': a => { const m = mediaById(S.admin.arg); m.jinglePos = a; saveMedias(); S.keepScroll = true; render(); },
+  'm-jingle-del': a => { const m = mediaById(S.admin.arg); const j = { ...(m.jingles || {}) }; delete j[a]; m.jingles = j; saveMedias(); S.keepScroll = true; render(); },
   'close-open': a => { S.modal = null; S.admin.page = 'client'; S.admin.arg = a; go('admin'); }
 };
 async function runAnalysis() {
+  const v0 = video(S.cap.videoId); if (isOpusVideo(v0)) { if (!opusReady(v0)) { toast("Cette vidéo est en cours d'envoi par l'équipe OpenMedias : vous pourrez lancer votre demande dès qu'elle sera prête."); return; } runOpus(v0); return; } /* OpusClip */
   const k = S.cap; k.results = null; k.analyzing = 0; render(); window.scrollTo({ top: 0, behavior: 'smooth' });
   for (let i = 1; i <= 4; i++) { await new Promise(r => setTimeout(r, 750)); if (S.page !== 'capsules') { k.analyzing = -1; return; } k.analyzing = i; S.keepScroll = true; render(); }
   await new Promise(r => setTimeout(r, 300));
@@ -3366,7 +3817,7 @@ document.addEventListener('change', e => {
   if (k === 'ent-unlock') { const [cid, oid] = el.dataset.arg.split('|'); const c = CLIENTS.find(x => x.id === cid); const e = ent(c); if (el.checked) { if (!e.unlocked.includes(oid)) e.unlocked.push(oid); } else e.unlocked = e.unlocked.filter(x => x !== oid); S.keepScroll = true; render(); }
   if (k === 'ord-status') { const o = ORDERS.find(x => x.id === el.dataset.arg); if (o) { o.status = el.value; saveOrders(); toast(`Statut mis à jour : ${el.value}`); } }
   if (k === 'nf' && S.modal && S.modal.f) { S.modal.f[el.dataset.arg] = el.value; if (el.dataset.arg === 'diffusion' || el.dataset.arg === 'media') { S.keepScroll = true; render(); } }
-  if (k === 'nf-logo') { const file = el.files && el.files[0]; if (!file) return; const rd = new FileReader(); rd.onload = () => { const img = new Image(); img.onload = () => { const h = Math.min(160, img.height); const w = Math.round(img.width * h / img.height); const cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(img, 0, 0, w, h); S.modal.f.logo = cv.toDataURL('image/png'); S.keepScroll = true; render(); }; img.src = rd.result; }; rd.readAsDataURL(file); }
+  if (k === 'nf-logo') { const file = el.files && el.files[0]; if (!file) return; const rd = new FileReader(); rd.onload = () => { const img = new Image(); img.onload = () => { const h = Math.min(160, img.height); const w = Math.round(img.width * h / img.height); const cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(img, 0, 0, w, h); S.modal.f.logoFile = file; /* Habillage : original conservé pour l'envoi HD */ S.modal.f.logo = cv.toDataURL('image/png'); S.keepScroll = true; render(); }; img.src = rd.result; }; rd.readAsDataURL(file); }
   if (k === 'av-c' && S.modal && S.modal.f) { S.modal.f[el.dataset.arg] = el.value; }
   if ((k === 'av-vf' || k === 'av-df') && S.modal && S.modal.f) { const [key, fld] = el.dataset.arg.split('|'); const list = k === 'av-vf' ? S.modal.f.vids : S.modal.f.docs; const r = list.find(x => x.key === key); if (r) r[fld] = el.value; }
   if (k === 'av-stills' && S.modal && S.modal.f) { S.modal.f.stills = el.checked; }
@@ -3380,7 +3831,8 @@ document.addEventListener('change', e => {
   if (k === 't-spksel') { T.results[+el.dataset.arg].spk = +el.value; S.keepScroll = true; render(); }
   if (k === 't-jingle') { const f = el.files && el.files[0]; if (!f) return; T.jingle = { url: URL.createObjectURL(f), name: f.name, duration: 0, w: 0, h: 0 }; S.keepScroll = true; render(); }
   if (k === 't-media') { T.media = el.value; S.keepScroll = true; render(); }
-  if (k === 'm-logo') { const f = el.files && el.files[0]; if (!f) return; if (f.size > 2e6) { toast('Fichier trop lourd : 2 Mo maximum'); return; } const r = new FileReader(); r.onload = () => { mediaById(S.admin.arg)[el.dataset.arg] = r.result; saveMedias(); S.keepScroll = true; render(); toast('Logo importé et appliqué à tous les contenus de ce média'); }; r.readAsDataURL(f); }
+  if (k === 'm-logo') { const f = el.files && el.files[0]; if (!f) return; if (f.size > 2e6) { toast('Fichier trop lourd : 2 Mo maximum'); return; } const r = new FileReader(); r.onload = () => { mediaById(S.admin.arg)[el.dataset.arg] = r.result; if (opusOn()) { const mm = mediaById(S.admin.arg); mm[el.dataset.arg + 'Key'] = ''; uploadMediaLogo(mm, el.dataset.arg, f); } /* Habillage */ saveMedias(); S.keepScroll = true; render(); toast('Logo importé et appliqué à tous les contenus de ce média'); }; r.readAsDataURL(f); }
+  if (k === 'm-jingle') { const f = el.files && el.files[0]; if (!f) return; if (f.type && !/^video\//.test(f.type)) { toast('Importez un fichier vidéo (MP4 de préférence).'); return; } uploadJingle(mediaById(S.admin.arg), el.dataset.arg, f); } /* Habillage */
   if (k === 'a-upload') { toast(`${el.files.length} fichier(s) ajouté(s). Démo : l'analyse IA démarrerait automatiquement.`); }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.modal) A.close(); });
