@@ -36,10 +36,25 @@ export function registerJourneys(engine, cfg) {
   registerActivationJourney(engine);
 }
 
+// Création ponctuelle d'une autre base dans la même instance PostgreSQL (ex. CREATE_DATABASE=openstudio_backend
+// pour le back-end des commandes), sans installer psql. Sans effet si la base existe déjà ou si la variable est vide.
+export async function createExtraDatabase(db, name, log) {
+  if (!name) return null;
+  if (!/^[a-z_][a-z0-9_]{0,62}$/.test(name)) { log.error('database.create_refused', { reason: 'nom invalide (minuscules, chiffres, _)' }); return null; }
+  try {
+    const exists = (await db.query('SELECT 1 FROM pg_database WHERE datname = $1', [name])).rowCount > 0;
+    if (exists) { log.info('database.exists', { database: name }); return 'exists'; }
+    await db.query(`CREATE DATABASE "${name}"`);
+    log.info('database.created', { database: name });
+    return 'created';
+  } catch (e) { log.error('database.create_failed', { database: name, error: e.message }); return null; }
+}
+
 export async function startEmails(env = process.env) {
   const cfg = emailConfig(env); const log = createLogger();
   if (!cfg.databaseUrl) { log.warn('emails.disabled', { reason: 'DATABASE_URL vide' }); return null; }
   const db = createDb(cfg.databaseUrl); await migrate(db);
+  await createExtraDatabase(db, env.CREATE_DATABASE, log);
   const mailer = createMailjet({ ...cfg.mailjet, log });
   const engine = createEngine({ db, mailer, log, config: { window: cfg.window, requireConsent: cfg.requireConsent, reviewDedupDays: cfg.reviewDedupDays } });
   registerJourneys(engine, cfg);
