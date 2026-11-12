@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mes commandes — OpenStudio</title>
+  <style>
+    :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e4e2dc; --accent:#1d1d1f; --ok:#1f7a4d; --err:#b3261e; --warn:#8a5a00; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--ink); }
+    main { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 28px; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 28px; }
+    .order { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:16px; }
+    .head { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    .title { font-weight:600; }
+    .meta { color:var(--muted); font-size:14px; margin-top:4px; }
+    .badge { font-size:13px; padding:4px 10px; border-radius:999px; background:#eeece6; white-space:nowrap; }
+    .badge.ready { background:#e3f2ea; color:var(--ok); }
+    .badge.error { background:#fbe9e7; color:var(--err); }
+    .badge.busy { background:#fff4dc; color:var(--warn); }
+    .files { display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:14px; margin-top:18px; }
+    .file { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fafaf8; }
+    .file video { width:100%; display:block; background:#000; max-height:320px; }
+    .file .info { padding:10px; font-size:13px; }
+    .file .name { font-weight:600; word-break:break-all; }
+    .btn { display:inline-block; text-decoration:none; border:1px solid var(--accent); color:#fff; background:var(--accent); padding:8px 14px; border-radius:8px; font-size:14px; cursor:pointer; }
+    .btn.ghost { background:transparent; color:var(--accent); }
+    .file .btn { margin-top:8px; width:100%; text-align:center; }
+    .actions { margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; }
+    .empty { color:var(--muted); padding:40px 0; text-align:center; }
+    .error-msg { color:var(--err); font-size:14px; margin-top:10px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Mes commandes</h1>
+    <p class="sub">Retrouvez l'avancement de vos commandes et téléchargez vos vidéos.</p>
+    <div id="list"></div>
+  </main>
+
+  <script>window.OPENSTUDIO_API = window.OPENSTUDIO_API || 'https://openstudio-backend.onrender.com';</script>
+  <script src="openstudio-api.js"></script>
+  <script>
+    (function () {
+      const list = document.getElementById('list');
+      const params = new URLSearchParams(location.search);
+      const only = params.get('order');
+      const TYPE_LABEL = { capsules: 'Capsules vidéo', subtitles: 'Sous-titres', visuels: 'Visuels', publications: 'Publications', photo: 'Visuels' };
+      const BUSY = ['paid', 'submitting', 'processing', 'opus_done', 'postprocessing'];
+
+      const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+      const size = (b) => (b > 1e9 ? (b / 1e9).toFixed(1) + ' Go' : (b / 1e6).toFixed(1) + ' Mo');
+      const dur = (ms) => (ms ? `${Math.floor(ms / 60000)}:${String(Math.round(ms / 1000) % 60).padStart(2, '0')}` : '');
+
+      function orderCard(id) {
+        const el = document.createElement('section');
+        el.className = 'order';
+        el.innerHTML = `<div class="head"><div><div class="title">Commande ${esc(id.slice(0, 8))}</div><div class="meta">Chargement…</div></div><span class="badge">…</span></div><div class="body"></div>`;
+        list.appendChild(el);
+        return el;
+      }
+
+      async function renderFiles(el, id) {
+        const body = el.querySelector('.body');
+        const { files } = await OpenStudio.getDownloads(id);
+        if (!files.length) { body.innerHTML = '<p class="meta">Aucun fichier disponible.</p>'; return; }
+        body.innerHTML = `
+          <div class="files">${files.map((f) => `
+            <div class="file">
+              ${f.previewUrl ? `<video src="${esc(f.previewUrl)}" controls preload="metadata" playsinline></video>` : `<div style="padding:28px 10px;text-align:center;font-weight:600;background:#eeece6">Fichier .${esc(f.kind)}</div>`}
+              <div class="info">
+                <div class="name">${esc(f.fileName)}</div>
+                <div class="meta">${esc(dur(f.durationMs))} ${f.sizeBytes ? '· ' + size(f.sizeBytes) : ''}</div>
+                <a class="btn" href="${esc(f.downloadUrl)}">Télécharger</a>
+              </div>
+            </div>`).join('')}
+          </div>
+          <div class="actions">
+            ${files.length > 1 ? `<a class="btn" href="${esc(OpenStudio.zipUrl(id))}">Tout télécharger (.zip)</a>` : ''}
+            <button class="btn ghost" type="button" data-refresh>Actualiser les liens</button>
+          </div>
+          <p class="meta">Les liens de téléchargement expirent après quelques minutes : actualisez-les si besoin.
+          ${files[0].expiresAt ? `Fichiers conservés jusqu'au ${new Date(files[0].expiresAt).toLocaleDateString('fr-FR')}.` : ''}</p>`;
+        body.querySelector('[data-refresh]').onclick = () => renderFiles(el, id);
+      }
+
+      function update(el, id, order, err) {
+        const badge = el.querySelector('.badge');
+        const meta = el.querySelector('.meta');
+        if (err) { meta.textContent = err.status === 404 ? 'Commande introuvable ou lien invalide.' : 'Impossible de charger la commande.'; badge.textContent = '—'; return; }
+        badge.textContent = order.statusLabel;
+        badge.className = 'badge' + (order.status === 'ready' ? ' ready' : order.status === 'error' ? ' error' : BUSY.includes(order.status) ? ' busy' : '');
+        meta.textContent = `${TYPE_LABEL[order.type] || order.type} · ${new Date(order.createdAt).toLocaleString('fr-FR')}`;
+        if (order.status === 'ready' && !el.dataset.loaded) { el.dataset.loaded = '1'; renderFiles(el, id).catch(() => {}); }
+        if (order.status === 'error') el.querySelector('.body').innerHTML = `<p class="error-msg">${esc(order.error)}</p>`;
+      }
+
+      async function start() {
+        let ids = only ? [only] : [];
+        if (!only && OpenStudio.clientSession()) {
+          try { ids = (await OpenStudio.getMyOrders()).map((o) => o.id); } catch { /* espace non reconnu */ }
+        }
+        if (!only) ids = [...new Set([...ids, ...OpenStudio.savedOrders().map((o) => o.id)])];
+        if (!ids.length) { list.innerHTML = '<p class="empty">Aucune commande pour le moment.</p>'; return; }
+        ids.forEach((id) => { const el = orderCard(id); OpenStudio.watchOrder(id, (o, e) => update(el, id, o, e)); });
+      }
+      start();
+    })();
+  </script>
+</body>
+</html>
