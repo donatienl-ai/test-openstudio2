@@ -1,9 +1,19 @@
-# Blueprint Render : service back-end + base Postgres.
-# Le site statique existant reste déployé tel quel.
+# Blueprint Render : service back-end OpenStudio (commandes, OpusClip, sous-titres).
+# - Offre gratuite et région Frankfurt (sans précision, Render choisit une offre payante et l'Oregon).
+#   Avant la production : passer le service sur une offre payante (mémoire pour ffmpeg, pas de mise en veille).
+# - Aucune base n'est créée ici : la base PostgreSQL « openstudio-db » existe déjà (emails Mailjet).
+#   Le back-end utilise une SECONDE base dans cette même instance, à créer une fois :
+#     CREATE DATABASE openstudio_backend;
+#   puis renseigner DATABASE_URL = Internal Database URL de openstudio-db, en remplaçant le nom de base
+#   final par /openstudio_backend. (Les deux back-ends ont chacun une table « clients » : ils ne doivent
+#   pas partager la même base.)
+# - Le site statique (test-openstudio3) reste déployé tel quel.
 services:
   - type: web
     name: openstudio-backend
     runtime: node
+    plan: free
+    region: frankfurt
     rootDir: openstudio-backend
     buildCommand: npm ci || npm install
     startCommand: npm start
@@ -12,13 +22,14 @@ services:
       - key: NODE_VERSION
         value: "22"
       - key: DATABASE_URL
-        fromDatabase:
-          name: openstudio-db
-          property: connectionString
+        sync: false
+      # Connexion interne à Render : pas de SSL nécessaire.
+      - key: DATABASE_SSL
+        value: "false"
       - key: PUBLIC_BASE_URL
         sync: false
       - key: FRONTEND_ORIGIN
-        sync: false
+        value: https://test-openstudio3.onrender.com
       - key: OPUSCLIP_API_KEY
         sync: false
       - key: OPUSCLIP_WEBHOOK_SECRET
@@ -43,7 +54,3 @@ services:
         value: "30"
       - key: ADMIN_TOKEN
         generateValue: true
-
-databases:
-  - name: openstudio-db
-    databaseName: openstudio
