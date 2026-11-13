@@ -55,6 +55,28 @@ curl -X POST $API/api/admin/clients/<CLIENT_ID>/videos -H "$AUTH" -H 'Content-Ty
 #    https://VOTRE-SITE/?client=<CLIENT_ID>&clientToken=<CLIENT_TOKEN>
 ```
 
+### Client de test en une commande
+
+Depuis le dossier `openstudio-backend/` (Node 20+), avec le jeton `ADMIN_TOKEN` du service Render
+« openstudio-backend » (onglet *Environment*) :
+
+```bash
+ADMIN_TOKEN=<jeton> npm run client:test -- "Client test" --logo chemin/vers/logo.png
+```
+
+Le script crée le client, envoie son logo (indispensable pour valider une commande de capsules)
+et affiche le lien de son espace :
+`https://test-openstudio3.onrender.com/?client=<id>&clientToken=<jeton>`.
+`OPENSTUDIO_API` et `OPENSTUDIO_SITE` permettent de viser un autre back-end ou un autre site.
+
+### Dépôt de vidéos par le client (tests uniquement)
+
+Si `CLIENT_UPLOADS_ENABLED=true`, la page Capsules affiche « Déposer une vidéo (test) » : le client
+envoie lui-même une vidéo (`POST /api/uploads` puis `POST /api/me/videos`), qui rejoint son package.
+Le serveur n'accepte que les fichiers envoyés par `/api/uploads`, vérifie qu'ils existent dans le
+stockage et que ce sont des vidéos. **À passer à `false` en production** : les vidéos du package
+sont alors déposées par l'équipe (route admin ci-dessus) et la route répond 403.
+
 Programmes disponibles (logos, langue) : `programmes` dans `src/opusclip.config.js`
 (BFM Business, BFM, Immersion — à compléter).
 
@@ -106,6 +128,7 @@ de crédits (suivi : `GET /api/admin/orders` avec `Authorization: Bearer <ADMIN_
 | GET | `/api/catalog` | Options configurées |
 | GET | `/api/me` | Client + vidéos de son package |
 | GET | `/api/me/orders` | Commandes du client |
+| POST | `/api/me/videos` | Le client ajoute une vidéo déposée (tests, `CLIENT_UPLOADS_ENABLED=true`) |
 | POST | `/api/uploads` | URL signée d'envoi (vidéo, transcription .srt/.vtt, logo) |
 | POST | `/api/orders` | Créer une commande → `accessToken` |
 | POST | `/api/orders/:id/validate` | Valider (contrôle des options) |

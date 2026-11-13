@@ -99,6 +99,38 @@ function publicVideo(v) {
 }
 
 // ---------------------------------------------------------------------------
+// Vidéos du package (logique commune équipe / espace client)
+// ---------------------------------------------------------------------------
+const VIDEO_EXTS = ['.mp4', '.mov', '.m4v', '.webm', '.mkv'];
+/** Clé produite par POST /api/uploads pour une vidéo : uploads/AAAA-MM-JJ/<uuid>/video.<ext> */
+const UPLOADED_VIDEO_KEY = /^uploads\/\d{4}-\d{2}-\d{2}\/[0-9a-f-]{36}\/video\.(mp4|mov|m4v|webm|mkv)$/i;
+
+/**
+ * Vérifie puis enregistre une vidéo dans le package du client et répond (201 ou 400).
+ * options.defaultProgramme : émission utilisée si programmeId est absent (espace client).
+ */
+async function addPackageVideo(client, body, res, { defaultProgramme } = {}) {
+  const { title, sourceKey, broadcastDate } = body || {};
+  const programmeId = body?.programmeId || defaultProgramme;
+  if (!mapping.programmes[programmeId]) {
+    return res.status(400).json({ error: `Émission inconnue. Disponibles : ${Object.keys(mapping.programmes).join(', ')}` });
+  }
+  const cleanTitle = String(title || '').trim().slice(0, 200);
+  if (!cleanTitle || !sourceKey) return res.status(400).json({ error: 'Titre et fichier vidéo (sourceKey) requis' });
+  if (broadcastDate && !/^\d{4}-\d{2}-\d{2}$/.test(String(broadcastDate))) {
+    return res.status(400).json({ error: 'Date de diffusion invalide (format AAAA-MM-JJ)' });
+  }
+  const h = await storage.head(sourceKey);
+  if (!h.exists) return res.status(400).json({ error: `Fichier introuvable dans le stockage : ${sourceKey}` });
+  const ct = String(h.contentType || '').toLowerCase();
+  const isVideo = ct.startsWith('video/') ||
+    ((!ct || ct === 'application/octet-stream') && VIDEO_EXTS.includes(path.extname(sourceKey).toLowerCase()));
+  if (!isVideo || !h.size) return res.status(400).json({ error: "Le fichier déposé n'est pas une vidéo" });
+  const v = await clients.addVideo(client.id, { programmeId, title: cleanTitle, sourceKey, broadcastDate });
+  return res.status(201).json({ video: publicVideo(v) });
+}
+
+// ---------------------------------------------------------------------------
 // Catalogue (options configurées)
 // ---------------------------------------------------------------------------
 router.get('/catalog', (req, res) => {
@@ -115,6 +147,7 @@ router.get('/catalog', (req, res) => {
       sizes: Object.keys(mapping.subtitles.style.sizes),
       outlines: Object.keys(mapping.subtitles.style.outlines),
     },
+    clientUploads: config.clientUploadsEnabled, // dépôt de vidéos depuis l'espace client (tests)
   });
 });
 
@@ -132,6 +165,22 @@ router.get('/me', wrap(async (req, res) => {
   });
 }));
 
+/**
+ * Dépôt d'une vidéo par le client lui-même — TESTS UNIQUEMENT (CLIENT_UPLOADS_ENABLED=true).
+ * Le fichier a d'abord été envoyé via POST /api/uploads (kind=video).
+ */
+router.post('/me/videos', json, wrap(async (req, res) => {
+  const client = await requireClient(req, res);
+  if (!client) return;
+  if (!config.clientUploadsEnabled) {
+    return res.status(403).json({ error: "Le dépôt de vidéos depuis l'espace client est désactivé : les vidéos sont déposées par l'équipe OpenStudio." });
+  }
+  // Seules les vidéos fraîchement envoyées via /api/uploads sont acceptées (pas d'autre fichier du bucket)
+  if (!UPLOADED_VIDEO_KEY.test(String(req.body?.sourceKey || ''))) {
+    return res.status(400).json({ error: 'Fichier vidéo invalide : déposez-le à nouveau' });
+  }
+  await addPackageVideo(client, req.body, res, { defaultProgramme: Object.keys(mapping.programmes)[0] });
+}));
 router.get('/me/orders', wrap(async (req, res) => {
   const client = await requireClient(req, res);
   if (!client) return;
@@ -143,7 +192,7 @@ router.get('/me/orders', wrap(async (req, res) => {
 // Uploads directs navigateur → stockage (URL signée)
 // ---------------------------------------------------------------------------
 const UPLOAD_KINDS = {
-  video: { exts: ['.mp4', '.mov', '.m4v', '.webm', '.mkv'], types: /^video\// },
+  video: { exts: VIDEO_EXTS, types: /^video\// },
   transcript: { exts: ['.srt', '.vtt'], types: /^(application\/x-subrip|text\/vtt|text\/plain|text\/srt|application\/octet-stream)?$/ },
   logo: { exts: ['.png', '.jpg', '.jpeg', '.webp'], types: /^image\// },
 };
@@ -335,17 +384,8 @@ router.post('/admin/clients/:id/videos', json, wrap(async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const client = await clients.get(req.params.id);
   if (!client) return res.status(404).json({ error: 'Client introuvable' });
-  const { programmeId, title, sourceKey, broadcastDate } = req.body || {};
-  if (!mapping.programmes[programmeId]) {
-    return res.status(400).json({ error: `Programme inconnu. Disponibles : ${Object.keys(mapping.programmes).join(', ')}` });
-  }
-  if (!title || !sourceKey) return res.status(400).json({ error: 'title et sourceKey requis' });
-  const h = await storage.head(sourceKey);
-  if (!h.exists) return res.status(400).json({ error: `Fichier introuvable dans le stockage : ${sourceKey}` });
-  const v = await clients.addVideo(client.id, { programmeId, title, sourceKey, broadcastDate });
-  res.status(201).json({ video: publicVideo(v) });
+  await addPackageVideo(client, req.body, res);
 }));
-
 router.get('/admin/clients/:id/videos', wrap(async (req, res) => {
   if (!requireAdmin(req, res)) return;
   res.json({ videos: (await clients.listVideos(req.params.id)).map(publicVideo) });

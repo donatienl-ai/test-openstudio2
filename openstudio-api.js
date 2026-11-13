@@ -87,8 +87,13 @@
    */
   async function uploadFile(file, kind, onProgress) {
     const isVtt = /\.vtt$/i.test(file.name);
+    const ext = (file.name.match(/\.([a-z0-9]+)$/i) || [])[1] || '';
+    const VIDEO_TYPES = { mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska' };
     const contentType =
-      file.type || (kind === 'transcript' ? (isVtt ? 'text/vtt' : 'application/x-subrip') : 'application/octet-stream');
+      file.type ||
+      (kind === 'transcript' ? (isVtt ? 'text/vtt' : 'application/x-subrip')
+        : kind === 'video' ? VIDEO_TYPES[ext.toLowerCase()] || 'application/octet-stream'
+        : 'application/octet-stream');
     const { key, uploadUrl, headers } = await call('POST', '/api/uploads', {
       body: { kind, fileName: file.name, contentType },
     });
@@ -97,8 +102,15 @@
       xhr.open('PUT', uploadUrl);
       Object.entries(headers || {}).forEach(([k, v]) => xhr.setRequestHeader(k, v));
       xhr.upload.onprogress = (e) => e.lengthComputable && onProgress && onProgress(Math.round((e.loaded / e.total) * 100));
-      xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload échoué (${xhr.status})`)));
-      xhr.onerror = () => reject(new Error('Upload interrompu'));
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) return resolve();
+        const err = new Error(`Upload échoué (${xhr.status})`);
+        err.status = xhr.status;
+        err.upload = true;
+        reject(err);
+      };
+      xhr.onerror = () => reject(Object.assign(new Error('Upload interrompu'), { upload: true, interrupted: true }));
+      xhr.onabort = xhr.onerror;
       xhr.send(file);
     });
     return key;
@@ -138,6 +150,13 @@
   const getCatalog = () => call('GET', '/api/catalog');
   /** Client connecté + vidéos de son package (étape 1 « Vidéo » des capsules). */
   const getMyVideos = () => call('GET', '/api/me');
+  /**
+   * Ajoute au package du client une vidéo déjà envoyée avec uploadFile(file, 'video').
+   * Tests uniquement : le serveur répond 403 si CLIENT_UPLOADS_ENABLED n'est pas activé.
+   * @param {{title:string, sourceKey:string, programmeId?:string, broadcastDate?:string}} video
+   */
+  const addMyVideo = ({ title, sourceKey, programmeId, broadcastDate }) =>
+    call('POST', '/api/me/videos', { body: { title, sourceKey, programmeId, broadcastDate } }).then((d) => d.video);
   /** Commandes de l'espace client. */
   const getMyOrders = () => call('GET', '/api/me/orders').then((d) => d.orders);
 
@@ -168,6 +187,7 @@
     zipUrl,
     getCatalog,
     getMyVideos,
+    addMyVideo,
     getMyOrders,
     clientSession,
     watchOrder,

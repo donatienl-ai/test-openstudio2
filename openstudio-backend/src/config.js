@@ -41,6 +41,15 @@ const config = {
   },
 
   workerIntervalSec: num(process.env.WORKER_INTERVAL_SEC, 10),
+
+  /**
+   * Dépôt de vidéos depuis l'espace client (POST /api/me/videos). TESTS UNIQUEMENT :
+   * en production, les vidéos du package sont déposées par l'équipe OpenStudio.
+   * Lu à chaque requête (et non au démarrage) pour pouvoir le couper sans redéployer le code.
+   */
+  get clientUploadsEnabled() {
+    return bool(process.env.CLIENT_UPLOADS_ENABLED, false);
+  },
 };
 
 module.exports = config;

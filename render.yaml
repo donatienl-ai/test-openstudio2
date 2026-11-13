@@ -57,3 +57,7 @@ services:
         value: "30"
       - key: ADMIN_TOKEN
         generateValue: true
+      # Dépôt de vidéos depuis l'espace client : tests uniquement, à passer à false en production
+      # (en production, les vidéos du package sont déposées par l'équipe OpenStudio).
+      - key: CLIENT_UPLOADS_ENABLED
+        value: "true"

@@ -11,7 +11,8 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test test/*.test.js",
-    "opus:templates": "node scripts/list-templates.js"
+    "opus:templates": "node scripts/list-templates.js",
+    "client:test": "node scripts/create-test-client.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",
