@@ -19,6 +19,7 @@ const clients = require('./clients');
 const storage = require('./storage');
 const opus = require('./opusclip/client');
 const { buildProjectPayload, interpretProjectStatus, estimateCredits, shortId } = require('./opusclip/payload');
+const { isLiveOrder, liveTestGuard } = require('./opusclip/mode');
 const { probeDurationSec, renderFinal, buildForceStyle } = require('./media/ffmpeg');
 const subs = require('./media/subtitles');
 
@@ -52,12 +53,17 @@ async function submit(order) {
   }
 
   // Mode dry run : on construit et on journalise sans rien envoyer
-  if (config.opus.dryRun) {
+  // (sauf pour les clients de test listés dans OPUSCLIP_LIVE_CLIENTS)
+  if (!isLiveOrder(order, config.opus)) {
     const payload = buildProjectPayload(order, '<uploadId>', mapping, webhookUrl());
     console.log(`[dry-run] commande ${shortId(order.id)} — ${credits} crédits estimés\n${JSON.stringify(payload, null, 2)}`);
     await orders.setStatus(order.id, 'dry_run', { opus_payload: JSON.stringify(payload), estimated_credits: credits });
     return;
   }
+
+  const blocked = liveTestGuard(durationSec, config.opus);
+  if (blocked) throw new Error(blocked);
+  if (config.opus.dryRun) console.log(`[test réel] commande ${shortId(order.id)} envoyée à OpusClip (client de test) — ${credits} crédits estimés`);
 
   const uploadId = await opus.uploadVideo(await storage.getStream(key), h.size);
   const payload = buildProjectPayload(order, uploadId, mapping, webhookUrl());

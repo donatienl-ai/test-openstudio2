@@ -36,6 +36,12 @@ services:
         sync: false
       - key: OPUSCLIP_DRY_RUN
         value: "true"
+      # Tests : commandes envoyées réellement à OpusClip pour ces clients seulement (identifiants séparés
+      # par des virgules, à saisir dans Render), malgré OPUSCLIP_DRY_RUN=true. Vider en production.
+      - key: OPUSCLIP_LIVE_CLIENTS
+        sync: false
+      - key: OPUSCLIP_LIVE_MAX_MINUTES
+        value: "10"
       - key: OPUSCLIP_CREDIT_BUDGET
         value: "3577"
       - key: OPUSCLIP_CREDITS_PER_MINUTE

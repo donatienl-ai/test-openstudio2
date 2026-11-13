@@ -109,6 +109,15 @@ brancher les boutons comme décrit dans `frontend/INTEGRATION.md`.
 `OPUSCLIP_DRY_RUN=false`. Commencer par une commande courte pour contrôler la consommation
 de crédits (suivi : `GET /api/admin/orders` avec `Authorization: Bearer <ADMIN_TOKEN>`).
 
+## Test réel avec un client de test
+
+`OPUSCLIP_DRY_RUN=true` laisse toutes les commandes en dry run, **sauf** celles des clients listés dans
+`OPUSCLIP_LIVE_CLIENTS` : elles sont réellement envoyées à OpusClip (crédits consommés), puis passent
+par le post-traitement (logos) et la livraison comme en production. Garde-fous : `OPUSCLIP_API_KEY`
+obligatoire, vidéo de `OPUSCLIP_LIVE_MAX_MINUTES` minutes au plus (10 par défaut), budget
+`OPUSCLIP_CREDIT_BUDGET`. `/health` indique `liveTestClients` (nombre de clients concernés).
+Vider `OPUSCLIP_LIVE_CLIENTS` en production.
+
 ## API
 
 | Méthode | Route | Rôle |

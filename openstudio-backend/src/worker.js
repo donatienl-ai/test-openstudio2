@@ -94,7 +94,7 @@ function start() {
   if (timer) return;
   timer = setInterval(loop, config.workerIntervalSec * 1000);
   nudge();
-  console.log(`[worker] démarré (intervalle ${config.workerIntervalSec}s, dry run : ${config.opus.dryRun})`);
+  console.log(`[worker] démarré (intervalle ${config.workerIntervalSec}s, dry run : ${config.opus.dryRun}, clients en envoi réel : ${config.opus.liveClients.length})`);
 }
 
 module.exports = { start, nudge };

@@ -23,6 +23,14 @@ const config = {
     webhookSecret: process.env.OPUSCLIP_WEBHOOK_SECRET || process.env.OPUSCLIP_API_KEY || '',
     baseUrl: 'https://api.opus.pro',
     dryRun: bool(process.env.OPUSCLIP_DRY_RUN, true),
+    // Tests : clients dont les commandes partent réellement chez OpusClip malgré OPUSCLIP_DRY_RUN=true
+    // (voir src/opusclip/mode.js). Lu à chaque usage : modifiable sans redéployer le code.
+    get liveClients() {
+      return (process.env.OPUSCLIP_LIVE_CLIENTS || '').split(',').map((s) => s.trim()).filter(Boolean);
+    },
+    get liveMaxMinutes() {
+      return num(process.env.OPUSCLIP_LIVE_MAX_MINUTES, 10);
+    },
     creditBudget: num(process.env.OPUSCLIP_CREDIT_BUDGET, 0),
     creditsPerMinute: num(process.env.OPUSCLIP_CREDITS_PER_MINUTE, 1),
     pollIntervalSec: num(process.env.OPUSCLIP_POLL_INTERVAL_SEC, 120),
