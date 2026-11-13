@@ -31,11 +31,11 @@ const config = {
   },
 
   storage: {
-    bucket: process.env.STORAGE_BUCKET || '',
-    endpoint: process.env.STORAGE_ENDPOINT || undefined,
-    region: process.env.STORAGE_REGION || 'auto',
-    accessKeyId: process.env.STORAGE_ACCESS_KEY || '',
-    secretAccessKey: process.env.STORAGE_SECRET_KEY || '',
+    bucket: (process.env.STORAGE_BUCKET || '').trim() || '',
+    endpoint: (process.env.STORAGE_ENDPOINT || '').trim() || undefined,
+    region: (process.env.STORAGE_REGION || '').trim() || 'auto',
+    accessKeyId: (process.env.STORAGE_ACCESS_KEY || '').trim() || '',
+    secretAccessKey: (process.env.STORAGE_SECRET_KEY || '').trim() || '',
     urlTtlSec: num(process.env.DOWNLOAD_URL_TTL_SEC, 900),
     retentionDays: num(process.env.FILE_RETENTION_DAYS, 30),
   },
