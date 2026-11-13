@@ -38,11 +38,11 @@ function run(args, { timeoutMs = 60 * 60 * 1000 } = {}) {
 
 /** Durée d'une vidéo (secondes) — fichier local ou URL HTTP(S). null si inconnue. */
 async function probeDurationSec(input) {
-  const { stderr } = await run(['-hide_banner', '-i', input], { timeoutMs: 120_000 });
+  const { stderr, code } = await run(['-hide_banner', '-i', input], { timeoutMs: 120_000 });
   const m = /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(stderr);
   if (!m) {
     // Diagnostic : dernières lignes de ffmpeg (sans l'URL signée)
-    console.error(`[ffmpeg] durée introuvable : ${stderr.replace(/https?:\/\/\S+/g, '<url>').trim().split('\n').slice(-3).join(' | ')}`);
+    console.error(`[ffmpeg] durée introuvable (binaire ${FFMPEG}, code ${code}) : ${stderr.replace(/https?:\/\/\S+/g, '<url>').trim().split('\n').slice(-3).join(' | ')}`);
     return null;
   }
   return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
