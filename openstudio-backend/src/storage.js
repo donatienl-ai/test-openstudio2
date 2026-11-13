@@ -62,6 +62,12 @@ async function getStream(key) {
   return r.Body; // Readable (Node)
 }
 
+/** Lecture partielle d'un objet (octets start..end inclus). */
+async function readRange(key, start, end) {
+  const r = await s3.send(new GetObjectCommand({ Bucket, Key: key, Range: `bytes=${start}-${end}` }));
+  return Buffer.from(await r.Body.transformToByteArray());
+}
+
 async function getText(key) {
   const body = await getStream(key);
   return body.transformToString('utf8');
@@ -121,4 +127,4 @@ async function ensureCors(origins) {
   return storageStatus;
 }
 
-module.exports = { storageStatus, ensureCors, presignUpload, presignDownload, head, getStream, getText, downloadToFile, uploadFile, remove };
+module.exports = { storageStatus, ensureCors, readRange, presignUpload, presignDownload, head, getStream, getText, downloadToFile, uploadFile, remove };

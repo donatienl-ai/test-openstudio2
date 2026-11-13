@@ -21,6 +21,7 @@ const opus = require('./opusclip/client');
 const { buildProjectPayload, interpretProjectStatus, estimateCredits, shortId } = require('./opusclip/payload');
 const { isLiveOrder, liveTestGuard } = require('./opusclip/mode');
 const { probeDurationSec, renderFinal, buildForceStyle } = require('./media/ffmpeg');
+const { mp4DurationSec } = require('./media/mp4duration');
 const subs = require('./media/subtitles');
 
 const webhookUrl = () => `${config.publicBaseUrl}/api/webhooks/opusclip`;
@@ -45,14 +46,22 @@ async function submit(order) {
   if (!h.exists) throw new Error(`Vidéo source introuvable dans le stockage : ${key}`);
 
   // Estimation et contrôle des crédits
-  let durationSec = await probeDurationSec(await storage.presignDownload(key, 'source.mp4', 'inline', 600)).catch((e) => {
-    console.error(`[order ${shortId(order.id)}] lecture de la durée impossible : ${e && e.message}`);
+  // 1) en-tête MP4/MOV lu directement dans le stockage, 2) ffmpeg, 3) durée mesurée au dépôt
+  let durationSec = await mp4DurationSec((a, b) => storage.readRange(key, a, b), h.size).catch((e) => {
+    console.error(`[order ${shortId(order.id)}] en-tête vidéo illisible : ${e && e.message}`);
     return null;
   });
+  if (!durationSec) {
+    durationSec = await probeDurationSec(await storage.presignDownload(key, 'source.mp4', 'inline', 600)).catch((e) => {
+      console.error(`[order ${shortId(order.id)}] ffmpeg : ${e && e.message}`);
+      return null;
+    });
+  }
   if (!durationSec && order.options.sourceDurationSec) {
     durationSec = Number(order.options.sourceDurationSec);
     console.log(`[order ${shortId(order.id)}] durée reprise du dépôt : ${Math.round(durationSec)} s`);
   }
+  console.log(`[order ${shortId(order.id)}] durée de la vidéo : ${durationSec ? Math.round(durationSec) + ' s' : 'inconnue'}`);
   const credits = estimateCredits(durationSec, config.opus.creditsPerMinute);
   const remaining = config.opus.creditBudget - (await orders.creditsUsed());
   if (config.opus.creditBudget > 0 && credits > remaining) {
