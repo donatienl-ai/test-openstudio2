@@ -130,3 +130,14 @@ test('sous-titres : programme facultatif pour le logo du média', () => {
   assert.throws(() => normalizeOptions('subtitles', { videoKey: 'v.mp4', spokenLanguage: 'fr', programmeId: 'tf1' }, real), /Programme inconnu/);
   assert.equal(real.logos.onSubtitledVideo, true);
 });
+
+test('sous-titres : vidéo du package (videoId) au lieu d\'un envoi', () => {
+  const video = { id: 'vid-1', title: 'Passage plateau', programme_id: 'bfm', source_key: 'clients/c1/videos/v.mp4', duration_sec: 872 };
+  const o = normalizeOptions('subtitles', { videoId: 'vid-1', spokenLanguage: 'fr' }, real, { video });
+  assert.equal(o.videoKey, 'clients/c1/videos/v.mp4');
+  assert.equal(o.programmeId, 'bfm');
+  assert.equal(o.videoTitle, 'Passage plateau');
+  assert.equal(o.sourceDurationSec, 872);
+  assert.equal(o.mode, 'opus_transcript');
+  assert.throws(() => normalizeOptions('subtitles', { videoId: 'autre', spokenLanguage: 'fr' }, real, {}), /ne fait pas partie/);
+});

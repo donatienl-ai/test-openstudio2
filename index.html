@@ -7,35 +7,35 @@
 <title>OpenStudio, prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=DM+Sans:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0F0F33;--surface:#16163F;--surface-2:#1E1E4C;--ink:#3B3BFA;--on-ink:#FFFFFF;
-    --text:#FFFFFF;--muted:#A3A3CC;--line:rgba(255,255,255,.09);--line-strong:rgba(255,255,255,.18);--link:#9C9CFF;
-    --onair:#3B3BFA;--onair-soft:#26266E;--danger:#FF7474;--danger-soft:#3D1F45;--ok:#4DD69A;--ok-soft:#173A3A;--warn:#F2B654;--warn-soft:#3A3040;
-    --focus:#9C9CFF;--shadow:0 1px 2px rgba(0,0,10,.35),0 10px 28px rgba(0,0,10,.3);--netdark:#34347A;color-scheme:dark;
-  --r-s:8px;--r-m:14px;--r-l:22px;--brand:#111137;
+  --bg:#F4F3EF;--surface:#FFFFFF;--surface-2:#EFEDE7;--ink:#3B3BF9;--on-ink:#FFFFFF;
+    --text:#1A1A2E;--muted:#55556A;--line:#E2E0D8;--line-strong:#C9C7BE;--link:#3B3BF9;
+    --onair:#3B3BF9;--onair-soft:#EEEEFF;--danger:#C62D45;--danger-soft:#FCE6EA;--ok:#17805A;--ok-soft:#E0F3EA;--warn:#8F5B0A;--warn-soft:#FAEFD9;
+    --focus:#3B3BF9;--shadow:0 1px 2px rgba(26,26,46,.06),0 8px 24px rgba(26,26,46,.06);--netdark:#1A1A2E;color-scheme:light;
+  --r-s:8px;--r-m:12px;--r-l:16px;--brand:#24244A;
   box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#0F0F33;--surface:#16163F;--surface-2:#1E1E4C;--ink:#3B3BFA;--on-ink:#FFFFFF;
-    --text:#FFFFFF;--muted:#A3A3CC;--line:rgba(255,255,255,.09);--line-strong:rgba(255,255,255,.18);--link:#9C9CFF;
-    --onair:#3B3BFA;--onair-soft:#26266E;--danger:#FF7474;--danger-soft:#3D1F45;--ok:#4DD69A;--ok-soft:#173A3A;--warn:#F2B654;--warn-soft:#3A3040;
-    --focus:#9C9CFF;--shadow:0 1px 2px rgba(0,0,10,.35),0 10px 28px rgba(0,0,10,.3);--netdark:#34347A;color-scheme:dark;
+    --bg:#F4F3EF;--surface:#FFFFFF;--surface-2:#EFEDE7;--ink:#3B3BF9;--on-ink:#FFFFFF;
+    --text:#1A1A2E;--muted:#55556A;--line:#E2E0D8;--line-strong:#C9C7BE;--link:#3B3BF9;
+    --onair:#3B3BF9;--onair-soft:#EEEEFF;--danger:#C62D45;--danger-soft:#FCE6EA;--ok:#17805A;--ok-soft:#E0F3EA;--warn:#8F5B0A;--warn-soft:#FAEFD9;
+    --focus:#3B3BF9;--shadow:0 1px 2px rgba(26,26,46,.06),0 8px 24px rgba(26,26,46,.06);--netdark:#1A1A2E;color-scheme:light;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0F0F33;--surface:#16163F;--surface-2:#1E1E4C;--ink:#3B3BFA;--on-ink:#FFFFFF;
-    --text:#FFFFFF;--muted:#A3A3CC;--line:rgba(255,255,255,.09);--line-strong:rgba(255,255,255,.18);--link:#9C9CFF;
-    --onair:#3B3BFA;--onair-soft:#26266E;--danger:#FF7474;--danger-soft:#3D1F45;--ok:#4DD69A;--ok-soft:#173A3A;--warn:#F2B654;--warn-soft:#3A3040;
-    --focus:#9C9CFF;--shadow:0 1px 2px rgba(0,0,10,.35),0 10px 28px rgba(0,0,10,.3);--netdark:#34347A;color-scheme:dark;
+  --bg:#1A1A2E;--surface:#24244A;--surface-2:#2E2E5C;--ink:#3B3BF9;--on-ink:#FFFFFF;
+    --text:#FFFFFF;--muted:#B4B4D4;--line:rgba(255,255,255,.1);--line-strong:rgba(255,255,255,.22);--link:#9C9CFF;
+    --onair:#3B3BF9;--onair-soft:#2E2E6E;--danger:#FF8585;--danger-soft:#3D1F45;--ok:#5BE3A0;--ok-soft:#173A3A;--warn:#F2B654;--warn-soft:#3A3040;
+    --focus:#9C9CFF;--shadow:0 1px 2px rgba(0,0,10,.3),0 10px 28px rgba(0,0,10,.25);--netdark:#34347A;color-scheme:dark;
 }
 :root[data-theme="light"]{
-  --bg:#F4F4FB;--surface:#FFFFFF;--surface-2:#ECECF7;--ink:#3B3BFA;--on-ink:#FFFFFF;
-    --text:#111137;--muted:#5B5B85;--line:#DDDDEE;--line-strong:#C5C5DE;--link:#3B3BFA;
-    --onair:#3B3BFA;--onair-soft:#E6E6FF;--danger:#D2334B;--danger-soft:#FCE6EA;--ok:#17805A;--ok-soft:#E0F3EA;--warn:#9A620E;--warn-soft:#FAEFD9;
-    --focus:#3B3BFA;--shadow:0 1px 2px rgba(17,17,55,.06),0 8px 24px rgba(17,17,55,.07);--netdark:#111137;color-scheme:light;
+  --bg:#F4F3EF;--surface:#FFFFFF;--surface-2:#EFEDE7;--ink:#3B3BF9;--on-ink:#FFFFFF;
+    --text:#1A1A2E;--muted:#55556A;--line:#E2E0D8;--line-strong:#C9C7BE;--link:#3B3BF9;
+    --onair:#3B3BF9;--onair-soft:#EEEEFF;--danger:#C62D45;--danger-soft:#FCE6EA;--ok:#17805A;--ok-soft:#E0F3EA;--warn:#8F5B0A;--warn-soft:#FAEFD9;
+    --focus:#3B3BF9;--shadow:0 1px 2px rgba(26,26,46,.06),0 8px 24px rgba(26,26,46,.06);--netdark:#1A1A2E;color-scheme:light;
 }
 *,*::before,*::after{box-sizing:border-box}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -636,6 +636,136 @@ h3{font-weight:600;letter-spacing:-.015em}
 .oframe .om-txt{color:#fff;font-weight:800;line-height:1.1;white-space:nowrap;max-width:44cqw;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 .8cqw rgba(0,0,0,.6)}
 .oframe .sub{z-index:3}
 .oframe .fplay{top:auto;bottom:24px;z-index:6}
+
+/* ===== V3 : charte OpenMedias, version claire (nov. 2026) =====
+   Titres en Garet (police de openmedias.fr) avec Outfit en secours, texte en Inter.
+   Pas d'italique, pas de dégradé ni de halo lumineux : aplats, filets et pastilles. */
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:15px;letter-spacing:0}
+h1,h2,.page-head h1,.hero h1,.login-side h1{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;letter-spacing:-.01em}
+h1{font-size:clamp(28px,3vw,40px)}
+h2{font-size:21px;font-weight:700}
+h3{font-family:Inter,sans-serif;font-weight:600;letter-spacing:0}
+em,i:not([class]){font-style:normal}
+.serif,.login-side h1 .serif,.hero h1 .serif{font-family:inherit;font-style:normal;font-weight:inherit;letter-spacing:inherit;color:var(--link)}
+.hero h1 .serif{color:#9C9CFF}
+.eyebrow i,.nextstep b::before{box-shadow:none}
+/* boutons : pilules ; l'action principale reprend les CTA du site (capitales, Garet) */
+.btn{border-radius:999px;padding:11px 20px;font-weight:600}
+.btn-primary{background:var(--ink);color:#fff;box-shadow:none;font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.btn-primary.btn-sm{font-size:12px}
+.btn-primary:hover{background:#2D2DE0;filter:none}
+.btn-ghost{background:var(--surface);border-color:var(--line-strong);color:var(--text)}
+.btn-ghost:hover{border-color:var(--text);background:var(--surface)}
+.btn-quiet{color:var(--muted)}
+.btn-quiet:hover{color:var(--text);background:var(--surface-2)}
+/* en-tête du site : bandeau bleu nuit, rappel de openmedias.fr */
+.site{background:var(--brand);backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:0}
+.protobar{background:var(--surface);border-bottom:1px solid var(--line)}
+.proto-link{color:var(--link);background:transparent;border-color:var(--line-strong)}
+/* coque */
+.app{max-width:1360px}
+.side{background:var(--surface);border-right:1px solid var(--line);top:64px}
+.nav a{border-radius:10px;padding:10px 12px;color:var(--text);font-weight:500}
+.nav a:hover{background:var(--surface-2)}
+.nav a.on{background:var(--onair-soft);color:var(--text);box-shadow:none;font-weight:600}
+.nav a.on .icon{stroke:var(--link)}
+.side-card{display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:12px;background:var(--bg);margin-top:12px}
+.side-card b{font-size:14px}
+.side-card .cta{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;color:var(--link);background:none;border:0;padding:0;text-align:left;text-transform:uppercase}
+.main{padding:36px 44px 90px}
+.page-head h1{font-size:clamp(28px,3vw,40px)}
+.kicker{font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:12px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+.sec-head h2{font-family:Garet,Outfit,Inter,sans-serif;font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.panel,.list,.post,.kpi,.prop,.vis-card,.tbl-wrap,.stats,.offer{border-color:var(--line);background:var(--surface)}
+.input,.select,.textarea,.code-input{background:var(--surface);border-color:var(--line-strong)}
+.create-ico,.offer-ico{background:var(--onair-soft);color:var(--link)}
+.create-tabs button[aria-selected="true"]{background:var(--ink);border-color:var(--ink)}
+.upsell{border-color:var(--line);background:var(--onair-soft)}
+.nf-auto{background:var(--onair-soft);border-color:var(--ink)}
+.locked-card{border-color:var(--line)}
+.offer-badge{background:var(--ink)}
+.login-card{box-shadow:var(--shadow);border-color:var(--line)}
+.overlay{background:rgba(26,26,46,.55)}
+.modal{border-radius:20px;box-shadow:0 24px 60px rgba(26,26,46,.25)}
+.modal-h h3{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:20px}
+.toast{background:#1A1A2E}
+/* accueil (maquette C) : bandeau bleu nuit, accroche courte, trois choix */
+.hero{--onair:#3B3BF9;display:block;background:#24244A;color:#fff;border:0;border-radius:20px;padding:36px 40px}
+.hero-grid{display:flex;flex-wrap:wrap;gap:40px;align-items:center}
+.hero-txt{flex:999 1 480px;min-width:0;display:flex;flex-direction:column;gap:22px}
+.hero h1{font-size:clamp(28px,3.2vw,42px);line-height:1.1;max-width:none}
+.hero h1 span{color:#9C9CFF;display:block}
+.hero p{opacity:1;color:rgba(255,255,255,.82);font-size:16.5px;margin:0;max-width:56ch}
+.hero-badge{display:inline-flex;align-self:flex-start;align-items:center;gap:8px;font-size:13px;font-weight:600;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:7px 13px}
+.hero-badge i{width:8px;height:8px;border-radius:50%;background:#5BE3A0}
+.hero-badge.wait i{background:transparent;border:1.5px solid #F2B654}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.choice{font:inherit;text-align:left;color:#fff;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.18);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px;min-height:112px;cursor:pointer}
+.choice:hover{border-color:rgba(255,255,255,.4)}
+.choice[aria-pressed="true"]{background:rgba(59,59,249,.28);border-color:#8080FF}
+.choice .tagline{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:12px;color:rgba(255,255,255,.75)}
+.choice .radio{flex:none;width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.45);box-sizing:border-box}
+.choice[aria-pressed="true"] .radio{border-color:#3B3BF9;background:#fff;box-shadow:inset 0 0 0 4px #3B3BF9}
+.choice b{font-size:16px}
+.choice span.d{font-size:13px;color:rgba(255,255,255,.75);line-height:1.4}
+.hero .btn-primary{background:var(--ink);color:#fff;padding:16px 28px;font-size:13.5px}
+.hero .lnk{color:#C9C9FF;font-size:14px;background:none;border:0;padding:0;text-decoration:underline;cursor:pointer}
+.hero-fig{flex:1 1 300px;min-width:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.hero-fig .thumb{border-radius:12px}
+.hero-fig figcaption{font-size:13px;color:rgba(255,255,255,.7)}
+@media (max-width:640px){.hero{padding:24px 20px}}
+.nextstep{border-left:1px solid var(--line)}
+/* parcours de création : étapes en pastilles, récapitulatif à droite */
+.stepper{list-style:none;margin:0 0 24px;padding:0;display:flex;flex-wrap:wrap;gap:8px;font-size:14px}
+.stepper li{display:flex;align-items:center;gap:8px;padding:7px 14px 7px 7px;border-radius:999px;color:var(--muted)}
+.stepper li b{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-strong);display:grid;place-items:center;font-size:12px;font-weight:600}
+.stepper li.done{background:var(--surface);border:1px solid var(--line);color:var(--text)}
+.stepper li.done b{background:var(--onair-soft);color:var(--link);border-color:transparent}
+.stepper li.on{background:var(--ink);color:#fff;font-weight:600}
+.stepper li.on b{background:#fff;color:var(--ink);border-color:#fff}
+.stepper button{font:inherit;color:inherit;background:none;border:0;padding:0;display:flex;align-items:center;gap:8px;cursor:pointer}
+.flow{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.flow-main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:22px}
+.flow-aside{flex:1 1 300px;min-width:0;position:sticky;top:90px;background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--ink);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px}
+.flow-aside h2,.flow-card h2.k{font-family:Garet,Outfit,Inter,sans-serif;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.flow-aside dl{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 16px;font-size:14px}
+.flow-aside dt{color:var(--muted)}.flow-aside dd{margin:0}
+.flow-aside .btn-primary{width:100%;padding:15px 20px}
+@media (max-width:980px){.flow-aside{position:static}}
+.flow-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px}
+.flow-card h2{font-family:Inter,sans-serif;font-size:18px;font-weight:600;letter-spacing:0;text-transform:none}
+.opt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.opt{font:inherit;color:var(--text);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:12px;background:var(--surface);border:1.5px solid var(--line)}
+.opt:hover{border-color:var(--line-strong)}
+.opt[aria-pressed="true"]{background:var(--onair-soft);border:2px solid var(--ink);padding:15.5px}
+.opt[disabled]{opacity:.55;cursor:not-allowed}
+.opt .ill{height:96px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;gap:8px}
+.opt .ill i{display:block;border-radius:4px;background:#45457A}
+.opt[aria-pressed="true"] .ill i{background:var(--ink)}
+.opt .mono{font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:12px;color:var(--muted)}
+.opt b{font-size:15.5px}
+.opt span.d{font-size:13.5px;color:var(--muted);line-height:1.45}
+.rows{display:flex;flex-direction:column}
+.rows .r{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;padding:13px 0;border-bottom:1px solid var(--line)}
+.rows .r:last-child{border-bottom:0}
+.rows .r .k{flex:0 0 150px;font-size:14px;color:var(--muted)}
+.rows .r .v{flex:1 1 220px}
+.rows .r button{font:inherit;font-size:14px;color:var(--link);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer}
+.pay-modes{display:flex;flex-wrap:wrap;gap:2px;background:var(--bg);border-radius:999px;padding:4px}
+.pay-modes button{flex:1 1 auto;min-height:42px;border:0;border-radius:999px;background:none;font-weight:600;color:var(--text);padding:0 14px}
+.pay-modes button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.pay-sum{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 16px;border-radius:12px;background:var(--bg)}
+.pay-sum b.p{font-family:Garet,Outfit,Inter,sans-serif;font-size:20px}
+.launched{background:#24244A;color:#fff;border-radius:20px;padding:36px 40px;display:flex;flex-direction:column;gap:14px}
+.launched h1{font-size:clamp(26px,3vw,38px);line-height:1.1}
+.launched h1 span{display:block;color:#9C9CFF}
+.launched p{color:rgba(255,255,255,.82)}
+.launched .kicker{color:rgba(255,255,255,.7)}
+.inv-row{display:grid;grid-template-columns:120px 100px minmax(0,1fr) 130px 150px;gap:16px;align-items:center;padding:14px 18px;border-top:1px solid var(--line);font-size:14px}
+.inv-row.h{border-top:0;font-size:12px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.inv-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.inv-wrap>div{min-width:720px}
+.mono{font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:13px}
 </style>
 </head>
 <body>
@@ -1235,7 +1365,7 @@ if (bkOn()) { try { OpenStudio.clientSession(); } catch (e) {} }
 // La génération se fait sur le serveur ; ici on interroge son état et on affiche le résultat.
 const BKO = { list: null, loading: false, byId: {}, files: {}, watching: {} };
 const BK_BUSY = ['paid', 'submitting', 'processing', 'opus_done', 'postprocessing'];
-const BK_TYPES = { capsules: 'Capsules vidéo', subtitles: 'Vidéo sous-titrée' };
+const BK_TYPES = { capsules: 'Capsules vidéo', subtitles: 'Interview sous-titrée' };
 const bkStage = st => st === 'ready' ? 4 : ['opus_done', 'postprocessing'].includes(st) ? 3 : st === 'processing' ? 2 : ['paid', 'submitting'].includes(st) ? 1 : 0;
 const bkBusyOrders = () => Object.values(BKO.byId).filter(o => BK_BUSY.includes(o.status));
 function bkRerender() { if (S.view === 'client') { S.keepScroll = true; render(); } }
@@ -1313,6 +1443,20 @@ function pCommandes() {
   if (!ids.length) return head + `<div class="empty">${I('folder')}<h3>Aucune commande pour le moment</h3><p>Vos capsules et vidéos sous-titrées apparaîtront ici.</p><button class="btn btn-primary" data-a="nav" data-arg="capsules">${I('spark')}Créer des capsules</button></div>`;
   return head + `<div class="stack" style="gap:16px">${ids.map(id => bkOrderCard(BKO.byId[id])).join('')}</div>`;
 }
+/* Factures : une ligne par commande (création vidéo et prestations), avec les informations de facturation. */
+function pFactures(c) {
+  if (bkOn() && OpenStudio.clientSession() && !BKO.list && !BKO.loading) setTimeout(bkLoadOrders, 0);
+  const bk = (BKO.list || []).map(id => BKO.byId[id]).filter(o => o && !['draft', 'validated'].includes(o.status)).map(o => ({ date: new Date(o.createdAt), num: o.id.slice(0, 8), what: BK_TYPES[o.type] || o.type, sub: (o.options && o.options.videoTitle) || '', amount: 'Inclus dans le package' }));
+  const off = ORDERS.filter(o => o.clientId === c.id).map(o => ({ date: new Date(o.date), num: String(o.id).slice(-8), what: o.title, sub: o.status === 'Nouvelle' ? 'Reçue par votre chargée de projet' : o.status, amount: o.price == null ? 'Sur devis' : `${o.price.toLocaleString('fr-FR')} € HT` }));
+  const rows = [...bk, ...off].sort((a, b) => b.date - a.date);
+  return `<div class="page-head"><div><span class="kicker">${rows.length} ${rows.length > 1 ? 'lignes' : 'ligne'}</span><h1 style="margin-top:6px">Factures</h1><p>Vos commandes et leur facturation. Les prestations payantes sont facturées par OpenMedias.</p></div></div>
+  <div class="flow"><div class="flow-main">${rows.length ? `<div class="inv-wrap"><div><div class="inv-row h"><span>Date</span><span>N°</span><span>Commande</span><span>Montant</span><span>Facture</span></div>
+    ${rows.map(r => `<div class="inv-row"><span class="mono">${r.date.toLocaleDateString('fr-FR')}</span><span class="mono muted">${esc(r.num)}</span><span><b style="font-weight:600">${esc(r.what)}</b>${r.sub ? `<span class="small muted" style="display:block">${esc(r.sub)}</span>` : ''}</span><span>${esc(r.amount)}</span><span class="small muted">${r.amount.startsWith('Inclus') ? 'Rien à payer' : 'Envoyée par e-mail'}</span></div>`).join('')}</div></div>`
+    : `<div class="empty">${I('file')}<h3>Aucune facture pour le moment</h3><p>Vos commandes apparaîtront ici avec leur facturation.</p><button class="btn btn-primary" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></div>`}</div>
+    <aside class="flow-aside" style="border-top-width:1px" aria-labelledby="fact-info"><h2 id="fact-info">Informations de facturation</h2>
+      <dl><dt>Société</dt><dd>${esc(c.name)}</dd><dt>Contact</dt><dd>${esc(c.contact)}</dd><dt>E-mail</dt><dd>${esc(c.email || '')}</dd><dt>Chargée de projet</dt><dd>${esc(c.manager || '')}</dd></dl>
+      <p class="small muted">Pour modifier l’adresse ou le n° de TVA, écrivez à votre chargée de projet.</p></aside></div>`;
+}
 function bkBusyIndicator() {
   const b = bkBusyOrders(); if (!b.length) return '';
   const label = b.length > 1 ? `${b.length} préparations en cours` : (b[0].type === 'capsules' ? 'Préparation de vos capsules…' : 'Préparation de votre vidéo…');
@@ -1361,54 +1505,143 @@ async function bkUploadVideo(f) {
     toast(/413|too large|trop/i.test(e.message) ? 'Fichier trop lourd.' : `Envoi impossible : ${e.message}`);
   }
 }
+/* ================= Parcours de création (maquettes 1 à 5) =================
+   Émission → Type de vidéo → Format et durée → Récapitulatif → paiement → suivi.
+   Capsules et teaser : commande « capsules » (OpusClip) ; interview sous-titrée : commande « subtitles »
+   sur la vidéo du package (videoId), sans nouvel envoi de fichier. */
+const FLOW_KINDS = {
+  capsules: { label: 'Capsules réseaux', short: 'Capsules vidéo', desc: 'Plusieurs extraits courts, choisis parmi les meilleurs moments de votre passage.', tag: '15 à 60 s · plusieurs vidéos', cta: 'Créer mes capsules', ready: 'Vos capsules sont en préparation.' },
+  teaser: { label: 'Teaser', short: 'Teaser', desc: 'Un extrait court et percutant pour annoncer la diffusion ou la relancer.', tag: '15 s', cta: 'Créer mon teaser', ready: 'Votre teaser est en préparation.' },
+  subtitles: { label: 'Interview sous-titrée', short: 'Interview sous-titrée', desc: 'La version complète de votre passage, lisible sans le son.', tag: 'vidéo complète', cta: 'Sous-titrer mon interview', ready: 'Votre interview sous-titrée est en préparation.' }
+};
+const FLOW_STEPS = ['Émission', 'Type de vidéo', 'Format et durée', 'Récapitulatif'];
+const flowKind = () => FLOW_KINDS[S.cap.flowKind] ? S.cap.flowKind : 'capsules';
+const flowDur = () => flowKind() === 'teaser' ? 15 : S.cap.dur;
+const flowFmt = () => CAP_OPTIONS.fmts.find(x => x[0] === S.cap.fmt) || CAP_OPTIONS.fmts[0];
+const flowStyle = () => CAP_OPTIONS.styles.find(x => x[0] === S.cap.style) || CAP_OPTIONS.styles[0];
+const flowVideo = () => (BK.videos || []).find(x => x.bkId === S.cap.bkVideoId) || null;
+function flowRows(v) {
+  const kd = flowKind(); const f = flowFmt();
+  const rows = [['Émission', v ? [v.media, v.title].filter(Boolean).join(' · ') : '—', 'step|1'], ['Type', FLOW_KINDS[kd].short, 'step|2']];
+  if (kd === 'subtitles') rows.push(['Sous-titres', 'En français, transcription automatique', 'mod']);
+  else rows.push(['Format', `${f[1]} ${f[0]}`, 'mod'], ['Durée', kd === 'teaser' ? '15 s' : `Environ ${flowDur()} s par capsule`, 'mod'], ['Style des sous-titres', flowStyle()[1], 'mod']);
+  rows.push(['Habillage', 'Logo de l’émission et logo de votre entreprise', ''], ['Livraison', 'À télécharger dans Commandes, un e-mail vous prévient', '']);
+  return rows;
+}
+function flowStepper(n) {
+  return `<ol class="stepper" aria-label="Étapes">${FLOW_STEPS.map((l, i) => { const k = i + 1; const cls = k < n ? 'done' : k === n ? 'on' : ''; const inner = `<b>${k < n ? '✓' : k}</b>${l}`; return `<li class="${cls}" ${k === n ? 'aria-current="step"' : ''}>${k < n ? `<button data-a="bk-step" data-arg="${k}">${inner}</button>` : inner}</li>`; }).join('')}</ol>`;
+}
+function flowAside(v, n) {
+  const rows = flowRows(v).filter(r => r[0] !== 'Livraison');
+  return `<aside class="flow-aside" aria-labelledby="flow-recap"><h2 id="flow-recap">Votre commande</h2>
+    <dl>${rows.map(([k, val]) => `<dt>${k}</dt><dd>${esc(val)}</dd>`).join('')}</dl>
+    <hr style="border:0;border-top:1px solid var(--line);margin:0">
+    <button class="btn btn-primary" data-a="bk-step" data-arg="${n + 1}" ${n === 1 && !v ? 'disabled' : ''}>Continuer</button>
+    <p class="small muted" style="text-align:center">Rien n’est lancé tant que vous n’avez pas validé.</p></aside>`;
+}
+function flowOpt(on, act, arg, ill, mono, title, desc, extra = '') {
+  return `<button type="button" class="opt" data-a="${act}" data-arg="${arg}" aria-pressed="${on}" ${extra}>${ill ? `<span class="ill" aria-hidden="true">${ill}</span>` : ''}${mono ? `<span class="mono">${esc(mono)}</span>` : ''}<b>${esc(title)}</b>${desc ? `<span class="d">${esc(desc)}</span>` : ''}</button>`;
+}
+function flowSettingsHtml(v) {
+  const k = S.cap; const kd = flowKind();
+  if (kd === 'subtitles') return `<section class="flow-card"><h2>Vos sous-titres</h2>
+      <div class="rows"><div class="r"><span class="k">Langue</span><span class="v">Français (langue parlée dans la vidéo)</span></div><div class="r"><span class="k">Transcription</span><span class="v">Automatique, à partir du son de la vidéo</span></div><div class="r"><span class="k">Format</span><span class="v">Celui de la vidéo d’origine</span></div></div>
+      <p class="small muted">La traduction dans une autre langue arrive bientôt. En attendant, votre chargée de projet peut vous la proposer sur devis.</p></section>`;
+  const durs = CAP_OPTIONS.kinds[0].durs; const m = bkMedia(v);
+  return `<section class="flow-card" aria-labelledby="q-fmt"><div><h2 id="q-fmt">Où allez-vous ${kd === 'teaser' ? 'le' : 'les'} publier ?</h2><p class="small muted" style="margin-top:4px">Le format est choisi selon le réseau.</p></div>
+      <div class="opt-grid" role="group" aria-label="Format">${CAP_OPTIONS.fmts.map(([f, l, u, w, h]) => flowOpt(k.fmt === f, 'cap-fmt', f, `<i style="width:${w * 2.4}px;height:${h * 2.4}px"></i>`, f, l, u)).join('')}</div></section>
+    <section class="flow-card" aria-labelledby="q-dur"><h2 id="q-dur">${kd === 'teaser' ? 'Durée du teaser' : 'Durée de chaque capsule'}</h2>
+      ${kd === 'teaser' ? `<p class="muted">15 secondes : le bon format pour annoncer votre passage.</p>` : `<div class="seg-ctl" role="group" aria-label="Durée">${durs.map(d => `<button data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div><p class="small muted">Les meilleurs moments de l’interview sont repérés automatiquement : vous recevez plusieurs propositions.</p>`}</section>
+    <section class="flow-card" aria-labelledby="q-sty"><h2 id="q-sty">Style des sous-titres</h2>
+      <div class="seg-ctl" role="group" aria-label="Style des sous-titres">${CAP_OPTIONS.styles.map(([st, l]) => `<button data-a="cap-style" data-arg="${st}" aria-pressed="${k.style === st}">${l}</button>`).join('')}</div>
+      <div class="row" style="gap:20px;align-items:center"><div class="frame ${fmtClass(k.fmt)}" data-style="${k.style}" style="--hl:${m.accent}">${scene(v)}${capMarks(m)}<p class="sub sub-${k.style}">${subHtml('Aperçu du *style* de vos sous-titres', k.style)}</p></div><p class="muted small" style="max-width:36ch">Le logo de votre entreprise et celui de l’émission sont ajoutés automatiquement.</p></div></section>`;
+}
 function bkCapsulesPage(c) {
   const k = S.cap; if (!BK.videos && !BK.loading) setTimeout(bkLoadVideos, 0);
-  const durs = CAP_OPTIONS.kinds[0].durs; if (!durs.includes(k.dur)) k.dur = 30;
-  const v = (BK.videos || []).find(x => x.bkId === k.bkVideoId) || null;
+  if (!CAP_OPTIONS.kinds[0].durs.includes(k.dur)) k.dur = 30;
   if (k.bkStyleInit !== 1) { k.style = 'classique'; k.bkStyleInit = 1; } // sous-titres simples par défaut
-  const tracked = k.bkStep === 4 && k.bkOrderId && BKO.byId[k.bkOrderId];
-  const stepN = tracked ? 3 : v ? Math.min(k.bkStep || 1, 3) : 1;
-  const steps = ['Vidéo', 'Réglages', 'Propositions'].map((l, i) => `<span class="${stepN === i + 1 ? 'on' : stepN > i + 1 ? 'done' : ''}"><b>${stepN > i + 1 ? '✓' : i + 1}</b>${l}</span>`).join('<hr>');
-  const fmt = CAP_OPTIONS.fmts.find(x => x[0] === k.fmt) || CAP_OPTIONS.fmts[0]; const st = CAP_OPTIONS.styles.find(x => x[0] === k.style) || CAP_OPTIONS.styles[0];
-  let body = '';
-  if (stepN === 1) {
-    if (BK.loading || !BK.videos) body = `<div class="panel"><div class="thinking" aria-live="polite"><i></i>Chargement des vidéos de votre package…</div></div>`;
-    else if (BK.err) body = `<div class="empty">${I('video')}<h3>Vos vidéos ne sont pas accessibles</h3><p style="max-width:52ch">${esc(BK.err)}</p><button class="btn btn-ghost" data-a="bk-reload">${I('refresh')}Réessayer</button></div>`;
-    else if (!BK.videos.length) body = bkUploadBox() + `<div class="empty">${I('video')}<h3>Vos vidéos arrivent bientôt</h3><p>Elles apparaîtront ici dès que l'équipe OpenMedias les aura ajoutées à votre package.</p></div>`;
-    else body = bkUploadBox() + `<div class="grid g3">${BK.videos.map(x => `<button class="pick" data-a="bk-video" data-arg="${esc(x.bkId)}" aria-pressed="${k.bkVideoId === x.bkId}"><div class="thumb">${scene(x)}<div class="lower3"><span class="l1">${esc(x.media)}</span><span class="l2">${esc(x.title)}</span></div></div><div class="meta"><b>${esc(x.title)}</b><span class="tag" style="margin:4px 0">${esc(x.media || 'Vidéo')}</span><div class="small muted">${x.date ? 'Diffusée le ' + fmtD(x.date) : 'Vidéo de votre package'}</div></div></button>`).join('')}</div>
-      <div class="row" style="justify-content:flex-end;margin-top:20px"><button class="btn btn-primary" data-a="bk-step" data-arg="2" ${k.bkVideoId ? '' : 'disabled'}>Continuer</button></div>`;
-  } else if (stepN === 2) {
-    const m = bkMedia(v);
-    body = `<div class="panel stack" style="gap:26px">
-      <div class="field"><span class="lab">Durée de chaque capsule</span><div class="seg-ctl" role="group" aria-label="Durée">${durs.map(d => `<button data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>
-      <div class="field"><span class="lab">Format</span><div class="row" role="group" aria-label="Format">${CAP_OPTIONS.fmts.map(([f, l, u, w, h]) => `<button class="fmt-opt" data-a="cap-fmt" data-arg="${f}" aria-pressed="${k.fmt === f}"><i style="width:${w}px;height:${h}px"></i><b>${l} ${f}</b><small>${u}</small></button>`).join('')}</div></div>
-      <div class="field"><span class="lab">Style des sous-titres</span><div class="seg-ctl" role="group" aria-label="Style des sous-titres">${CAP_OPTIONS.styles.map(([s, l]) => `<button data-a="cap-style" data-arg="${s}" aria-pressed="${k.style === s}">${l}</button>`).join('')}</div></div>
-      <div class="row" style="gap:20px;align-items:center"><div><div class="frame ${fmtClass(k.fmt)}" data-style="${k.style}" style="--hl:${m.accent}">${scene(v)}${capMarks(m)}<p class="sub sub-${k.style}">${subHtml('Aperçu du *style* de vos sous-titres', k.style)}</p></div></div><p class="muted small" style="max-width:36ch">Aperçu du rendu avec « ${esc(v.title)} ». Le logo de votre entreprise est ajouté en haut de la capsule, celui du média en haut à droite.</p></div>
-      <div class="row between"><div class="row"><button class="btn btn-quiet" data-a="bk-step" data-arg="1">${I('back')}Changer de vidéo</button></div><button class="btn btn-primary" data-a="bk-step" data-arg="3">${I('spark')}Proposer mes capsules</button></div></div>`;
-  } else if (tracked) {
-    const o = BKO.byId[k.bkOrderId];
-    body = bkOrderCard(o) + `<div class="row between" style="margin-top:16px"><button class="btn btn-quiet" data-a="bk-new">${I('spark')}Nouvelle commande</button><button class="btn btn-ghost" data-a="nav" data-arg="commandes">${I('folder')}Toutes mes commandes</button></div>`;
-  } else {
-    const row = (l, val) => `<div class="li"><div class="grow"><span class="small muted">${l}</span><b>${esc(val)}</b></div></div>`;
-    body = `<div class="panel stack" style="gap:18px"><div><h2>Votre commande</h2><p class="muted small" style="margin-top:4px;max-width:62ch">Vérifiez vos choix puis validez. La préparation de vos capsules démarre aussitôt et prend quelques minutes : vous suivez l’avancement ici, et les 3 propositions s’affichent sur cette page dès qu’elles sont prêtes.</p></div>
-      <div class="list">${row('Vidéo', `${v.media ? v.media + ' — ' : ''}${v.title}`)}${row('Durée de chaque capsule', `${k.dur} s`)}${row('Format', `${fmt[1]} ${fmt[0]}`)}${row('Style des sous-titres', st[1])}</div>
-      <div class="row between"><button class="btn btn-quiet" data-a="bk-step" data-arg="2">${I('edit')}Modifier les réglages</button><button class="btn btn-primary" data-a="bk-submit" ${BK.submitting ? 'disabled' : ''}>${I('check')}${BK.submitting ? 'Validation en cours…' : 'Valider ma commande'}</button></div></div>`;
+  const v = flowVideo();
+  const head = `<div class="page-head"><div><span class="kicker">Nouvelle vidéo</span><h1 style="margin-top:6px">${v ? `À partir de votre passage ${esc(v.media || 'télé')}` : 'Créer une vidéo'}</h1></div><button class="btn btn-ghost" data-a="nav" data-arg="commandes">${I('folder')}Mes commandes</button></div>`;
+  // Commande lancée : confirmation puis suivi en direct (maquettes 5 et 6)
+  const tracked = k.bkStep === 5 && k.bkOrderId && BKO.byId[k.bkOrderId];
+  if (tracked) {
+    const o = BKO.byId[k.bkOrderId]; const kd = FLOW_KINDS[k.lastKind] || FLOW_KINDS.capsules;
+    const ready = o.status === 'ready';
+    return `<section class="launched" aria-labelledby="ok-h"><span class="kicker">Commande ${esc(o.id.slice(0, 8))} · ${new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+      <h1 id="ok-h">${ready ? 'C’est prêt.' : 'C’est lancé.'}<span>${ready ? 'Vos vidéos vous attendent ci-dessous.' : esc(kd.ready)}</span></h1>
+      <p>${ready ? 'Regardez-les, puis téléchargez celles qui vous plaisent.' : 'Vous pouvez quitter cette page : un e-mail vous prévient dès que c’est prêt.'}</p></section>
+      <div style="margin-top:22px">${bkOrderCard(o)}</div>
+      <div class="row between" style="margin-top:16px"><button class="btn btn-ghost" data-a="bk-new">${I('spark')}Créer une autre vidéo</button><button class="btn btn-quiet" data-a="nav" data-arg="commandes">${I('folder')}Toutes mes commandes</button></div>`;
   }
-  return `<div class="page-head"><div><h1>Capsules vidéo</h1><p>Choisissez une vidéo de votre package : l'IA repère les meilleurs moments et les prépare au format des réseaux sociaux, sous-titrés.</p></div><button class="btn btn-ghost" data-a="nav" data-arg="commandes">${I('folder')}Mes commandes</button></div>
-  ${freeBox(c)}
-  <div class="steps-h" aria-label="Étapes">${steps}</div>${body}
-  ${upsellTip(['capsules-pro', 'teaser'], 'Vous préférez des capsules montées par nos monteurs ?')}`;
+  let n = v ? Math.min(Math.max(k.bkStep || 1, 1), 4) : 1;
+  let main = '';
+  if (n === 1) {
+    if (BK.loading || !BK.videos) main = `<div class="panel"><div class="thinking" aria-live="polite"><i></i>Chargement des vidéos de votre package…</div></div>`;
+    else if (BK.err) main = `<div class="empty">${I('video')}<h3>Vos vidéos ne sont pas accessibles</h3><p style="max-width:52ch">${esc(BK.err)}</p><button class="btn btn-ghost" data-a="bk-reload">${I('refresh')}Réessayer</button></div>`;
+    else if (!BK.videos.length) main = bkUploadBox() + `<div class="empty">${I('video')}<h3>Vos vidéos arrivent bientôt</h3><p>Elles apparaîtront ici dès que l'équipe OpenMedias les aura ajoutées à votre package.</p></div>`;
+    else main = bkUploadBox() + `<section class="flow-card" aria-labelledby="q-em"><div><h2 id="q-em">À partir de quelle émission ?</h2><p class="small muted" style="margin-top:4px">Vous voyez ici les vidéos de votre package.</p></div>
+      <div class="opt-grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">${BK.videos.map(x => `<button type="button" class="opt" data-a="bk-video" data-arg="${esc(x.bkId)}" aria-pressed="${k.bkVideoId === x.bkId}"><div class="thumb">${scene(x)}<div class="lower3"><span class="l1">${esc(x.media)}</span><span class="l2">${esc(x.title)}</span></div></div><b>${esc(x.title)}</b><span class="d">${esc(x.media || 'Vidéo')}${x.date ? ' · diffusée le ' + fmtD(x.date) : ''}</span></button>`).join('')}</div></section>`;
+  } else if (n === 2) {
+    const ill = { capsules: '<i style="width:34px;height:60px"></i><i style="width:34px;height:60px"></i><i style="width:34px;height:60px"></i>', teaser: '<i style="width:42px;height:74px"></i>', subtitles: '<i style="width:128px;height:72px"></i>' };
+    main = `<section class="flow-card" aria-labelledby="q-type"><div><h2 id="q-type">Que voulez-vous en faire ?</h2><p class="small muted" style="margin-top:4px">Le logo de l’émission et le vôtre sont ajoutés dans tous les cas.</p></div>
+      <div class="opt-grid">${Object.entries(FLOW_KINDS).map(([id, x]) => flowOpt(flowKind() === id, 'bk-kind', id, ill[id], x.tag, x.label, x.desc)).join('')}</div>
+      <div class="row between" style="padding:14px 16px;border-radius:12px;background:var(--bg)"><span class="small"><b>Autre chose en tête ?</b> Un monteur de l’équipe peut réaliser un montage sur mesure.</span><button class="btn btn-ghost btn-sm" data-a="offer-order" data-arg="${DEVIS_OFFER}">Demander un devis</button></div></section>`;
+  } else if (n === 3) {
+    main = flowSettingsHtml(v);
+  } else {
+    const kd = flowKind();
+    const prev = kd === 'subtitles' ? '' : `<section class="flow-card"><h2>Ce que vous allez recevoir</h2><div class="row" style="gap:14px;align-items:flex-end">${[0, 1, 2].slice(0, kd === 'teaser' ? 1 : 3).map(i => `<div class="frame ${fmtClass(S.cap.fmt)}" style="width:${S.cap.fmt === '16:9' ? 220 : S.cap.fmt === '1:1' ? 150 : 110}px">${scene(v)}</div>`).join('')}</div><p class="small muted">Aperçu indicatif : les extraits sont choisis dans votre interview au moment de la création.</p></section>`;
+    main = prev + `<section class="flow-card" aria-labelledby="q-det"><h2 id="q-det">Le détail</h2><div class="rows">${flowRows(v).map(([k2, val, act]) => `<div class="r"><span class="k">${k2}</span><span class="v">${esc(val)}</span>${act ? `<button data-a="${act.startsWith('step') ? 'bk-step' : 'flow-mod'}" data-arg="${act.split('|')[1] || ''}">Modifier</button>` : ''}</div>`).join('')}</div></section>`;
+  }
+  const aside = n < 4 ? flowAside(v, n) : `<aside class="flow-aside" aria-labelledby="flow-ok"><h2 id="flow-ok">Validation</h2>
+      <div class="row between"><span>${esc(FLOW_KINDS[flowKind()].short)}</span><b>${flowPriceTxt()}</b></div>
+      <button class="btn btn-primary" data-a="pay-open" ${BK.submitting ? 'disabled' : ''}>${BK.submitting ? 'Validation en cours…' : 'Valider et lancer ↗'}</button>
+      <p class="small muted" style="text-align:center">Vous recevrez une confirmation par e-mail.</p></aside>`;
+  return head + flowStepper(n) + `<div class="flow"><div class="flow-main">${main}</div>${aside}</div>`;
+}
+/* Tarifs : capsules, teaser et sous-titres sont inclus dans le package (V1). Renseigner un montant en € HT active le paiement. */
+const FLOW_PRICES = { capsules: null, teaser: null, subtitles: null };
+const flowPrice = () => FLOW_PRICES[flowKind()];
+const flowPriceTxt = () => flowPrice() == null ? 'Inclus dans votre package' : `${flowPrice().toLocaleString('fr-FR')} € HT`;
+function flowModHtml() {
+  const k = S.cap; const kd = flowKind();
+  return `<div class="stack" style="gap:22px">
+    <div class="field"><span class="lab">Format</span><div class="opt-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">${CAP_OPTIONS.fmts.map(([f, l, , w, h]) => flowOpt(k.fmt === f, 'cap-fmt', f, `<i style="width:${w * 1.8}px;height:${h * 1.8}px"></i>`, '', `${l} ${f}`, '')).join('')}</div></div>
+    ${kd === 'teaser' ? '' : `<div class="field"><span class="lab">Durée de chaque capsule</span><div class="seg-ctl" role="group" aria-label="Durée">${CAP_OPTIONS.kinds[0].durs.map(d => `<button data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>`}
+    <div class="field"><span class="lab">Style des sous-titres</span><div class="seg-ctl" role="group" aria-label="Style des sous-titres">${CAP_OPTIONS.styles.map(([st, l]) => `<button data-a="cap-style" data-arg="${st}" aria-pressed="${k.style === st}">${l}</button>`).join('')}</div></div></div>`;
+}
+function payModalHtml(m) {
+  const v = flowVideo(); const kd = flowKind(); const paid = flowPrice() != null;
+  return `<div class="stack" style="gap:20px">
+    <div class="pay-sum"><div><b>${esc(FLOW_KINDS[kd].short)}</b><div class="small muted">${esc(v ? [v.media, v.title].filter(Boolean).join(' · ') : '')}</div></div><b class="p">${flowPriceTxt()}</b></div>
+    ${paid ? `<div class="field"><span class="lab">Moyen de paiement</span><div class="pay-modes" role="group" aria-label="Moyen de paiement">${[['cb', 'Carte bancaire'], ['sepa', 'Prélèvement SEPA'], ['vir', 'Virement']].map(([id, l]) => `<button data-a="pay-mode" data-arg="${id}" aria-pressed="${(m.mode || 'cb') === id}">${l}</button>`).join('')}</div>
+      <p class="small muted">${m.mode === 'vir' ? 'Vous recevez nos coordonnées bancaires par e-mail ; la création démarre à réception du virement.' : 'Vous serez redirigé vers la page sécurisée de notre prestataire de paiement.'}</p></div>`
+    : `<p class="muted">Cette création est incluse dans votre package : aucun paiement n’est demandé.</p>`}
+    <div class="row between small"><span class="muted">Facturé à <b style="color:var(--text)">${esc((client() || {}).name || '')}</b></span><button class="btn btn-quiet btn-sm" data-a="nav" data-arg="factures">Informations de facturation</button></div>
+    ${bkNoSession() ? `<p class="small" style="color:var(--warn)">Pour commander, ouvrez le lien d'accès à votre espace envoyé par l'équipe OpenMedias.</p>` : ''}
+    <p class="small muted" id="bk-prog" aria-live="polite">${esc(BK.prog || '')}</p></div>`;
 }
 async function bkSubmitCapsules() {
   const k = S.cap; const v = (BK.videos || []).find(x => x.bkId === k.bkVideoId); if (!v || BK.submitting) return;
   const fmt = CAP_OPTIONS.fmts.find(x => x[0] === k.fmt) || CAP_OPTIONS.fmts[0]; const st = CAP_OPTIONS.styles.find(x => x[0] === k.style) || CAP_OPTIONS.styles[0];
   BK.submitting = true; S.keepScroll = true; render();
   try {
-    const { order } = await OpenStudio.submitOrder('capsules', { videoId: v.bkId, duration: `${k.dur} s`, format: `${fmt[1]} ${fmt[0]}`, subtitleStyle: st[1] }, bkContact());
+    const { order } = await OpenStudio.submitOrder('capsules', { videoId: v.bkId, duration: `${flowDur()} s`, format: `${fmt[1]} ${fmt[0]}`, subtitleStyle: st[1] }, bkContact());
     bkAfterSubmit(order);
-    BK.submitting = false; k.bkOrderId = order.id; k.bkStep = 4; S.keepScroll = false; render();
+    BK.submitting = false; S.modal = null; k.lastKind = flowKind(); k.bkOrderId = order.id; k.bkStep = 5; S.keepScroll = false; render(); window.scrollTo(0, 0);
   } catch (e) { BK.submitting = false; S.keepScroll = true; render(); toast(e.message); }
 }
+/* Interview sous-titrée à partir d'une vidéo du package : le serveur reprend le fichier déjà stocké. */
+async function bkSubmitPkgSubtitles() {
+  const k = S.cap; const v = flowVideo(); if (!v || BK.submitting) return;
+  BK.submitting = true; S.keepScroll = true; render();
+  try {
+    const { order } = await OpenStudio.submitOrder('subtitles', { videoId: v.bkId, spokenLanguage: LANGS.fr, subtitleLanguage: LANGS.fr, splitLongLines: true, programmeId: v.programmeId || null }, bkContact());
+    bkAfterSubmit(order);
+    BK.submitting = false; S.modal = null; k.lastKind = 'subtitles'; k.bkOrderId = order.id; k.bkStep = 5; S.keepScroll = false; render(); window.scrollTo(0, 0);
+  } catch (e) { BK.submitting = false; S.keepScroll = true; render(); toast(e.message); }
+}
+function flowSubmit() { if (bkNoSession()) { toast('Ouvrez le lien d’accès envoyé par l’équipe OpenMedias pour commander.'); return; } return flowKind() === 'subtitles' ? bkSubmitPkgSubtitles() : bkSubmitCapsules(); }
 // Sous-titres : bloc de validation (remplace le bouton d'enregistrement local quand le back-end est actif).
 function bkSubsCta(cs) {
   const noSession = bkNoSession();
@@ -1555,7 +1788,7 @@ function scene(v) {
   return `<svg class="scene" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${a}" stop-opacity=".75"/></linearGradient></defs><rect width="160" height="90" fill="url(#${g})"/>${fig}</svg>`;
 }
 function thumb(v) {
-  return `<div class="thumb">${scene(v)}<span class="dur num">${tc(v.duration)}</span><div class="lower3"><span class="l1">${esc(v.media)}</span><span class="l2">${esc(v.title)}</span></div></div>`;
+  return `<div class="thumb">${scene(v)}${v.duration ? `<span class="dur num">${tc(v.duration)}</span>` : ''}<div class="lower3"><span class="l1">${esc(v.media)}</span><span class="l2">${esc(v.title)}</span></div></div>`;
 }
 const netBadge = (n, cls = '') => `<span class="net net-${n} ${cls}" aria-hidden="true">${NETS[n].short}</span>`;
 
@@ -1707,15 +1940,21 @@ function viewBlocked() {
 /* ================= Espace client ================= */
 const CNAV = [
   ['dashboard', 'Accueil', 'home', 'Accueil'],
-  ['medias', 'Mes médias', 'folder', 'Médias'],
-  ['creer', 'Créer', 'spark', 'Créer'],
-  ['downloads', 'Mes créations', 'down', 'Créations'],
-  ['offres', 'Nos offres', 'bag', 'Offres'],
-  ['access', 'Mon accès', 'clock', 'Accès']
+  ['capsules', 'Créer une vidéo', 'spark', 'Créer'],
+  ['medias', 'Mes vidéos', 'video', 'Vidéos'],
+  ['commandes', 'Commandes', 'folder', 'Commandes'],
+  ['factures', 'Factures', 'file', 'Factures']
 ];
+const CNAV_MORE = [
+  ['creer', 'Visuels et publications', 'image'],
+  ['downloads', 'Mes créations', 'down'],
+  ['offres', 'Nos offres', 'bag'],
+  ['access', 'Mon accès', 'clock']
+];
+const DEVIS_OFFER = 'montage';
 function viewClient() {
   const c = client(); const left = daysLeft(c);
-  const cur = ['video', 'videos'].includes(S.page) ? 'medias' : ['capsules', 'test', 'visuels', 'publications', 'sous-titres'].includes(S.page) ? 'creer' : S.page;
+  const cur = ['video', 'videos'].includes(S.page) ? 'medias' : ['test', 'visuels', 'publications', 'sous-titres'].includes(S.page) ? 'creer' : S.page;
   let page = '';
   switch (S.page) {
     case 'dashboard': page = pDashboard(c); break;
@@ -1732,17 +1971,21 @@ function viewClient() {
     case 'creer': page = pCreer(c); break;
     case 'offres': page = pOffres(c); break;
     case 'commandes': page = pCommandes(c); break;
+    case 'factures': page = pFactures(c); break;
   }
   if (bkOn() && !BKO.list && !BKO.loading) setTimeout(bkLoadOrders, 0); // reprend le suivi des commandes en cours
   if (S.page === 'access') page += upsellTip(['drone'], 'Préparez votre prochain tournage');
   switch (null) {
   }
-  if (['capsules', 'test', 'visuels', 'publications', 'sous-titres'].includes(S.page)) page = createTabs(S.page) + page;
+  if (['test', 'visuels', 'publications', 'sous-titres'].includes(S.page)) page = createTabs(S.page) + page;
   const imp = S.asAdmin ? `<div class="impersonate">Vous consultez l'espace de ${esc(c.name)} en tant qu'équipe OpenMedias. <button data-a="back-admin">Revenir à l'administration</button></div>` : '';
   return imp + (bkOn() ? bkBusyIndicator() : '') + `<div class="app">
   <aside class="side" aria-label="Navigation de l'espace client">
     ${c.logo ? `<div class="company" style="flex-direction:column;align-items:flex-start;gap:8px"><img src="${c.logo}" alt="${esc(c.name)}" style="height:22px;width:auto;display:block"><span class="small muted">${esc(c.sector)}</span></div>` : `<div class="company"><span class="logo-tile" style="background:${c.color}">${initials(c.name)}</span><div><b>${esc(c.name)}</b><span class="small muted">${esc(c.sector)}</span></div></div>`}
-    <nav class="nav">${CNAV.map(([k, l, ic]) => `<a href="#" data-a="nav" data-arg="${k}" class="${cur === k ? 'on' : ''}" ${cur === k ? 'aria-current="page"' : ''}>${I(ic)}${l}</a>`).join('')}${bkOn() ? `<a href="#" data-a="nav" data-arg="commandes" class="${S.page === 'commandes' ? 'on' : ''}" ${S.page === 'commandes' ? 'aria-current="page"' : ''}>${bkBusyOrders().length ? '<span class="bk-spin" aria-hidden="true" style="margin-right:2px"></span>' : I('folder')}Mes commandes</a>` : ''}</nav>
+    <nav class="nav">${CNAV.map(([k, l, ic]) => `<a href="#" data-a="nav" data-arg="${k}" class="${cur === k ? 'on' : ''}" ${cur === k ? 'aria-current="page"' : ''}>${k === 'commandes' && bkOn() && bkBusyOrders().length ? '<span class="bk-spin" aria-hidden="true" style="margin-right:2px"></span>' : I(ic)}${l}</a>`).join('')}
+      <span class="small muted" style="padding:16px 12px 4px">Aller plus loin</span>
+      ${CNAV_MORE.map(([k, l, ic]) => `<a href="#" data-a="nav" data-arg="${k}" class="${cur === k ? 'on' : ''}" ${cur === k ? 'aria-current="page"' : ''}>${I(ic)}${l}</a>`).join('')}</nav>
+    <div class="side-card"><b>Un montage sur mesure ?</b><span class="small muted">Nos monteurs prennent la main sur votre vidéo.</span><button class="cta" data-a="offer-order" data-arg="${DEVIS_OFFER}">Demander un devis ↗</button></div>
     <div class="side-foot">
       <span class="tag ${left <= 7 ? 'warn' : ''} num">${I('clock')} ${left} jours restants</span>
       <a href="https://openmedias.fr/" target="_blank" rel="noopener" class="btn btn-quiet btn-sm" style="justify-content:flex-start">${I('back')}Retour au site</a>
@@ -1750,7 +1993,7 @@ function viewClient() {
     </div>
   </aside>
   <main class="main" id="main">${page}</main></div>
-  <nav class="bottomnav" aria-label="Navigation mobile">${CNAV.map(([k, l, ic, s]) => `<a href="#" data-a="nav" data-arg="${k}" class="${cur === k ? 'on' : ''}">${I(ic)}${s}</a>`).join('')}</nav>`;
+  <nav class="bottomnav" aria-label="Navigation mobile" style="grid-template-columns:repeat(5,1fr)">${CNAV.map(([k, l, ic, s]) => `<a href="#" data-a="nav" data-arg="${k}" class="${cur === k ? 'on' : ''}">${I(ic)}${s}</a>`).join('')}</nav>`;
 }
 
 function ring(left, total, size = 132) {
@@ -1771,19 +2014,22 @@ function pDashboard(c) {
   }
   const today = Math.round((TODAY - c.activatedAt) / DAY);
   const upcoming = CAL.filter(e => e.d >= today).slice(0, 3);
+  const hv = homeVideo();
+  const kinds = homeKinds(hv);
+  const cur = kinds.find(k => k.id === (S.home || 'capsules')) || kinds[0];
   return `
-  <section class="hero"><img class="hero-mark" src="data:image/png;base64,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" alt="">
-    <div>
-      <p style="opacity:.85;margin:0 0 12px;font-weight:500">Bonjour ${esc(first)}</p>
-      <h1>Vos contenus sont prêts, <span class="serif">place à la diffusion.</span></h1>
-      <p>${VIDEOS.length} vidéos, un article et ${PHOTOS.length} photos vous attendent. Votre espace est ouvert jusqu'au ${fmtD(c.expiresAt)}.</p>
-      <div class="row" style="margin-top:20px"><button class="btn btn-primary" data-a="nav" data-arg="capsules">${I('spark')}Créer une capsule</button><button class="btn btn-ghost" data-a="nav" data-arg="medias">${I('folder')}Mes médias</button></div>
+  <section class="hero" aria-labelledby="home-h"><div class="hero-grid">
+    <div class="hero-txt">
+      ${hv ? `<span class="hero-badge"><i aria-hidden="true"></i>${hv.media ? `Votre passage ${esc(hv.media)} est prêt` : 'Votre vidéo est prête'}</span>` : `<span class="hero-badge wait"><i aria-hidden="true"></i>${BK.loading ? 'Chargement de vos vidéos…' : 'Vos vidéos arrivent bientôt'}</span>`}
+      <h1 id="home-h">Vous êtes passés à la télé.<span>Faites-le savoir.</span></h1>
+      <p>Choisissez ce que vous voulez en tirer. On s'occupe du découpage, des sous-titres et de vos logos.</p>
+      <div class="choices" role="group" aria-label="Que voulez-vous créer ?">${kinds.map(k => `<button type="button" class="choice" data-a="home-pick" data-arg="${k.id}" aria-pressed="${k.id === cur.id}"><span class="tagline">${esc(k.tag)}<span class="radio" aria-hidden="true"></span></span><b>${esc(k.label)}</b><span class="d">${esc(k.desc)}</span></button>`).join('')}</div>
+      <div class="row" style="gap:18px;align-items:center"><button class="btn btn-primary" data-a="flow-go" data-arg="${cur.id}|4" ${hv ? '' : 'disabled'}>${cur.cta} ↗</button><button class="lnk" data-a="flow-go" data-arg="${cur.id}|3" ${hv ? '' : 'disabled'}>Changer le format ou la durée</button></div>
     </div>
-    ${ring(left, c.duration + c.extensions * 30)}
-  </section>
+    ${hv ? `<figure class="hero-fig">${thumb(hv)}<figcaption>${esc([hv.media, hv.title].filter(Boolean).join(' · '))}${hv.date ? ` · diffusé le ${fmtD(hv.date)}` : ''}</figcaption></figure>` : ''}
+  </div></section>
+  <div class="nextstep"><div><b>À faire maintenant</b><p class="muted" style="margin-top:2px">${esc(next.t)}</p></div><button class="btn btn-ghost" data-a="${next.a}" data-arg="${next.arg}">${next.b}</button></div>
   ${kitClientHtml(c)}
-  <section class="sec"><div class="sec-head"><h2>Toutes nos offres</h2><a href="#" class="small" data-a="nav" data-arg="offres">Voir le détail</a></div><div class="offer-grid">${OFFERS.map(o => offerCard(o, true)).join('')}</div></section>
-  <div class="nextstep"><div><b>À faire maintenant</b><p class="muted" style="margin-top:2px">${esc(next.t)}</p></div><button class="btn btn-primary" data-a="${next.a}" data-arg="${next.arg}">${next.b}</button></div>
   
   <div class="stats">
     <div><b class="num">${CV().length}</b><span>${CV().length > 1 ? 'vidéos OpenMedias' : 'vidéo OpenMedias'}</span></div>
@@ -1795,7 +2041,20 @@ function pDashboard(c) {
     <div class="grid g3">${CV().map(vcard).join('') || `<p class="muted">Vos vidéos seront disponibles ici dès que l'équipe OpenMedias les aura ajoutées.</p>`}</div></section>
   <section class="sec"><div class="sec-head"><h2>À publier cette semaine</h2><a href="#" data-a="cal-open" class="small">Calendrier complet</a></div>
     <div class="list">${upcoming.map(e => `<div class="li"><span class="fi">${netBadge(e.net)}</span><div class="grow"><b>${esc(e.title)}</b><span class="small muted">${fmtD(addDays(c.activatedAt, e.d))}${e.d === today ? ", aujourd'hui" : ''}</span></div><button class="btn btn-ghost btn-sm" data-a="cal-go" data-arg="${CAL.indexOf(e)}">Préparer</button></div>`).join('')}</div>
-  </section>`;
+  </section>
+  <section class="sec"><div class="sec-head"><h2>Toutes nos offres</h2><a href="#" class="small" data-a="nav" data-arg="offres">Voir le détail</a></div><div class="offer-grid">${OFFERS.map(o => offerCard(o, true)).join('')}</div></section>`;
+}
+/* Accueil : vidéo mise en avant et trois raccourcis vers le parcours de création */
+function homeVideo() {
+  if (bkOn() && OpenStudio.clientSession()) { if (!BK.videos && !BK.loading) setTimeout(bkLoadVideos, 0); return (BK.videos || [])[0] || null; }
+  return CV()[0] || null;
+}
+function homeKinds(v) {
+  return [
+    { id: 'capsules', tag: '30 s · vertical', label: 'Capsules réseaux', desc: 'Les meilleurs moments, prêts pour LinkedIn et Instagram', cta: 'Créer mes capsules' },
+    { id: 'teaser', tag: '15 s · vertical', label: 'Teaser', desc: 'Pour annoncer la diffusion ou relancer après', cta: 'Créer mon teaser' },
+    { id: 'subtitles', tag: 'vidéo complète', label: 'Interview sous-titrée', desc: 'La version complète, lisible sans le son', cta: 'Sous-titrer mon interview' }
+  ];
 }
 function vcard(v) {
   return `<button class="vcard" data-a="open-video" data-arg="${v.id}" aria-label="Ouvrir ${esc(v.title)}">${thumb(v)}<div><h3>${esc(v.title)}</h3><div class="row" style="margin-top:6px;gap:6px"><span class="tag">${esc(v.kind)}</span><span class="small muted">${esc(v.media)}, ${fmtShort(v.date)}</span></div></div></button>`;
@@ -3424,6 +3683,7 @@ const OFFERS = [
   { id: 'traduction', cat: 'article', title: "Traduction de l'article dans une autre langue", price: 120, icon: 'file', desc: "Votre article traduit par un professionnel, prêt à être publié sur votre site ou partagé avec vos contacts étrangers.", inc: ['Traduction professionnelle', 'Mise en page fournie'], opt: 'langue' },
   { id: 'pack-com', cat: 'com', title: 'Pack communication', price: 980, icon: 'image', badge: 'Recommandé', desc: "Tout pour valoriser votre passage média : signature d'e-mail, bandeau pour votre site internet, visuels pour LinkedIn et Instagram.", inc: ["Signature d'e-mail", 'Bandeau de site internet', 'Visuel post LinkedIn', 'Visuel post Instagram'] },
   { id: 'posts-rs', cat: 'com', title: 'Publications réseaux sociaux', price: null, icon: 'chat', desc: "Des publications LinkedIn, Instagram, Facebook, TikTok et X rédigées pour vous à partir de votre émission, avec accroches et hashtags, prêtes à publier.", inc: ['Plusieurs variantes par réseau', 'Accroches et hashtags', 'Calendrier de publication'] },
+  { id: 'montage', cat: 'video', title: 'Montage sur mesure', price: null, icon: 'video', desc: "Un monteur de l'équipe réalise la vidéo dont vous avez besoin à partir de vos images : portrait, film de marque, version courte pour un salon…", inc: ['Échange avec votre chargée de projet', 'Montage réalisé par nos monteurs', 'Logos et charte de votre entreprise', 'Formats adaptés à vos usages'] },
   { id: 'drone', cat: 'tournage', title: "Utilisation d'un drone", price: 580, icon: 'video', desc: "Des prises de vue aériennes pour votre prochain tournage : vos locaux, vos chantiers ou vos sites vus du ciel.", inc: ['Pilote certifié', 'Images aériennes en haute définition'] }
 ];
 const OFFER_CATS = [['video', 'Vos vidéos'], ['article', 'Votre article'], ['com', 'Votre communication'], ['tournage', 'Votre prochain tournage']];
@@ -3682,6 +3942,14 @@ function modalHtml() {
     h = orderModalHtml(m);
     const o = OFFERS.find(x => x.id === m.offer);
     foot = `<button class="btn btn-quiet" data-a="close">Annuler</button><button class="btn btn-primary" data-a="order-confirm">${I('check')}${o.price == null ? 'Envoyer ma demande de devis' : 'Confirmer la commande'}</button>`;
+  } else if (m.type === 'flow-mod') {
+    title = 'Modifier vos réglages';
+    h = `<p class="muted" style="margin-bottom:18px">Vos choix sont repris aussitôt dans le récapitulatif.</p>` + flowModHtml();
+    foot = `<button class="btn btn-primary" data-a="close">Enregistrer</button>`;
+  } else if (m.type === 'pay') {
+    title = flowPrice() == null ? 'Valider la commande' : 'Paiement';
+    h = payModalHtml(m);
+    foot = `<button class="btn btn-quiet" data-a="close">Annuler</button><button class="btn btn-primary" data-a="bk-submit" ${BK.submitting || bkNoSession() ? 'disabled' : ''}>${BK.submitting ? 'Validation en cours…' : flowPrice() == null ? 'Valider et lancer ↗' : `Payer ${flowPriceTxt()} et lancer ↗`}</button>`;
   } else if (m.type === 'opus-more') { /* OpusClip */
     title = "Proposer d'autres extraits";
     h = `<p>Vous avez vu toutes les propositions de cette analyse. Vous pouvez les revoir, ou lancer une nouvelle analyse de la vidéo : elle prend plusieurs minutes.</p>`;
@@ -3839,12 +4107,12 @@ const A = {
   'demo-reset': () => { try { Object.keys(localStorage).filter(k => k.startsWith('om-main') || k.startsWith('om-clients') || k === 'om-medias').forEach(k => localStorage.removeItem(k)); } catch (e) {} location.reload(); },
   'demo-client': () => { S.modal = null; S.asAdmin = false; go('login'); },
   'demo-admin': () => { S.modal = null; go(S.view === 'admin' ? 'admin' : 'adminLogin'); },
-  'theme': () => { const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'light' ? 'dark' : 'light'; },
+  'theme': () => { const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark'; },
   'studio-tab': () => { if (S.view === 'client') A.nav('dashboard'); else if (S.view === 'admin') go('admin'); else A['to-login'](); },
   'to-login': () => { S.modal = null; S.asAdmin = false; S.clientId = null; go('login'); },
   'fill-code': a => { const inp = document.getElementById('code'); inp.value = a; inp.classList.remove('err'); document.getElementById('code-err').textContent = ''; inp.focus(); },
   'logout': () => { S.clientId = null; S.preview = null; if (S.asAdmin) { S.asAdmin = false; go('admin'); } else { toast('Vous êtes déconnecté'); go('login'); } },
-  'nav': a => { S.modal = null; go('client', a); },
+  'nav': a => { S.modal = null; if (a === 'capsules' && S.cap.bkStep === 5) { S.cap.bkStep = 1; S.cap.bkOrderId = null; } go('client', a); },
   'open-video': a => { const [id, sub] = String(a).split('|'); S.vsub = sub === 'sub'; go('client', 'video', id); },
   'play-main': () => playMain(),
   'vid-seg': (a) => { const v = video(S.arg); A['cap-from'](`${v.id}|${a}`); },
@@ -3960,9 +4228,15 @@ const A = {
   'sp-recstop': () => { subRecStop = true; },
   /* Back-end OpenStudio */
   'bk-video': a => { S.cap.bkVideoId = a; S.keepScroll = true; render(); },
-  'bk-step': a => { if (+a > 1 && !S.cap.bkVideoId) { toast('Choisissez d’abord une vidéo.'); return; } S.cap.bkStep = +a; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
-  'bk-submit': () => bkSubmitCapsules(),
+  'bk-step': a => { if (+a > 1 && !S.cap.bkVideoId) { toast('Choisissez d’abord une émission.'); return; } S.cap.bkStep = Math.min(+a, 4); S.modal = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+  'bk-submit': () => flowSubmit(),
   'bk-new': () => { S.cap.bkStep = 1; S.cap.bkOrderId = null; S.keepScroll = false; render(); },
+  'bk-kind': a => { S.cap.flowKind = a; if (a === 'teaser' && !S.cap.fmt) S.cap.fmt = '9:16'; S.keepScroll = true; render(); },
+  'home-pick': a => { S.home = a; S.keepScroll = true; render(); },
+  'flow-go': a => { const [kind, step] = String(a).split('|'); const v = homeVideo(); S.cap.flowKind = kind; if (v && v.bkId) S.cap.bkVideoId = v.bkId; if (!bkOn()) { S.cap.kind = kind === 'teaser' ? 'teaser' : 'capsule'; go('client', kind === 'subtitles' ? 'sous-titres' : 'capsules'); return; } S.cap.bkOrderId = null; S.cap.bkStep = S.cap.bkVideoId ? +step : 1; go('client', 'capsules'); },
+  'flow-mod': () => { S.modal = { type: 'flow-mod' }; render(); },
+  'pay-open': () => { S.modal = { type: 'pay', mode: 'cb' }; render(); },
+  'pay-mode': a => { if (S.modal) S.modal.mode = a; S.keepScroll = true; render(); },
   'bk-files': a => bkLoadFiles(a),
   'bk-orders-reload': () => { bkLoadOrders(true); },
   'bk-reload': () => { BK.videos = null; BK.err = ''; render(); bkLoadVideos(true); },
