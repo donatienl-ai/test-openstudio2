@@ -766,6 +766,218 @@ em,i:not([class]){font-style:normal}
 .inv-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
 .inv-wrap>div{min-width:720px}
 .mono{font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:13px}
+
+/* ===== V4 : écrans du canevas « OpenStudio — 3 directions d'interface » =====
+   Accueil (C) : bandeau bleu nuit et bibliothèque. Mes émissions, Mes vidéos, Commandes, Factures (A) : barre latérale.
+   Parcours de création et livraison : en-tête blanc à onglets. */
+:root{--os-bg:#F4F3EF;--os-line:#E2E0D8;--os-line2:#C9C7BE;--os-mut:#55556A;--os-navy:#1A1A2E;--os-blue:#3B3BF9;--os-tint:#EEEEFF}
+.os{color:var(--os-navy);font-family:Inter,system-ui,sans-serif;font-size:15px;min-height:100vh}
+.os a{color:var(--os-blue)}
+.os .g{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800}
+.os .mono,.os .kick{font-family:ui-monospace,"JetBrains Mono",Menlo,monospace}
+.os .kick{font-size:12px;letter-spacing:.04em;color:var(--os-mut);text-transform:uppercase}
+.os .mut{color:var(--os-mut)}
+.os h1,.os h2,.os h3{letter-spacing:normal}
+.os-cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#fff!important;text-decoration:none;padding:14px 24px;background:var(--os-blue,#3B3BF9);border:0;border-radius:50px;cursor:pointer;white-space:nowrap}
+.os-cta:hover{background:#2D2DE0}
+.os-cta[disabled]{opacity:.5;cursor:not-allowed}
+.os-cta.big{font-size:14px;padding:18px 32px}
+.os-out{display:inline-flex;align-items:center;font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--os-navy)!important;text-decoration:none;padding:13px 22px;border:1px solid var(--os-navy);border-radius:50px;background:transparent;cursor:pointer}
+.os-pillbtn{font:inherit;font-size:13px;font-weight:600;border-radius:50px;padding:10px 16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.os-pillbtn.p{color:#fff!important;background:var(--os-blue);border:0;padding:11px 16px}
+.os-pillbtn.s{color:var(--os-navy)!important;background:#fff;border:1px solid var(--os-line2)}
+.os-link{font:inherit;font-size:14px;background:none;border:0;padding:0;color:var(--os-blue);text-decoration:underline;cursor:pointer}
+.os-chips{display:flex;flex-wrap:wrap;gap:6px}
+.os-chips button{font:inherit;font-size:14px;height:40px;padding:0 16px;border-radius:50px;cursor:pointer;border:1px solid #D6D6E0;background:#fff;color:var(--os-navy)}
+.os-chips button[aria-pressed="true"]{border:0;background:var(--os-navy);color:#fff}
+.os-sel{font:inherit;font-size:14px;height:40px;padding:0 12px;border-radius:50px;border:1px solid var(--os-line2);background:#fff;color:var(--os-navy)}
+.os-dot{display:inline-flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap}
+.os-dot i{width:8px;height:8px;border-radius:50%;flex:none;box-sizing:border-box}
+.os-dot.ok i{background:#1F9D61}.os-dot.prep i{border:1.5px solid #C98A00}.os-dot.blue i{background:var(--os-blue)}.os-dot.err i{background:#C62D45}
+.os-h2{margin:0;font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:14px;letter-spacing:.08em;text-transform:uppercase}
+.os-iconbtn{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--os-line2);background:#fff;color:var(--os-navy)!important;display:flex;align-items:center;justify-content:center;text-decoration:none}
+/* barre latérale (maquette A) */
+.os-side{display:flex;flex-wrap:wrap;background:var(--os-bg)}
+.os-side>nav{flex:1 1 232px;max-width:100%;box-sizing:border-box;background:#fff;padding:28px 20px;display:flex;flex-direction:column;gap:32px;border-right:1px solid var(--os-line)}
+.os-brand{display:flex;flex-direction:column;gap:4px;background:none;border:0;padding:0;text-align:left;color:var(--os-navy);cursor:pointer}
+.os-brand b{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:20px;letter-spacing:.02em}
+.os-brand span{font-size:12px;color:var(--os-mut)}
+.os-nav{display:flex;flex-direction:column;gap:2px}
+.os-nav a{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border-radius:8px;color:var(--os-navy);text-decoration:none}
+.os-nav a.on{background:var(--os-tint);font-weight:600}
+.os-nav a .mono{font-size:12px;color:var(--os-mut)}.os-nav a.on .mono{color:var(--os-blue)}
+.os-nav.more a{padding:7px 12px;font-size:13.5px;color:var(--os-mut)}
+.os-nav.more a.on{color:var(--os-navy)}
+.os-devis{display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--os-bg);border-radius:12px}
+.os-devis b{font-weight:600}
+.os-devis span{font-size:13px;line-height:1.5;color:var(--os-mut)}
+.os-devis button{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--os-blue);background:none;border:0;padding:0;text-align:left;cursor:pointer}
+.os-main{flex:999 1 640px;min-width:0;box-sizing:border-box;padding:36px 48px 56px;display:flex;flex-direction:column;gap:32px}
+.os-head{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-end}
+.os-head h1{margin:0;font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:40px;line-height:1.05}
+.os-tbl{overflow-x:auto;background:#fff;border:1px solid var(--os-line);border-radius:12px}
+.os-tbl>div{display:flex;flex-direction:column}
+.os-tr{display:grid;gap:16px;padding:16px 20px;align-items:center;border-top:1px solid #EDEBE4}
+.os-tr.h{border-top:0;padding:12px 20px;font-size:12px;color:var(--os-mut);letter-spacing:.04em;text-transform:uppercase}
+.os-legacy{min-width:0}
+@media (max-width:640px){.os-main{padding:24px 16px 48px}.os-head h1{font-size:30px}}
+/* en-tête blanc à onglets (parcours, livraison) */
+.os-top{background:#fff;border-bottom:1px solid var(--os-line)}
+.os-top>div{max-width:1240px;margin:0 auto;padding:18px 32px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.os-top .l{display:flex;align-items:center;gap:40px;flex-wrap:wrap}
+.os-top .brand{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:19px;letter-spacing:.02em;color:var(--os-navy);background:none;border:0;padding:0;cursor:pointer}
+.os-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.os-tabs a{padding:10px 14px;border-radius:8px;color:var(--os-navy);text-decoration:none;font-size:14px}
+.os-tabs a.on{background:var(--os-tint);font-weight:600}
+.os-acc{display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;cursor:pointer;font:inherit;color:var(--os-navy)}
+.os-acc span{font-size:14px;color:var(--os-mut)}
+.os-acc b{width:36px;height:36px;border-radius:50%;background:var(--os-tint);color:var(--os-blue);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+.os-page{background:var(--os-bg)}
+.os-wrap{max-width:1240px;width:100%;box-sizing:border-box;margin:0 auto;padding:40px 32px 64px;display:flex;flex-direction:column;gap:32px}
+.os-wrap h1.t{margin:0;font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:36px;line-height:1.1}
+.os-back{font-size:14px;text-decoration:none;background:none;border:0;padding:0;color:var(--os-blue);cursor:pointer;align-self:flex-start;font:inherit}
+.os-steps{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px;font-size:14px}
+.os-steps li{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 8px;border-radius:50px;color:var(--os-mut)}
+.os-steps li b{width:22px;height:22px;border-radius:50%;border:1px solid #A9A8B8;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:400}
+.os-steps li.done{background:#fff;border:1px solid var(--os-line);color:var(--os-navy)}
+.os-steps li.done b{background:var(--os-tint);color:var(--os-blue);border:0}
+.os-steps li.on{background:var(--os-blue);color:#fff;font-weight:600}
+.os-steps li.on b{background:#fff;color:var(--os-blue);border:0}
+.os-steps button{font:inherit;color:inherit;background:none;border:0;padding:0;display:flex;align-items:center;gap:8px;cursor:pointer}
+.os-cols{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.os-colm{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:28px}
+.os-card{background:#fff;border:1px solid var(--os-line);border-radius:16px;padding:28px;display:flex;flex-direction:column;gap:18px}
+.os-card h2{margin:0;font-size:18px;font-weight:600;font-family:Inter,sans-serif}
+.os-card .sub{font-size:14px;color:var(--os-mut);margin-top:4px}
+.os-aside{flex:1 1 320px;min-width:0;background:#fff;border:1px solid var(--os-line);border-top:4px solid var(--os-blue);border-radius:16px;padding:28px;display:flex;flex-direction:column;gap:20px}
+.os-aside h2{margin:0;font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.os-aside dl{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px 16px;font-size:14px}
+.os-aside dt{color:var(--os-mut)}.os-aside dd{margin:0}
+.os-aside .os-cta{width:100%;padding:16px 24px}
+.os-aside .note{font-size:13px;color:var(--os-mut);line-height:1.5;text-align:center}
+.os-aside hr{border:0;height:1px;background:var(--os-line);margin:0}
+.os-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.os-opt{font:inherit;color:var(--os-navy);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:6px;padding:18px;border-radius:12px;background:#fff;border:2px solid var(--os-line)}
+.os-opt[aria-pressed="true"]{background:var(--os-tint);border-color:var(--os-blue)}
+.os-opt .shape{height:110px;display:flex;align-items:flex-end}
+.os-opt .shape i{display:block;border-radius:6px;background:#D9D7CE}
+.os-opt[aria-pressed="true"] .shape i{background:var(--os-blue)}
+.os-opt .ill{height:120px;border-radius:8px;background:var(--os-bg);display:flex;align-items:center;justify-content:center;gap:8px}
+.os-opt .ill i{display:block;border-radius:4px;background:#3D3D6B}
+.os-opt[aria-pressed="true"] .ill i{background:var(--os-blue)}
+.os-opt .mono{font-size:12px;color:var(--os-mut)}
+.os-opt b{font-size:15px;font-weight:600}
+.os-opt span.d{font-size:13px;color:var(--os-mut);line-height:1.4}
+.os-seg{display:inline-flex;flex-wrap:wrap;background:var(--os-bg);border-radius:50px;padding:4px;gap:2px}
+.os-seg button{font:inherit;font-size:14px;font-weight:600;min-width:64px;min-height:44px;padding:0 14px;border:0;border-radius:50px;cursor:pointer;background:transparent;color:var(--os-navy)}
+.os-seg button[aria-pressed="true"]{background:var(--os-blue);color:#fff}
+.os-em{display:flex;flex-wrap:wrap;gap:20px;align-items:center;padding:16px;border-radius:12px;border:1px solid var(--os-line);background:#fff;color:var(--os-navy);text-align:left;font:inherit;cursor:pointer;width:100%}
+.os-em[aria-pressed="true"]{border:2px solid var(--os-blue);background:var(--os-tint);padding:15px}
+.os-em .thumb{width:180px;flex:none}
+.os-row{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:14px 0;border-bottom:1px solid #EDEBE4}
+.os-row:last-child{border-bottom:0}
+.os-row .k{flex:0 0 140px;font-size:14px;color:var(--os-mut)}
+.os-row .v{flex:1 1 240px}
+.os-row button{font:inherit;font-size:14px;color:var(--os-blue);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+.os-check{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;cursor:pointer}
+.os-check input{width:20px;height:20px;margin:0;accent-color:var(--os-blue);flex:none}
+.os-paybox{display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:10px;background:var(--os-bg)}
+/* bandeau bleu nuit (accueil C, commande lancée) */
+.os-band{background:#24244A;color:#fff}
+.os-band>div{max-width:1200px;margin:0 auto;padding:22px 40px 52px;display:flex;flex-direction:column;gap:44px}
+.os-bandnav{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center}
+.os-bandnav .brand{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:19px;letter-spacing:.02em;color:#fff;background:none;border:0;padding:0;cursor:pointer}
+.os-bandnav nav{display:flex;gap:24px;align-items:center;flex-wrap:wrap;font-size:14px}
+.os-bandnav nav a{color:rgba(255,255,255,.8);text-decoration:none}
+.os-bandnav nav a.on{color:#fff;font-weight:600}
+.os-bandnav .who{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:none;padding:11px 18px;border:1px solid rgba(255,255,255,.6);border-radius:50px;cursor:pointer}
+.os-hero{display:flex;flex-wrap:wrap;gap:48px;align-items:center}
+.os-hero .txt{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:26px}
+.os-badge{display:inline-flex;align-self:flex-start;align-items:center;gap:8px;font-size:13px;font-weight:600;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:50px;padding:8px 14px}
+.os-badge i{width:8px;height:8px;border-radius:50%;background:#5BE3A0}
+.os-badge.wait i{background:transparent;border:1.5px solid #F2B654}
+.os-hero h1{margin:0;font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:42px;line-height:1.1;letter-spacing:-.01em}
+.os-hero h1 span,.os-launch h1 span{color:#9C9CFF;display:block}
+.os-hero p{margin:0;font-size:17px;line-height:1.5;color:rgba(255,255,255,.8);max-width:520px}
+.os-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.os-choice{font:inherit;text-align:left;cursor:pointer;color:#fff;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.18);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px;min-height:112px}
+.os-choice[aria-pressed="true"]{background:rgba(59,59,249,.28);border-color:#8080FF}
+.os-choice .t{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:12px;color:rgba(255,255,255,.75)}
+.os-choice .r{flex:none;width:20px;height:20px;border-radius:50%;box-sizing:border-box;border:2px solid rgba(255,255,255,.45)}
+.os-choice[aria-pressed="true"] .r{border-color:#3B3BF9;background:#fff;box-shadow:inset 0 0 0 4px #3B3BF9}
+.os-choice b{font-size:16px;font-weight:600}
+.os-choice span.d{font-size:13px;color:rgba(255,255,255,.75);line-height:1.4}
+.os-hero figure{flex:1 1 340px;min-width:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.os-hero figure .thumb{border-radius:12px}
+.os-hero figcaption{font-size:13px;color:rgba(255,255,255,.7)}
+.os-band .os-link{color:#C9C9FF}
+.os-home{max-width:1200px;width:100%;box-sizing:border-box;margin:0 auto;padding:44px 40px 64px;display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}
+.os-home h2.lib{margin:0;font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:24px}
+.os-tint{background:var(--os-tint);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:10px}
+.os-tint h2{margin:0;font-size:16px;font-weight:600;font-family:Inter,sans-serif}
+.os-tint p{margin:0;font-size:14px;line-height:1.5;color:#33334A}
+.os-tint button{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--os-blue);background:none;border:0;padding:0;text-align:left;cursor:pointer}
+@media (max-width:640px){.os-band>div,.os-home{padding-left:20px;padding-right:20px}.os-hero h1{font-size:32px}.os-wrap{padding:24px 16px 48px}}
+/* vignettes vidéo */
+.os-clip{display:flex;flex-direction:column;gap:8px;min-width:0}
+.os-clip .box{aspect-ratio:9/16;border-radius:8px;background:#3D3D6B;position:relative;overflow:hidden}
+.os-clip .box.r169{aspect-ratio:16/9}.os-clip .box.r11{aspect-ratio:1/1}
+.os-clip video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+.os-clip .dur{position:absolute;top:8px;left:8px;font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:11px;color:#fff;background:rgba(13,13,43,.85);padding:3px 6px;border-radius:3px;z-index:1}
+.os-clip .prep{aspect-ratio:9/16;border-radius:8px;border:1.5px dashed #A9A9C0;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px;text-align:center}
+.os-clip .prep .mono{font-size:12px;color:var(--os-mut)}
+.os-clip .prep span{font-size:13px;color:var(--os-mut);line-height:1.4}
+.os-clip .foot{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.os-clip .foot b{font-size:14px;font-weight:600;display:block}
+.os-clip .foot small{font-size:12px;color:var(--os-mut)}
+.os-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
+.os-vcard{display:flex;flex-direction:column;gap:10px;background:#fff;border:1px solid var(--os-line);border-radius:12px;padding:12px}
+.os-vcard .stage{height:240px;border-radius:8px;background:var(--os-bg);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.os-vcard .stage video{aspect-ratio:9/16;object-fit:cover;max-height:216px;max-width:100%;border-radius:6px;background:#000}
+.os-vcard .stage.r169 video{aspect-ratio:16/9;width:100%;max-height:none}.os-vcard .stage.r11 video{aspect-ratio:1/1}
+.os-empty{border:1.5px dashed var(--os-line2);border-radius:12px;padding:32px;text-align:center;color:var(--os-mut);display:flex;flex-direction:column;gap:10px;align-items:center}
+/* commande lancée (maquette 5) */
+.os-launch{background:#24244A;color:#fff}
+.os-launch>div{max-width:1240px;margin:0 auto;padding:64px 32px 72px;display:flex;flex-wrap:wrap;gap:48px;align-items:center}
+.os-launch .txt{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:20px}
+.os-launch .kick{color:rgba(255,255,255,.75)}
+.os-launch h1{margin:0;font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:42px;line-height:1.1}
+.os-launch p{margin:0;font-size:17px;line-height:1.5;color:rgba(255,255,255,.8);max-width:520px}
+.os-launch .os-ph{flex:1 1 300px;display:flex;gap:12px;justify-content:center}
+.os-launch .os-ph .phb{display:block;background:transparent;width:96px;aspect-ratio:9/16;border-radius:8px;border:1.5px dashed rgba(255,255,255,.4)}
+.os-tl{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:24px}
+.os-tl li{flex:1 1 200px;display:flex;flex-direction:column;gap:10px}
+.os-tl .bar{display:flex;align-items:center;gap:8px}
+.os-tl .bar i{width:28px;height:28px;border-radius:50%;box-sizing:border-box;border:2px solid #C9C7BE;background:#fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-style:normal;flex:none}
+.os-tl .bar u{flex:1;height:2px;background:#E2E0D8}
+.os-tl li.done .bar i{background:var(--os-blue);border-color:var(--os-blue)}
+.os-tl li.done .bar u{background:var(--os-blue)}
+.os-tl li.now .bar i{border:3px solid var(--os-blue)}
+.os-tl li.now .bar i::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--os-blue)}
+.os-tl b{font-weight:600}
+.os-tl span{font-size:14px;color:var(--os-mut);line-height:1.45}
+.os-help{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:18px 22px;border-radius:12px;background:var(--os-tint);font-size:14px}
+.os-help a{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-decoration:none}
+.bk-pill{top:auto;bottom:20px;right:20px}
+/* fenêtres : grand titre, bouton rond de fermeture, sans barres */
+.modal{border-radius:20px;max-width:600px}
+.modal-h{border-bottom:0;padding:32px 32px 0;align-items:flex-start}
+.modal-h h3{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:24px;line-height:1.15}
+.modal-h [data-a="close"]{width:44px;height:44px;border-radius:50%;background:#F4F3EF;padding:0;justify-content:center;flex:none}
+.modal-b{padding:20px 32px}
+.modal-f{border-top:0;padding:0 32px 32px}
+.modal .os-field{display:flex;flex-direction:column;gap:6px}
+.modal .os-field label,.modal .os-field>span{font-size:13px;font-weight:600}
+.modal .os-in{font:inherit;font-size:15px;min-height:48px;padding:0 14px;border-radius:10px;border:1px solid #C9C7BE;background:#fff;color:#1A1A2E;box-sizing:border-box;width:100%}
+.modal textarea.os-in{padding:12px 14px;resize:vertical}
+.os-paysum{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 18px;border-radius:12px;background:#F4F3EF}
+.os-paysum .p{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:20px}
+.os-fmt3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.os-fmt3 .os-opt{padding:14px}
+.os-fmt3 .os-opt .shape{height:64px}
+.os-chipsel{display:flex;flex-wrap:wrap;gap:8px}
+.os-chipsel button{font:inherit;font-size:14px;min-height:40px;padding:0 16px;border-radius:50px;cursor:pointer;border:1px solid #C9C7BE;background:#fff;color:#1A1A2E}
+.os-chipsel button[aria-pressed="true"]{background:#EEEEFF;border-color:#3B3BF9;color:#3B3BF9}
 </style>
 </head>
 <body>
@@ -1444,19 +1656,6 @@ function pCommandes() {
   return head + `<div class="stack" style="gap:16px">${ids.map(id => bkOrderCard(BKO.byId[id])).join('')}</div>`;
 }
 /* Factures : une ligne par commande (création vidéo et prestations), avec les informations de facturation. */
-function pFactures(c) {
-  if (bkOn() && OpenStudio.clientSession() && !BKO.list && !BKO.loading) setTimeout(bkLoadOrders, 0);
-  const bk = (BKO.list || []).map(id => BKO.byId[id]).filter(o => o && !['draft', 'validated'].includes(o.status)).map(o => ({ date: new Date(o.createdAt), num: o.id.slice(0, 8), what: BK_TYPES[o.type] || o.type, sub: (o.options && o.options.videoTitle) || '', amount: 'Inclus dans le package' }));
-  const off = ORDERS.filter(o => o.clientId === c.id).map(o => ({ date: new Date(o.date), num: String(o.id).slice(-8), what: o.title, sub: o.status === 'Nouvelle' ? 'Reçue par votre chargée de projet' : o.status, amount: o.price == null ? 'Sur devis' : `${o.price.toLocaleString('fr-FR')} € HT` }));
-  const rows = [...bk, ...off].sort((a, b) => b.date - a.date);
-  return `<div class="page-head"><div><span class="kicker">${rows.length} ${rows.length > 1 ? 'lignes' : 'ligne'}</span><h1 style="margin-top:6px">Factures</h1><p>Vos commandes et leur facturation. Les prestations payantes sont facturées par OpenMedias.</p></div></div>
-  <div class="flow"><div class="flow-main">${rows.length ? `<div class="inv-wrap"><div><div class="inv-row h"><span>Date</span><span>N°</span><span>Commande</span><span>Montant</span><span>Facture</span></div>
-    ${rows.map(r => `<div class="inv-row"><span class="mono">${r.date.toLocaleDateString('fr-FR')}</span><span class="mono muted">${esc(r.num)}</span><span><b style="font-weight:600">${esc(r.what)}</b>${r.sub ? `<span class="small muted" style="display:block">${esc(r.sub)}</span>` : ''}</span><span>${esc(r.amount)}</span><span class="small muted">${r.amount.startsWith('Inclus') ? 'Rien à payer' : 'Envoyée par e-mail'}</span></div>`).join('')}</div></div>`
-    : `<div class="empty">${I('file')}<h3>Aucune facture pour le moment</h3><p>Vos commandes apparaîtront ici avec leur facturation.</p><button class="btn btn-primary" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></div>`}</div>
-    <aside class="flow-aside" style="border-top-width:1px" aria-labelledby="fact-info"><h2 id="fact-info">Informations de facturation</h2>
-      <dl><dt>Société</dt><dd>${esc(c.name)}</dd><dt>Contact</dt><dd>${esc(c.contact)}</dd><dt>E-mail</dt><dd>${esc(c.email || '')}</dd><dt>Chargée de projet</dt><dd>${esc(c.manager || '')}</dd></dl>
-      <p class="small muted">Pour modifier l’adresse ou le n° de TVA, écrivez à votre chargée de projet.</p></aside></div>`;
-}
 function bkBusyIndicator() {
   const b = bkBusyOrders(); if (!b.length) return '';
   const label = b.length > 1 ? `${b.length} préparations en cours` : (b[0].type === 'capsules' ? 'Préparation de vos capsules…' : 'Préparation de votre vidéo…');
@@ -1557,47 +1756,79 @@ function flowSettingsHtml(v) {
       <div class="row" style="gap:20px;align-items:center"><div class="frame ${fmtClass(k.fmt)}" data-style="${k.style}" style="--hl:${m.accent}">${scene(v)}${capMarks(m)}<p class="sub sub-${k.style}">${subHtml('Aperçu du *style* de vos sous-titres', k.style)}</p></div><p class="muted small" style="max-width:36ch">Le logo de votre entreprise et celui de l’émission sont ajoutés automatiquement.</p></div></section>`;
 }
 function bkCapsulesPage(c) {
-  const k = S.cap; if (!BK.videos && !BK.loading) setTimeout(bkLoadVideos, 0);
+  const k = S.cap; if (!BK.videos && !BK.loading && osLive()) setTimeout(bkLoadVideos, 0);
   if (!CAP_OPTIONS.kinds[0].durs.includes(k.dur)) k.dur = 30;
-  if (k.bkStyleInit !== 1) { k.style = 'classique'; k.bkStyleInit = 1; } // sous-titres simples par défaut
-  const v = flowVideo();
-  const head = `<div class="page-head"><div><span class="kicker">Nouvelle vidéo</span><h1 style="margin-top:6px">${v ? `À partir de votre passage ${esc(v.media || 'télé')}` : 'Créer une vidéo'}</h1></div><button class="btn btn-ghost" data-a="nav" data-arg="commandes">${I('folder')}Mes commandes</button></div>`;
-  // Commande lancée : confirmation puis suivi en direct (maquettes 5 et 6)
+  if (k.bkStyleInit !== 1) { k.style = 'classique'; k.bkStyleInit = 1; }
+  const v = flowVideo(); const kd = flowKind();
   const tracked = k.bkStep === 5 && k.bkOrderId && BKO.byId[k.bkOrderId];
-  if (tracked) {
-    const o = BKO.byId[k.bkOrderId]; const kd = FLOW_KINDS[k.lastKind] || FLOW_KINDS.capsules;
-    const ready = o.status === 'ready';
-    return `<section class="launched" aria-labelledby="ok-h"><span class="kicker">Commande ${esc(o.id.slice(0, 8))} · ${new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-      <h1 id="ok-h">${ready ? 'C’est prêt.' : 'C’est lancé.'}<span>${ready ? 'Vos vidéos vous attendent ci-dessous.' : esc(kd.ready)}</span></h1>
-      <p>${ready ? 'Regardez-les, puis téléchargez celles qui vous plaisent.' : 'Vous pouvez quitter cette page : un e-mail vous prévient dès que c’est prêt.'}</p></section>
-      <div style="margin-top:22px">${bkOrderCard(o)}</div>
-      <div class="row between" style="margin-top:16px"><button class="btn btn-ghost" data-a="bk-new">${I('spark')}Créer une autre vidéo</button><button class="btn btn-quiet" data-a="nav" data-arg="commandes">${I('folder')}Toutes mes commandes</button></div>`;
-  }
-  let n = v ? Math.min(Math.max(k.bkStep || 1, 1), 4) : 1;
+  if (tracked) return osLaunched(c, BKO.byId[k.bkOrderId]);
+  const n = v ? Math.min(Math.max(k.bkStep || 1, 1), 4) : 1;
+  const back = [['Retour à l’accueil', 'nav|dashboard'], ['Changer d’émission', 'step|1'], ['Changer de type de vidéo', 'step|2'], ['Retour au format', 'step|3']][n - 1];
+  const steps = `<ol class="os-steps" aria-label="Étapes">${FLOW_STEPS.map((l, i) => { const s2 = i + 1; const cls = s2 < n ? 'done' : s2 === n ? 'on' : ''; const inner = `<b>${s2 < n ? '✓' : s2}</b>${l}`; return `<li class="${cls}" ${s2 === n ? 'aria-current="step"' : ''}>${s2 < n ? `<button data-a="bk-step" data-arg="${s2}">${inner}</button>` : inner}</li>`; }).join('')}</ol>`;
+  const h1 = n === 1 ? 'Nouvelle vidéo' : `Nouvelle vidéo à partir de votre passage ${esc(v.media || 'télé')}`;
   let main = '';
   if (n === 1) {
-    if (BK.loading || !BK.videos) main = `<div class="panel"><div class="thinking" aria-live="polite"><i></i>Chargement des vidéos de votre package…</div></div>`;
-    else if (BK.err) main = `<div class="empty">${I('video')}<h3>Vos vidéos ne sont pas accessibles</h3><p style="max-width:52ch">${esc(BK.err)}</p><button class="btn btn-ghost" data-a="bk-reload">${I('refresh')}Réessayer</button></div>`;
-    else if (!BK.videos.length) main = bkUploadBox() + `<div class="empty">${I('video')}<h3>Vos vidéos arrivent bientôt</h3><p>Elles apparaîtront ici dès que l'équipe OpenMedias les aura ajoutées à votre package.</p></div>`;
-    else main = bkUploadBox() + `<section class="flow-card" aria-labelledby="q-em"><div><h2 id="q-em">À partir de quelle émission ?</h2><p class="small muted" style="margin-top:4px">Vous voyez ici les vidéos de votre package.</p></div>
-      <div class="opt-grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">${BK.videos.map(x => `<button type="button" class="opt" data-a="bk-video" data-arg="${esc(x.bkId)}" aria-pressed="${k.bkVideoId === x.bkId}"><div class="thumb">${scene(x)}<div class="lower3"><span class="l1">${esc(x.media)}</span><span class="l2">${esc(x.title)}</span></div></div><b>${esc(x.title)}</b><span class="d">${esc(x.media || 'Vidéo')}${x.date ? ' · diffusée le ' + fmtD(x.date) : ''}</span></button>`).join('')}</div></section>`;
+    const list = osPkgVideos();
+    main = !osLive() ? `<section class="os-card"><h2>À partir de quelle émission ?</h2><p class="mut" style="margin:0">Ouvrez le lien d'accès envoyé par l'équipe OpenMedias pour retrouver les émissions de votre package.</p></section>`
+      : BK.loading || !BK.videos ? `<section class="os-card"><p class="mut" style="margin:0">Chargement des émissions de votre package…</p></section>`
+      : BK.err ? `<section class="os-card"><h2>Vos émissions ne sont pas accessibles</h2><p class="mut" style="margin:0">${esc(BK.err)}</p><button class="os-pillbtn s" style="align-self:flex-start" data-a="bk-reload">Réessayer</button></section>`
+      : `<section class="os-card" aria-labelledby="q-em"><h2 id="q-em">À partir de quelle émission ?</h2>${bkUploadBox()}
+        <div style="display:flex;flex-direction:column;gap:12px">${list.length ? list.map(x => `<button type="button" class="os-em" data-a="bk-video" data-arg="${esc(x.bkId)}" aria-pressed="${k.bkVideoId === x.bkId}">${thumb(x)}<div style="flex:1 1 220px;display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;font-size:16px">${esc([x.media, x.title].filter(Boolean).join(' — '))}</span><span class="mut" style="font-size:14px">${x.date ? 'Diffusé le ' + fmtD(x.date) : 'Vidéo de votre package'}${x.duration ? ' · ' + tc(x.duration) : ''}</span></div><span class="os-dot ok" style="font-weight:600"><i aria-hidden="true"></i>Prête</span></button>`).join('') : `<div class="os-empty">Vos émissions apparaîtront ici dès que l'équipe OpenMedias les aura déposées.</div>`}</div>
+        <p class="mut" style="margin:0;font-size:14px;line-height:1.5">Vous voyez ici les émissions de votre package. Une autre en tête ? Écrivez à votre chargée de projet.</p></section>`;
   } else if (n === 2) {
-    const ill = { capsules: '<i style="width:34px;height:60px"></i><i style="width:34px;height:60px"></i><i style="width:34px;height:60px"></i>', teaser: '<i style="width:42px;height:74px"></i>', subtitles: '<i style="width:128px;height:72px"></i>' };
-    main = `<section class="flow-card" aria-labelledby="q-type"><div><h2 id="q-type">Que voulez-vous en faire ?</h2><p class="small muted" style="margin-top:4px">Le logo de l’émission et le vôtre sont ajoutés dans tous les cas.</p></div>
-      <div class="opt-grid">${Object.entries(FLOW_KINDS).map(([id, x]) => flowOpt(flowKind() === id, 'bk-kind', id, ill[id], x.tag, x.label, x.desc)).join('')}</div>
-      <div class="row between" style="padding:14px 16px;border-radius:12px;background:var(--bg)"><span class="small"><b>Autre chose en tête ?</b> Un monteur de l’équipe peut réaliser un montage sur mesure.</span><button class="btn btn-ghost btn-sm" data-a="offer-order" data-arg="${DEVIS_OFFER}">Demander un devis</button></div></section>`;
+    const ill = { capsules: '<i style="width:38px;height:68px"></i><i style="width:38px;height:68px;background:#48406E"></i><i style="width:38px;height:68px;background:#384868"></i>', teaser: '<i style="width:46px;height:82px"></i>', subtitles: '<i style="width:150px;height:84px"></i>' };
+    main = `<section class="os-card" aria-labelledby="q-type"><div><h2 id="q-type">Que voulez-vous en faire ?</h2><div class="sub">Le logo de l'émission et le vôtre sont ajoutés dans tous les cas.</div></div>
+      <div class="os-opts" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${Object.entries(FLOW_KINDS).map(([id, x]) => `<button type="button" class="os-opt" data-a="bk-kind" data-arg="${id}" aria-pressed="${kd === id}" style="gap:14px"><span class="ill" aria-hidden="true">${ill[id]}</span><span class="mono">${esc(x.tag)}</span><b style="font-size:16px">${esc(x.label)}</b><span class="d" style="font-size:14px;line-height:1.45">${esc(x.desc)}</span></button>`).join('')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:16px 18px;border-radius:12px;background:var(--os-bg)"><span style="font-size:14px;line-height:1.5"><b style="font-weight:600">Autre chose en tête ?</b> Un monteur de l'équipe peut réaliser un montage sur mesure.</span><button class="os-link" style="font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-decoration:none;text-transform:uppercase" data-a="devis-open">Demander un devis ↗</button></div></section>`;
   } else if (n === 3) {
-    main = flowSettingsHtml(v);
+    if (kd === 'subtitles') main = `<section class="os-card"><h2>Vos sous-titres</h2><div>${[['Langue', 'Français, la langue parlée dans la vidéo'], ['Transcription', 'Automatique, à partir du son de la vidéo'], ['Format', 'Celui de la vidéo d’origine']].map(([a1, b1]) => `<div class="os-row"><span class="k">${a1}</span><span class="v">${b1}</span></div>`).join('')}</div><p class="mut" style="margin:0;font-size:14px">La traduction dans une autre langue arrive bientôt.</p></section>`;
+    else {
+      const m = bkMedia(v);
+      main = `<section class="os-card" aria-labelledby="q-format"><div><h2 id="q-format">Où allez-vous ${kd === 'teaser' ? 'le' : 'les'} publier ?</h2><div class="sub">On choisit le format pour vous selon le réseau.</div></div>
+        <div class="os-opts" role="group" aria-label="Format">${[['9:16', 'Vertical 9:16', 'Reels, TikTok, Shorts, stories LinkedIn', 56, 100], ['1:1', 'Carré 1:1', 'Fil LinkedIn, Instagram', 84, 84], ['16:9', 'Horizontal 16:9', 'YouTube, votre site, salons', 140, 79]].map(([f, l, u, w, h]) => `<button type="button" class="os-opt" data-a="cap-fmt" data-arg="${f}" aria-pressed="${k.fmt === f}"><span class="shape"><i style="width:${w}px;height:${h}px"></i></span><b>${l}</b><span class="d">${u}</span></button>`).join('')}</div></section>
+      <section class="os-card" aria-labelledby="q-duree"><h2 id="q-duree">${kd === 'teaser' ? 'Durée du teaser' : 'Durée de chaque capsule'}</h2>
+        ${kd === 'teaser' ? `<p class="mut" style="margin:0">15 secondes : le bon format pour annoncer votre passage.</p>` : `<div style="display:flex;flex-direction:column;gap:8px"><span class="mut" style="font-size:13px">Durée de chaque capsule</span><div class="os-seg" role="group" aria-label="Durée">${CAP_OPTIONS.kinds[0].durs.map(d => `<button type="button" data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>`}
+        <p class="mut" style="margin:0;font-size:14px;line-height:1.5">Les meilleurs moments de l'interview sont repérés automatiquement. Le logo de l'émission et le vôtre sont ajoutés sur chaque ${kd === 'teaser' ? 'vidéo' : 'capsule'}.</p></section>
+      <section class="os-card" aria-labelledby="q-style"><h2 id="q-style">Style des sous-titres</h2><div class="os-seg" role="group" aria-label="Style des sous-titres">${CAP_OPTIONS.styles.map(([st, l]) => `<button type="button" data-a="cap-style" data-arg="${st}" aria-pressed="${k.style === st}">${l}</button>`).join('')}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center"><div class="frame ${fmtClass(k.fmt)}" data-style="${k.style}" style="--hl:${m.accent}">${scene(v)}${capMarks(m)}<p class="sub sub-${k.style}">${subHtml('Aperçu du *style* de vos sous-titres', k.style)}</p></div></div></section>`;
+    }
   } else {
-    const kd = flowKind();
-    const prev = kd === 'subtitles' ? '' : `<section class="flow-card"><h2>Ce que vous allez recevoir</h2><div class="row" style="gap:14px;align-items:flex-end">${[0, 1, 2].slice(0, kd === 'teaser' ? 1 : 3).map(i => `<div class="frame ${fmtClass(S.cap.fmt)}" style="width:${S.cap.fmt === '16:9' ? 220 : S.cap.fmt === '1:1' ? 150 : 110}px">${scene(v)}</div>`).join('')}</div><p class="small muted">Aperçu indicatif : les extraits sont choisis dans votre interview au moment de la création.</p></section>`;
-    main = prev + `<section class="flow-card" aria-labelledby="q-det"><h2 id="q-det">Le détail</h2><div class="rows">${flowRows(v).map(([k2, val, act]) => `<div class="r"><span class="k">${k2}</span><span class="v">${esc(val)}</span>${act ? `<button data-a="${act.startsWith('step') ? 'bk-step' : 'flow-mod'}" data-arg="${act.split('|')[1] || ''}">Modifier</button>` : ''}</div>`).join('')}</div></section>`;
+    const prev = kd === 'subtitles' ? '' : `<section class="os-card"><h2>Ce que vous allez recevoir</h2><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:520px">${[1, 2, 3].slice(0, kd === 'teaser' ? 1 : 3).map(i => `<div style="display:flex;flex-direction:column;gap:8px"><div class="frame ${fmtClass(k.fmt)}" style="width:100%">${scene(v)}</div><span style="font-size:14px;font-weight:600">${kd === 'teaser' ? 'Teaser' : 'Capsule ' + i}</span></div>`).join('')}</div><p class="mut" style="margin:0;font-size:14px;line-height:1.5">Aperçu indicatif : les extraits sont choisis automatiquement dans votre interview au moment de la création.</p></section>`;
+    main = prev + `<section class="os-card"><h2>Le détail</h2><div>${flowRows(v).map(([k2, val, act]) => `<div class="os-row"><span class="k">${k2}</span><span class="v">${esc(val)}</span>${act ? `<button data-a="${act.startsWith('step') ? 'bk-step' : 'flow-mod'}" data-arg="${act.split('|')[1] || ''}">Modifier</button>` : ''}</div>`).join('')}</div></section>`;
   }
-  const aside = n < 4 ? flowAside(v, n) : `<aside class="flow-aside" aria-labelledby="flow-ok"><h2 id="flow-ok">Validation</h2>
-      <div class="row between"><span>${esc(FLOW_KINDS[flowKind()].short)}</span><b>${flowPriceTxt()}</b></div>
-      <button class="btn btn-primary" data-a="pay-open" ${BK.submitting ? 'disabled' : ''}>${BK.submitting ? 'Validation en cours…' : 'Valider et lancer ↗'}</button>
-      <p class="small muted" style="text-align:center">Vous recevrez une confirmation par e-mail.</p></aside>`;
-  return head + flowStepper(n) + `<div class="flow"><div class="flow-main">${main}</div>${aside}</div>`;
+  const rows = flowRows(v).filter(r => r[0] !== 'Livraison' && (n > 1 || r[0] === 'Émission' || r[0] === 'Habillage'));
+  const aside = n < 4 ? `<aside class="os-aside" aria-labelledby="recap"><h2 id="recap">Votre commande</h2>
+      <dl>${rows.map(([k2, val]) => `<dt>${k2}</dt><dd>${esc(val)}</dd>`).join('')}</dl><hr>
+      <button class="os-cta" data-a="bk-step" data-arg="${n + 1}" ${n === 1 && !v ? 'disabled' : ''}>Continuer</button>
+      <span class="note">Rien n'est lancé tant que vous n'avez pas validé.</span></aside>`
+    : `<aside class="os-aside" aria-labelledby="valider"><h2 id="valider">Validation</h2>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><span>${esc(FLOW_KINDS[kd].short)}</span><span style="font-weight:600">${flowPrice() == null ? 'Inclus' : flowPriceTxt()}</span></div>
+      <div class="os-paybox"><span class="mut" style="font-size:13px">Paiement</span><span style="font-size:14px">${flowPrice() == null ? 'Inclus dans votre package : rien à payer' : 'Carte bancaire, prélèvement SEPA ou virement'}</span></div>
+      <label class="os-check"><input type="checkbox" data-in="flow-check" ${k.checked ? 'checked' : ''}><span>J'ai vérifié l'émission, le format et la durée.</span></label>
+      <button class="os-cta" style="padding:17px 24px" data-a="pay-open" ${k.checked && !BK.submitting ? '' : 'disabled'}>${BK.submitting ? 'Validation en cours…' : 'Valider et lancer ↗'}</button>
+      <span class="note">Vous recevrez une confirmation par e-mail.</span></aside>`;
+  return `<main class="os-wrap"><div style="display:flex;flex-direction:column;gap:18px"><button class="os-back" data-a="${back[1].startsWith('nav') ? 'nav' : 'bk-step'}" data-arg="${back[1].split('|')[1]}">← ${back[0]}</button><h1 class="t">${h1}</h1>${steps}</div>
+    <div class="os-cols"><div class="os-colm">${main}</div>${aside}</div></main>`;
+}
+/* Commande lancée (maquette 5), puis vidéos prêtes */
+function osLaunched(c, o) {
+  const kd = FLOW_KINDS[S.cap.lastKind] || FLOW_KINDS[osKindOf(o)] || FLOW_KINDS.capsules;
+  const st = bkStage(o.status); const ready = o.status === 'ready'; const err = o.status === 'error';
+  const nPh = (S.cap.lastKind || osKindOf(o)) === 'capsules' ? 3 : 1;
+  const tl = [['Commande validée', 'La confirmation est dans votre boîte mail.'], ['Préparation des vidéos', 'Découpage, sous-titres et ajout de vos logos.'], [ready ? 'Prêtes à télécharger' : 'Prêtes à télécharger', 'Elles apparaissent dans Mes vidéos et vous recevez un e-mail.']];
+  const state = i => i === 0 ? 'done' : i === 1 ? (ready ? 'done' : 'now') : (ready ? 'done' : '');
+  return `<section class="os-launch" aria-labelledby="ok"><div><div class="txt">
+      <span class="kick">Commande n° ${esc(o.id.slice(0, 8))} · ${new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}</span>
+      <h1 id="ok">${err ? 'Un problème est survenu.' : ready ? 'C’est prêt.' : 'C’est lancé.'}<span>${err ? 'Notre équipe a été prévenue.' : ready ? 'Vos vidéos vous attendent.' : esc(kd.ready)}</span></h1>
+      <p>${err ? esc(o.error || 'Votre chargée de projet revient vers vous rapidement.') : ready ? 'Regardez-les, puis téléchargez celles qui vous plaisent.' : 'Vous pouvez fermer cette page : un e-mail vous prévient dès qu’elles sont prêtes à télécharger.'}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">${ready ? `<button class="os-cta" data-a="nav-order" data-arg="${o.id}">Voir mes vidéos ↗</button>` : `<button class="os-cta" data-a="nav" data-arg="medias">Suivre dans Mes vidéos ↗</button>`}<button class="os-link" style="color:#C9C9FF" data-a="bk-new">Créer une autre vidéo</button></div></div>
+      <div class="os-ph" aria-hidden="true">${'<span class="phb"></span>'.repeat(nPh)}</div></div></section>
+    <main class="os-wrap">
+      <section class="os-card" aria-labelledby="suite"><h2 id="suite">Et maintenant ?</h2>
+        <ol class="os-tl">${tl.map(([t, d], i) => `<li class="${state(i)}"><div class="bar" aria-hidden="true"><i>${state(i) === 'done' ? '✓' : ''}</i><u></u></div><b>${t}</b><span>${d}</span></li>`).join('')}</ol>
+</section>
+      <div class="os-help"><span>Une question sur votre commande ? Votre chargée de projet reste joignable.</span><a href="mailto:contact@openmedias.fr">Contacter l'équipe ↗</a></div>
+    </main>`;
 }
 /* Tarifs : capsules, teaser et sous-titres sont inclus dans le package (V1). Renseigner un montant en € HT active le paiement. */
 const FLOW_PRICES = { capsules: null, teaser: null, subtitles: null };
@@ -1605,21 +1836,23 @@ const flowPrice = () => FLOW_PRICES[flowKind()];
 const flowPriceTxt = () => flowPrice() == null ? 'Inclus dans votre package' : `${flowPrice().toLocaleString('fr-FR')} € HT`;
 function flowModHtml() {
   const k = S.cap; const kd = flowKind();
-  return `<div class="stack" style="gap:22px">
-    <div class="field"><span class="lab">Format</span><div class="opt-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">${CAP_OPTIONS.fmts.map(([f, l, , w, h]) => flowOpt(k.fmt === f, 'cap-fmt', f, `<i style="width:${w * 1.8}px;height:${h * 1.8}px"></i>`, '', `${l} ${f}`, '')).join('')}</div></div>
-    ${kd === 'teaser' ? '' : `<div class="field"><span class="lab">Durée de chaque capsule</span><div class="seg-ctl" role="group" aria-label="Durée">${CAP_OPTIONS.kinds[0].durs.map(d => `<button data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>`}
-    <div class="field"><span class="lab">Style des sous-titres</span><div class="seg-ctl" role="group" aria-label="Style des sous-titres">${CAP_OPTIONS.styles.map(([st, l]) => `<button data-a="cap-style" data-arg="${st}" aria-pressed="${k.style === st}">${l}</button>`).join('')}</div></div></div>`;
+  if (kd === 'subtitles') return `<p style="margin:0">Les sous-titres sont en français, transcrits automatiquement à partir du son de la vidéo. Le format reste celui de la vidéo d’origine.</p>`;
+  return `<div style="display:flex;flex-direction:column;gap:22px">
+    <div class="os-field" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Format</span><div class="os-fmt3">${[['9:16', 'Vertical 9:16', 34, 60], ['1:1', 'Carré 1:1', 52, 52], ['16:9', 'Horizontal 16:9', 92, 52]].map(([f, l, w, h]) => `<button type="button" class="os-opt" data-a="cap-fmt" data-arg="${f}" aria-pressed="${k.fmt === f}"><span class="shape"><i style="width:${w}px;height:${h}px;border-radius:4px"></i></span><b style="font-size:14px">${l}</b></button>`).join('')}</div></div>
+    ${kd === 'teaser' ? '' : `<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Durée de chaque capsule</span><div class="os-seg" role="group" aria-label="Durée">${CAP_OPTIONS.kinds[0].durs.map(d => `<button type="button" data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>`}
+    <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Style des sous-titres</span><div class="os-seg" role="group" aria-label="Style des sous-titres">${CAP_OPTIONS.styles.map(([st, l]) => `<button type="button" data-a="cap-style" data-arg="${st}" aria-pressed="${k.style === st}">${l}</button>`).join('')}</div></div></div>`;
 }
 function payModalHtml(m) {
-  const v = flowVideo(); const kd = flowKind(); const paid = flowPrice() != null;
-  return `<div class="stack" style="gap:20px">
-    <div class="pay-sum"><div><b>${esc(FLOW_KINDS[kd].short)}</b><div class="small muted">${esc(v ? [v.media, v.title].filter(Boolean).join(' · ') : '')}</div></div><b class="p">${flowPriceTxt()}</b></div>
-    ${paid ? `<div class="field"><span class="lab">Moyen de paiement</span><div class="pay-modes" role="group" aria-label="Moyen de paiement">${[['cb', 'Carte bancaire'], ['sepa', 'Prélèvement SEPA'], ['vir', 'Virement']].map(([id, l]) => `<button data-a="pay-mode" data-arg="${id}" aria-pressed="${(m.mode || 'cb') === id}">${l}</button>`).join('')}</div>
-      <p class="small muted">${m.mode === 'vir' ? 'Vous recevez nos coordonnées bancaires par e-mail ; la création démarre à réception du virement.' : 'Vous serez redirigé vers la page sécurisée de notre prestataire de paiement.'}</p></div>`
-    : `<p class="muted">Cette création est incluse dans votre package : aucun paiement n’est demandé.</p>`}
-    <div class="row between small"><span class="muted">Facturé à <b style="color:var(--text)">${esc((client() || {}).name || '')}</b></span><button class="btn btn-quiet btn-sm" data-a="nav" data-arg="factures">Informations de facturation</button></div>
-    ${bkNoSession() ? `<p class="small" style="color:var(--warn)">Pour commander, ouvrez le lien d'accès à votre espace envoyé par l'équipe OpenMedias.</p>` : ''}
-    <p class="small muted" id="bk-prog" aria-live="polite">${esc(BK.prog || '')}</p></div>`;
+  const v = flowVideo(); const kd = flowKind(); const paid = flowPrice() != null; const c = client() || {};
+  return `<div style="display:flex;flex-direction:column;gap:22px">
+    <div class="os-paysum"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(FLOW_KINDS[kd].short)}</span><span class="small muted">${esc(v ? [v.media, v.title].filter(Boolean).join(' · ') : '')}${kd !== 'subtitles' ? ` · ${esc(flowFmt()[1].toLowerCase())} ${esc(flowFmt()[0])}` : ''}</span></div><span class="p">${paid ? flowPriceTxt() : 'Inclus'}</span></div>
+    <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Moyen de paiement</span>
+      ${paid ? `<div class="os-seg" style="display:flex" role="group" aria-label="Moyen de paiement">${[['cb', 'Carte bancaire'], ['sepa', 'Prélèvement SEPA'], ['vir', 'Virement']].map(([id, l]) => `<button type="button" style="flex:1 1 auto" data-a="pay-mode" data-arg="${id}" aria-pressed="${(m.mode || 'cb') === id}">${l}</button>`).join('')}</div>
+      <p class="small muted" style="margin:0">${m.mode === 'vir' ? 'Vous recevez nos coordonnées bancaires par e-mail. La création démarre dès réception du virement.' : 'Vous êtes redirigé vers la page sécurisée de notre prestataire de paiement.'}</p>`
+      : `<p style="margin:0;padding:14px 16px;border-radius:10px;border:1px solid #E2E0D8;font-size:14px;line-height:1.5">Cette création est incluse dans votre package : aucun paiement n’est demandé.</p>`}</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px"><span class="muted">Facture au nom de <b style="color:#1A1A2E">${esc(c.name || '')}</b></span><button class="os-link" data-a="nav" data-arg="factures">Modifier</button></div>
+    ${bkNoSession() ? `<p class="small" style="color:var(--warn);margin:0">Pour commander, ouvrez le lien d'accès à votre espace envoyé par l'équipe OpenMedias.</p>` : ''}
+    <p class="small muted" id="bk-prog" aria-live="polite" style="margin:0">${esc(BK.prog || '')}</p></div>`;
 }
 async function bkSubmitCapsules() {
   const k = S.cap; const v = (BK.videos || []).find(x => x.bkId === k.bkVideoId); if (!v || BK.submitting) return;
@@ -1801,7 +2034,7 @@ const root = document.getElementById('root');
 function render() {
   clearTimers(); saveClients();
   const scrollY = window.scrollY;
-  let h = protobar() + siteHeader();
+  let h = S.view === 'client' ? '' : protobar() + siteHeader();
   if (S.view === 'login') h += viewLogin();
   else if (S.view === 'blocked') h += viewBlocked();
   else if (S.view === 'client') h += viewClient();
@@ -1952,110 +2185,274 @@ const CNAV_MORE = [
   ['access', 'Mon accès', 'clock']
 ];
 const DEVIS_OFFER = 'montage';
-function viewClient() {
-  const c = client(); const left = daysLeft(c);
-  const cur = ['video', 'videos'].includes(S.page) ? 'medias' : ['test', 'visuels', 'publications', 'sous-titres'].includes(S.page) ? 'creer' : S.page;
-  let page = '';
-  switch (S.page) {
-    case 'dashboard': page = pDashboard(c); break;
-    case 'videos': page = pVideos(c); break;
-    case 'video': page = pVideo(c, video(S.arg)); break;
-    case 'capsules': page = pCapsules(c); break;
-    case 'publications': page = pPublications(c); break;
-    case 'downloads': page = pDownloads(c); break;
-    case 'medias': page = pMedias(c); break;
-    case 'access': page = pAccess(c); break;
-    case 'visuels': page = pVisuels(c); break;
-    case 'test': page = pTest(c); break;
-    case 'sous-titres': page = pSubs(c); break;
-    case 'creer': page = pCreer(c); break;
-    case 'offres': page = pOffres(c); break;
-    case 'commandes': page = pCommandes(c); break;
-    case 'factures': page = pFactures(c); break;
-  }
-  if (bkOn() && !BKO.list && !BKO.loading) setTimeout(bkLoadOrders, 0); // reprend le suivi des commandes en cours
-  if (S.page === 'access') page += upsellTip(['drone'], 'Préparez votre prochain tournage');
-  switch (null) {
-  }
-  if (['test', 'visuels', 'publications', 'sous-titres'].includes(S.page)) page = createTabs(S.page) + page;
-  const imp = S.asAdmin ? `<div class="impersonate">Vous consultez l'espace de ${esc(c.name)} en tant qu'équipe OpenMedias. <button data-a="back-admin">Revenir à l'administration</button></div>` : '';
-  return imp + (bkOn() ? bkBusyIndicator() : '') + `<div class="app">
-  <aside class="side" aria-label="Navigation de l'espace client">
-    ${c.logo ? `<div class="company" style="flex-direction:column;align-items:flex-start;gap:8px"><img src="${c.logo}" alt="${esc(c.name)}" style="height:22px;width:auto;display:block"><span class="small muted">${esc(c.sector)}</span></div>` : `<div class="company"><span class="logo-tile" style="background:${c.color}">${initials(c.name)}</span><div><b>${esc(c.name)}</b><span class="small muted">${esc(c.sector)}</span></div></div>`}
-    <nav class="nav">${CNAV.map(([k, l, ic]) => `<a href="#" data-a="nav" data-arg="${k}" class="${cur === k ? 'on' : ''}" ${cur === k ? 'aria-current="page"' : ''}>${k === 'commandes' && bkOn() && bkBusyOrders().length ? '<span class="bk-spin" aria-hidden="true" style="margin-right:2px"></span>' : I(ic)}${l}</a>`).join('')}
-      <span class="small muted" style="padding:16px 12px 4px">Aller plus loin</span>
-      ${CNAV_MORE.map(([k, l, ic]) => `<a href="#" data-a="nav" data-arg="${k}" class="${cur === k ? 'on' : ''}" ${cur === k ? 'aria-current="page"' : ''}>${I(ic)}${l}</a>`).join('')}</nav>
-    <div class="side-card"><b>Un montage sur mesure ?</b><span class="small muted">Nos monteurs prennent la main sur votre vidéo.</span><button class="cta" data-a="offer-order" data-arg="${DEVIS_OFFER}">Demander un devis ↗</button></div>
-    <div class="side-foot">
-      <span class="tag ${left <= 7 ? 'warn' : ''} num">${I('clock')} ${left} jours restants</span>
-      <a href="https://openmedias.fr/" target="_blank" rel="noopener" class="btn btn-quiet btn-sm" style="justify-content:flex-start">${I('back')}Retour au site</a>
-      <button class="btn btn-quiet btn-sm" style="justify-content:flex-start" data-a="logout">${I('logout')}Se déconnecter</button>
-    </div>
-  </aside>
-  <main class="main" id="main">${page}</main></div>
-  <nav class="bottomnav" aria-label="Navigation mobile" style="grid-template-columns:repeat(5,1fr)">${CNAV.map(([k, l, ic, s]) => `<a href="#" data-a="nav" data-arg="${k}" class="${cur === k ? 'on' : ''}">${I(ic)}${s}</a>`).join('')}</nav>`;
-}
 
+/* ================= Espace client : écrans du canevas « OpenStudio — 3 directions d'interface » =================
+   Accueil (C), Mes émissions (A), Mes vidéos, Commandes, Factures, parcours de création (étapes 1 à 4),
+   commande lancée, vidéos prêtes, fenêtres Modifier, Paiement et Demander un devis. Données : API OpenStudio. */
+const OS_SIDE_PAGES = ['emissions', 'medias', 'commandes', 'factures'];
+const OS_MORE = [['sources', 'Médias du tournage'], ['creer', 'Visuels et publications'], ['downloads', 'Mes créations'], ['offres', 'Nos offres'], ['access', 'Mon accès']];
+const DL_SVG = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v9M4 7l4 4 4-4M3 14h10"/></svg>';
+const osLive = () => bkOn() && !!OpenStudio.clientSession();
+const osInitials = n => String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+const osDate = d => d ? new Date(d).toLocaleDateString('fr-FR') : '';
+const osShort = d => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
+const osMMSS = ms => ms ? `${String(Math.floor(ms / 60000)).padStart(2, '0')}:${String(Math.round(ms / 1000) % 60).padStart(2, '0')}` : '';
+function osPkgVideos() { if (osLive()) { if (!BK.videos && !BK.loading) setTimeout(bkLoadVideos, 0); return BK.videos || []; } return []; }
+function osOrders() {
+  if (osLive() && !BKO.list && !BKO.loading) setTimeout(bkLoadOrders, 0);
+  return (BKO.list || []).map(id => BKO.byId[id]).filter(o => o && o.status !== 'draft');
+}
+const osFmtOf = o => { const f = String((o.options && o.options.format) || ''); return o.type === 'subtitles' ? '16:9' : f.includes('16:9') ? '16:9' : f.includes('1:1') ? '1:1' : '9:16'; };
+const osFmtCls = f => f === '16:9' ? 'r169' : f === '1:1' ? 'r11' : '';
+const osFmtName = f => f === '16:9' ? 'Horizontal' : f === '1:1' ? 'Carré' : 'Vertical';
+const osKindOf = o => o.type === 'subtitles' ? 'subtitles' : /^15/.test(String((o.options && o.options.duration) || '')) ? 'teaser' : 'capsules';
+const osTypeLabel = o => ({ capsules: 'Capsules réseaux', teaser: 'Teaser', subtitles: 'Interview sous-titrée' })[osKindOf(o)];
+/* Vidéos produites (commandes prêtes) et commandes en préparation */
+function osClips() {
+  const out = [];
+  osOrders().forEach(o => {
+    if (o.status === 'ready') {
+      const f = BKO.files[o.id];
+      if (!f) { setTimeout(() => bkLoadFiles(o.id), 0); return; }
+      if (!Array.isArray(f)) return;
+      const fmt = osFmtOf(o); const kd = osKindOf(o);
+      f.filter(x => x.kind === 'video').forEach((x, i) => out.push({ o, kd, fmt, title: kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`, meta: `${osFmtName(fmt)} · ${(o.options && o.options.videoTitle) || ''}`, dur: osMMSS(x.durationMs), url: x.previewUrl, dl: x.downloadUrl, name: x.fileName, date: o.createdAt }));
+    }
+  });
+  return out;
+}
+const osPrep = () => osOrders().filter(o => BK_BUSY.includes(o.status));
+function osClipCard(x) {
+  return `<article class="os-clip"><div class="box ${osFmtCls(x.fmt)}">${x.dur ? `<span class="dur">${x.dur}</span>` : ''}<video src="${esc(x.url)}" controls playsinline preload="metadata"></video></div>
+    <div class="foot"><div style="min-width:0"><b>${esc(x.title)}</b><small>${esc(x.meta)}</small></div><a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}">${DL_SVG}</a></div></article>`;
+}
+function osPrepCard(o) {
+  return `<article class="os-clip"><div class="prep"><span class="mono">EN PRÉPARATION</span><span>Vous recevrez un e-mail quand c'est prêt</span></div><div class="foot"><div><b>${esc(osTypeLabel(o))}</b><small><button class="os-link" style="font-size:12px" data-a="order-track" data-arg="${o.id}">Suivre</button></small></div></div></article>`;
+}
+function osDevisCard(side) {
+  return side ? `<div class="os-devis"><b>Un montage sur mesure ?</b><span>Nos monteurs prennent la main sur votre rush.</span><button data-a="devis-open">Demander un devis ↗</button></div>`
+    : `<div class="os-tint"><h2>Envie d'un montage sur mesure ?</h2><p>Un monteur de l'équipe s'occupe de votre rush de A à Z.</p><button data-a="devis-open">Demander un devis ↗</button></div>`;
+}
+/* ---------- barre latérale (maquette A) ---------- */
+function osSideShell(c, active, main) {
+  const nVid = osClips().length;
+  const items = [['emissions', 'Mes émissions', osLive() ? String(osPkgVideos().length) : ''], ['medias', 'Mes vidéos', nVid ? String(nVid) : ''], ['commandes', 'Commandes', ''], ['factures', 'Factures', '']];
+  return `<div class="os os-side">
+  <nav aria-label="Navigation principale">
+    <button class="os-brand" data-a="nav" data-arg="dashboard" aria-label="Accueil OpenStudio"><b>OPENSTUDIO</b><span>par OpenMedias</span></button>
+    <div class="os-nav">${items.map(([k, l, n]) => `<a href="#" data-a="nav" data-arg="${k}" class="${active === k ? 'on' : ''}" ${active === k ? 'aria-current="page"' : ''}>${l}${n ? ` <span class="mono">${n}</span>` : ''}</a>`).join('')}</div>
+    ${osDevisCard(true)}
+    <div class="os-nav more" style="margin-top:auto"><span class="kick" style="padding:0 12px 6px">Autres outils</span>${OS_MORE.map(([k, l]) => `<a href="#" data-a="nav" data-arg="${k}" class="${active === k ? 'on' : ''}">${l}</a>`).join('')}<a href="#" data-a="logout">Se déconnecter</a></div>
+  </nav>
+  <main class="os-main" id="main">${main}</main></div>`;
+}
+/* ---------- en-tête blanc à onglets ---------- */
+function osTopShell(c, tab, body) {
+  const tabs = [['capsules', 'Créer'], ['medias', 'Mes vidéos'], ['commandes', 'Commandes']];
+  return `<div class="os os-page"><header class="os-top"><div><div class="l"><button class="brand" data-a="nav" data-arg="dashboard">OPENSTUDIO</button>
+    <nav class="os-tabs" aria-label="Navigation principale">${tabs.map(([k, l]) => `<a href="#" data-a="nav" data-arg="${k}" class="${tab === k ? 'on' : ''}" ${tab === k ? 'aria-current="page"' : ''}>${l}</a>`).join('')}</nav></div>
+    <button class="os-acc" data-a="nav" data-arg="access"><span>${esc(c.name)}</span><b aria-hidden="true">${esc(osInitials(c.contact || c.name))}</b></button></div></header>
+    ${body}</div>`;
+}
+function viewClient() {
+  const c = client();
+  const imp = S.asAdmin ? `<div class="impersonate">Vous consultez l'espace de ${esc(c.name)} en tant qu'équipe OpenMedias. <button data-a="back-admin">Revenir à l'administration</button></div>` : '';
+  if (bkOn() && OpenStudio.clientSession() && !BKO.list && !BKO.loading) setTimeout(bkLoadOrders, 0);
+  let out;
+  switch (S.page) {
+    case 'dashboard': out = osHome(c); break;
+    case 'capsules': out = osTopShell(c, 'capsules', bkCapsulesPage(c)); break;
+    case 'commande': out = osTopShell(c, 'medias', osLivraison(c, S.arg)); break;
+    case 'emissions': out = osSideShell(c, 'emissions', osEmissions(c)); break;
+    case 'medias': out = osSideShell(c, 'medias', osVideos(c)); break;
+    case 'commandes': out = osSideShell(c, 'commandes', osCommandes(c)); break;
+    case 'factures': out = osSideShell(c, 'factures', osFactures(c)); break;
+    default: {
+      // Outils sans maquette : mêmes fonctions qu'avant, dans la barre latérale A
+      let page = '';
+      switch (S.page) {
+        case 'videos': page = pVideos(c); break;
+        case 'video': page = pVideo(c, video(S.arg)); break;
+        case 'publications': page = pPublications(c); break;
+        case 'downloads': page = pDownloads(c); break;
+        case 'sources': page = pMedias(c); break;
+        case 'access': page = pAccess(c) + upsellTip(['drone'], 'Préparez votre prochain tournage'); break;
+        case 'visuels': page = pVisuels(c); break;
+        case 'test': page = pTest(c); break;
+        case 'sous-titres': page = pSubs(c); break;
+        case 'creer': page = pCreer(c); break;
+        case 'offres': page = pOffres(c); break;
+      }
+      if (['test', 'visuels', 'publications', 'sous-titres'].includes(S.page)) page = createTabs(S.page) + page;
+      const act = ['video', 'videos'].includes(S.page) ? 'sources' : ['test', 'visuels', 'publications', 'sous-titres'].includes(S.page) ? 'creer' : S.page;
+      out = osSideShell(c, act, `<div class="os-legacy">${page}</div>`);
+    }
+  }
+  return imp + (bkOn() ? bkBusyIndicator() : '') + out;
+}
+/* ---------- Accueil (maquette C) ---------- */
+function osHome(c) {
+  const vids = osPkgVideos(); const hv = vids[0] || null;
+  const kinds = [
+    { id: 'capsules', tag: '30 s · vertical', label: 'Capsules réseaux', desc: 'Les meilleurs moments, prêts pour LinkedIn et Instagram', cta: 'Créer mes capsules ↗' },
+    { id: 'teaser', tag: '15 s · vertical', label: 'Teaser', desc: 'Pour annoncer la diffusion ou relancer après', cta: 'Créer mon teaser ↗' },
+    { id: 'subtitles', tag: hv && hv.duration ? `${tc(hv.duration)} · horizontal` : 'vidéo complète', label: 'Interview sous-titrée', desc: 'La version complète, lisible sans le son', cta: 'Sous-titrer mon interview ↗' }
+  ];
+  const cur = kinds.find(k => k.id === (S.home || 'capsules')) || kinds[0];
+  const f = S.hf || 'all';
+  const clips = osClips(); const prep = osPrep();
+  const shown = f === 'prep' ? [] : clips.filter(x => f === 'all' || (f === 'capsules' ? x.kd !== 'subtitles' : x.kd === 'subtitles'));
+  const lib = (f === 'all' || f === 'prep' ? prep.map(osPrepCard) : []).concat(shown.map(osClipCard));
+  return `<div class="os" style="background:#fff"><section class="os-band" aria-labelledby="accroche"><div>
+    <div class="os-bandnav"><button class="brand" data-a="nav" data-arg="dashboard">OPENSTUDIO</button>
+      <nav aria-label="Navigation principale"><a href="#" data-a="nav" data-arg="medias">Mes vidéos</a><a href="#" data-a="nav" data-arg="commandes">Commandes</a><a href="#" data-a="nav" data-arg="emissions">Mes émissions</a><a href="mailto:contact@openmedias.fr">Aide</a><button class="who" data-a="nav" data-arg="access">${esc(c.name)}</button></nav></div>
+    <div class="os-hero"><div class="txt">
+      ${hv ? `<span class="os-badge"><i aria-hidden="true"></i>${hv.media ? `Votre interview ${esc(hv.media)} est prête` : 'Votre interview est prête'}</span>` : `<span class="os-badge wait"><i aria-hidden="true"></i>${BK.loading ? 'Chargement de vos émissions…' : 'Votre interview arrive bientôt'}</span>`}
+      <h1 id="accroche">Vous êtes passés à la télé.<span>Faites-le savoir.</span></h1>
+      <p>Choisissez ce que vous voulez en tirer. On s'occupe du découpage, des sous-titres et de vos logos.</p>
+      <div class="os-choices" role="group" aria-label="Que voulez-vous créer ?">${kinds.map(k => `<button type="button" class="os-choice" data-a="home-pick" data-arg="${k.id}" aria-pressed="${k.id === cur.id}"><span class="t">${esc(k.tag)}<span class="r" aria-hidden="true"></span></span><b>${esc(k.label)}</b><span class="d">${esc(k.desc)}</span></button>`).join('')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center"><button class="os-cta big" data-a="flow-go" data-arg="${cur.id}|4" ${hv ? '' : 'disabled'}>${cur.cta}</button><button class="os-link" data-a="flow-go" data-arg="${cur.id}|3" ${hv ? '' : 'disabled'}>Changer le format ou la durée</button></div>
+      ${!osLive() ? `<p style="font-size:14px">Pour retrouver vos émissions, ouvrez le lien d'accès envoyé par l'équipe OpenMedias.</p>` : ''}
+    </div>
+    ${hv ? `<figure>${thumb(hv)}<figcaption>${esc([hv.media, hv.title].filter(Boolean).join(' · '))}${hv.date ? ` · diffusé le ${fmtD(hv.date)}` : ''}</figcaption></figure>` : ''}
+    </div></div></section>
+  <main class="os-home">
+    <section aria-labelledby="biblio" style="flex:999 1 600px;min-width:0;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center"><h2 id="biblio" class="lib">Mes vidéos</h2>
+        <div class="os-chips" role="group" aria-label="Filtrer">${[['all', 'Toutes'], ['capsules', 'Capsules'], ['subtitles', 'Sous-titrées'], ['prep', 'En préparation']].map(([k, l]) => `<button type="button" data-a="home-filter" data-arg="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div></div>
+      ${lib.length ? `<div class="os-grid">${lib.join('')}</div>` : `<div class="os-empty"><b style="color:var(--os-navy)">${f === 'all' ? 'Vos premières vidéos apparaîtront ici' : 'Aucune vidéo dans cette catégorie'}</b><span>Choisissez ce que vous voulez créer dans le bandeau ci-dessus.</span></div>`}
+    </section>
+    <aside style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:16px">${osDevisCard(false)}</aside>
+  </main></div>`;
+}
+/* ---------- Mes émissions (maquette A) ---------- */
+function osEmissions(c) {
+  const vids = osPkgVideos(); const clips = osClips().slice(0, 5);
+  const today = new Date().toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
+  const cols = 'grid-template-columns:130px minmax(0,1fr) 100px 170px 300px';
+  const rows = vids.map(v => `<div class="os-tr" style="${cols}">
+      <span class="mono" style="font-size:13px;line-height:1.5">${v.date ? `${osShort(v.date).replace('/', '.')}<br>${v.date.getFullYear()}` : '—'}</span>
+      <div style="display:flex;gap:14px;align-items:center;min-width:0"><div style="width:96px;flex:none">${thumb(v)}</div><div style="display:flex;flex-direction:column;gap:3px;min-width:0"><span style="font-weight:600">${esc([v.media, v.title].filter(Boolean).join(' — '))}</span><span class="mut" style="font-size:13px">Vidéo de votre package</span></div></div>
+      <span class="mono" style="font-size:13px">${v.duration ? tc(v.duration) : '—'}</span>
+      <span class="os-dot ok"><i aria-hidden="true"></i>Prêt à découper</span>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="os-pillbtn p" data-a="em-go" data-arg="capsules|${esc(v.bkId)}">Faire des capsules</button><button class="os-pillbtn s" data-a="em-go" data-arg="subtitles|${esc(v.bkId)}">Sous-titrer</button></div></div>`).join('');
+  return `<header class="os-head"><div style="display:flex;flex-direction:column;gap:6px"><span class="kick">${today} — ${esc(c.name)}</span><h1>Vos passages à l'antenne</h1></div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="os-out" data-a="nav" data-arg="access">Mon package</button><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></div></header>
+    <section aria-labelledby="grille" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:baseline"><h2 id="grille" class="os-h2">Grille de vos émissions</h2><span class="mut" style="font-size:13px">${vids.length ? `${vids.length} émission${vids.length > 1 ? 's' : ''} dans votre package` : ''}</span></div>
+      ${!osLive() ? `<div class="os-empty">Ouvrez le lien d'accès envoyé par l'équipe OpenMedias pour retrouver vos émissions.</div>` : BK.loading || !BK.videos ? `<div class="os-empty">Chargement de vos émissions…</div>` : BK.err ? `<div class="os-empty">${esc(BK.err)}</div>`
+        : vids.length ? `<div class="os-tbl"><div style="min-width:760px"><div class="os-tr h" style="${cols}"><span>Diffusion</span><span>Émission</span><span>Durée</span><span>État du rush</span><span></span></div>${rows}</div></div>`
+        : `<div class="os-empty">${bkUploadBox()}Vos émissions apparaîtront ici dès que l'équipe OpenMedias les aura déposées.</div>`}
+    </section>
+    <section aria-labelledby="sorties" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 id="sorties" class="os-h2">Dernières sorties</h2><a href="#" data-a="nav" data-arg="medias" style="font-size:13px">Toutes mes vidéos</a></div>
+      ${clips.length ? `<div class="os-grid" style="grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:20px">${clips.map(osClipCard).join('')}</div>` : `<div class="os-empty">Vos vidéos terminées apparaîtront ici.</div>`}
+    </section>`;
+}
+/* ---------- Mes vidéos ---------- */
+function osVideos(c) {
+  const f = S.vf || 'all'; const fe = S.vfe || ''; const ff = S.vff || '';
+  const clips = osClips(); const prep = osPrep();
+  const keep = x => (f === 'all' || (f === 'capsules' ? x.kd === 'capsules' : f === 'teasers' ? x.kd === 'teaser' : f === 'subtitles' ? x.kd === 'subtitles' : false)) && (!fe || (x.o.options && x.o.options.videoTitle) === fe) && (!ff || x.fmt === ff);
+  const groups = {};
+  clips.filter(keep).forEach(x => { (groups[x.o.id] = groups[x.o.id] || { o: x.o, list: [] }).list.push(x); });
+  const titles = [...new Set(clips.map(x => x.o.options && x.o.options.videoTitle).filter(Boolean))];
+  const card = x => `<article class="os-vcard"><div class="stage ${osFmtCls(x.fmt)}"><video src="${esc(x.url)}" controls playsinline preload="metadata"></video></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">${esc(x.title)}</span><span class="mut" style="font-size:13px">${esc(osFmtName(x.fmt))}${x.dur ? ' · ' + x.dur : ''}</span></div><a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}">${DL_SVG}</a></div></article>`;
+  const prepCards = (f === 'all' || f === 'prep') ? prep.map(o => `<article class="os-vcard"><div class="stage" style="border:1.5px dashed #A9A8B8;background:transparent;flex-direction:column;gap:8px;text-align:center;padding:16px;box-sizing:border-box"><span class="mono mut" style="font-size:12px">EN PRÉPARATION</span><span class="mut" style="font-size:13px;line-height:1.4">Un e-mail vous prévient dès qu'elles sont prêtes</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(osTypeLabel(o))}</span><button class="os-link" style="font-size:13px;align-self:flex-start" data-a="order-track" data-arg="${o.id}">Suivre la commande</button></div></article>`) : [];
+  const secs = Object.values(groups).map(g => `<section style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 class="os-h2">${esc(osTypeLabel(g.o))} · ${esc((g.o.options && g.o.options.videoTitle) || '')} · ${osDate(g.o.createdAt)}</h2>${g.list.length > 1 ? `<a href="${esc(OpenStudio.zipUrl(g.o.id))}" style="font-size:13px">Tout télécharger (.zip)</a>` : ''}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${g.list.map(card).join('')}</div></section>`);
+  return `<header class="os-head"><div style="display:flex;flex-direction:column;gap:6px"><span class="kick">${clips.length} vidéo${clips.length > 1 ? 's' : ''} · ${prep.length} commande${prep.length > 1 ? 's' : ''} en cours</span><h1>Mes vidéos</h1></div><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></header>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center">
+      <div class="os-chips" role="group" aria-label="Filtrer par type">${[['all', 'Toutes'], ['capsules', 'Capsules'], ['teasers', 'Teasers'], ['subtitles', 'Sous-titrées'], ['prep', 'En préparation']].map(([k, l]) => `<button type="button" data-a="vid-filter" data-arg="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="visually-hidden" for="vf-em">Émission</label><select id="vf-em" class="os-sel" data-in="vf-em"><option value="">Toutes les émissions</option>${titles.map(t => `<option ${fe === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
+      <label class="visually-hidden" for="vf-fmt">Format</label><select id="vf-fmt" class="os-sel" data-in="vf-fmt"><option value="">Tous les formats</option>${[['9:16', 'Vertical'], ['1:1', 'Carré'], ['16:9', 'Horizontal']].map(([v, l]) => `<option value="${v}" ${ff === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
+    ${prepCards.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${prepCards.join('')}</div>` : ''}
+    ${secs.join('') || (prepCards.length ? '' : `<div class="os-empty"><b style="color:var(--os-navy)">${osLive() ? 'Aucune vidéo pour le moment' : 'Aucun espace relié'}</b><span>${osLive() ? 'Vos capsules, teasers et interviews sous-titrées apparaîtront ici.' : "Ouvrez le lien d'accès envoyé par l'équipe OpenMedias."}</span><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></div>`)}`;
+}
+/* ---------- Commandes ---------- */
+function osCommandRows(c) {
+  const bk = osOrders().map(o => ({ date: new Date(o.createdAt), num: o.id.slice(0, 8), what: osTypeLabel(o), sub: [(o.options && o.options.videoTitle), o.type === 'capsules' ? osFmtName(osFmtOf(o)).toLowerCase() : '', o.options && o.options.duration].filter(Boolean).join(' · '),
+    st: o.status === 'ready' ? 'ok' : o.status === 'error' ? 'err' : BK_BUSY.includes(o.status) ? 'prep' : o.status === 'dry_run' ? 'blue' : 'prep',
+    stl: o.status === 'ready' ? 'Livrée' : o.status === 'error' ? 'En erreur' : o.status === 'dry_run' ? 'Test (simulation)' : 'En préparation',
+    amount: 'Inclus', kind: 'bk', id: o.id, ready: o.status === 'ready' }));
+  const off = ORDERS.filter(o => o.clientId === c.id).map(o => ({ date: new Date(o.date), num: String(o.id).slice(-8).toUpperCase(), what: o.title, sub: o.price == null ? 'En attente de l’équipe' : 'Transmise à votre chargée de projet', st: o.price == null ? 'blue' : 'prep', stl: o.price == null ? 'Devis demandé' : 'Reçue', amount: o.price == null ? '—' : `${o.price.toLocaleString('fr-FR')} € HT`, kind: o.price == null ? 'devis' : 'offre', id: o.id }));
+  return [...bk, ...off].sort((a, b) => b.date - a.date);
+}
+function osCommandes(c) {
+  const f = S.cf || 'all';
+  const all = osCommandRows(c);
+  const rows = all.filter(r => f === 'all' || (f === 'cours' ? r.st === 'prep' : f === 'livrees' ? r.st === 'ok' : f === 'devis' ? r.kind === 'devis' : true));
+  const cols = 'grid-template-columns:110px 110px minmax(0,1fr) 160px 110px 160px';
+  const act = r => r.kind !== 'bk' ? '' : r.ready ? `<button class="os-pillbtn s" data-a="nav-order" data-arg="${r.id}">Télécharger</button>` : `<button class="os-pillbtn ${r.st === 'prep' ? 'p' : 's'}" data-a="order-track" data-arg="${r.id}">${r.st === 'prep' ? 'Suivre' : 'Voir'}</button>`;
+  const enCours = all.filter(r => r.st === 'prep').length;
+  return `<header class="os-head"><div style="display:flex;flex-direction:column;gap:6px"><span class="kick">${all.length} commande${all.length > 1 ? 's' : ''} · ${enCours} en cours</span><h1>Commandes</h1></div><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></header>
+    <div class="os-chips" role="group" aria-label="Filtrer les commandes">${[['all', 'Toutes'], ['cours', 'En cours'], ['livrees', 'Livrées'], ['devis', 'Devis']].map(([k, l]) => `<button type="button" data-a="cmd-filter" data-arg="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
+    ${osLive() && !BKO.list ? `<div class="os-empty">Chargement de vos commandes…</div>` : rows.length ? `<div class="os-tbl"><div style="min-width:900px"><div class="os-tr h" style="${cols}"><span>Date</span><span>N°</span><span>Contenu</span><span>Statut</span><span>Montant</span><span></span></div>
+      ${rows.map(r => `<div class="os-tr" style="${cols}"><span class="mono" style="font-size:13px">${r.date.toLocaleDateString('fr-FR')}</span><span class="mono mut" style="font-size:13px">${esc(r.num)}</span><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">${esc(r.what)}</span><span class="mut" style="font-size:13px">${esc(r.sub)}</span></div><span class="os-dot ${r.st}"><i aria-hidden="true"></i>${r.stl}</span><span style="font-size:14px">${esc(r.amount)}</span><div style="display:flex;justify-content:flex-end">${act(r)}</div></div>`).join('')}</div></div>`
+      : `<div class="os-empty"><b style="color:var(--os-navy)">Aucune commande ${f === 'all' ? 'pour le moment' : 'dans cette catégorie'}</b><span>Vos capsules, teasers et interviews sous-titrées apparaîtront ici.</span></div>`}
+    <p class="mut" style="margin:0;font-size:14px">Les factures de chaque commande sont dans <a href="#" data-a="nav" data-arg="factures">Factures</a>.</p>`;
+}
+/* ---------- Factures ---------- */
+function osFactures(c) {
+  const rows = osCommandRows(c).filter(r => r.kind !== 'devis' && r.st !== 'err');
+  const cols = 'grid-template-columns:130px 110px minmax(0,1fr) 120px 140px';
+  return `<header class="os-head"><div style="display:flex;flex-direction:column;gap:6px"><span class="kick">${rows.length} ligne${rows.length > 1 ? 's' : ''}</span><h1>Factures</h1></div></header>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+      <div style="flex:999 1 560px;min-width:0">${rows.length ? `<div class="os-tbl"><div style="min-width:720px"><div class="os-tr h" style="${cols}"><span>Commande</span><span>Date</span><span>Contenu</span><span>Montant</span><span>Statut</span></div>
+        ${rows.map(r => `<div class="os-tr" style="${cols}"><span class="mono" style="font-size:13px">${esc(r.num)}</span><span class="mono" style="font-size:13px">${r.date.toLocaleDateString('fr-FR')}</span><span style="font-size:14px">${esc(r.what)}${r.sub ? ` <span class="mut">· ${esc(r.sub)}</span>` : ''}</span><span style="font-size:14px">${esc(r.amount === 'Inclus' ? 'Inclus' : r.amount)}</span><span class="os-dot ${r.amount === 'Inclus' ? 'ok' : 'prep'}"><i aria-hidden="true"></i>${r.amount === 'Inclus' ? 'Rien à payer' : 'Envoyée par e-mail'}</span></div>`).join('')}</div></div>`
+        : `<div class="os-empty"><b style="color:var(--os-navy)">Aucune facture pour le moment</b><span>Vos commandes apparaîtront ici avec leur facturation.</span></div>`}</div>
+      <aside aria-labelledby="fact-info" style="flex:1 1 280px;min-width:0;background:#fff;border:1px solid var(--os-line);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:16px">
+        <h2 id="fact-info" style="margin:0;font-size:16px;font-weight:600;font-family:Inter,sans-serif">Informations de facturation</h2>
+        <dl style="margin:0;display:flex;flex-direction:column;gap:12px;font-size:14px">${[['Société', c.name], ['Contact', c.contact], ['E-mail', c.email], ['Chargée de projet', c.manager]].filter(x => x[1]).map(([k, v]) => `<div style="display:flex;flex-direction:column;gap:2px"><dt class="mut" style="font-size:13px">${k}</dt><dd style="margin:0">${esc(v)}</dd></div>`).join('')}</dl>
+        <a class="os-pillbtn s" style="justify-content:center;height:44px" href="mailto:${esc(c.managerEmail || 'contact@openmedias.fr')}?subject=${encodeURIComponent('Informations de facturation – ' + c.name)}">Modifier</a>
+      </aside></div>`;
+}
+/* ---------- Vidéos prêtes (maquette 6) ---------- */
+function osLivraison(c, id) {
+  const o = BKO.byId[id];
+  if (!o) { if (osLive() && !BKO.list) setTimeout(bkLoadOrders, 0); return `<main class="os-wrap"><div class="os-empty">Chargement de la commande…</div></main>`; }
+  const f = BKO.files[id]; if (!f) setTimeout(() => bkLoadFiles(id), 0);
+  const fmt = osFmtOf(o); const kd = osKindOf(o); const vids = Array.isArray(f) ? f.filter(x => x.kind === 'video') : [];
+  const others = Array.isArray(f) ? f.filter(x => x.kind !== 'video') : [];
+  const n = vids.length; const what = kd === 'subtitles' ? 'Votre interview sous-titrée est prête' : kd === 'teaser' ? 'Votre teaser est prêt' : `Vos ${n || ''} capsules sont prêtes`.replace('  ', ' ');
+  const card = (x, i) => `<article class="os-vcard" style="padding:14px;gap:12px;border-radius:14px"><div class="stage ${osFmtCls(fmt)}" style="height:auto;background:#000"><video src="${esc(x.previewUrl)}" controls playsinline preload="metadata" style="width:100%;max-height:none;border-radius:6px;object-fit:cover;aspect-ratio:${fmt === '16:9' ? '16/9' : fmt === '1:1' ? '1/1' : '9/16'}"></video></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`}</span><span class="mut" style="font-size:13px">${[osMMSS(x.durationMs), fmt, 'MP4'].filter(Boolean).join(' · ')}</span></div>
+      <a class="os-pillbtn s" style="height:44px" href="${esc(x.downloadUrl)}" download="${esc(x.fileName || '')}">${DL_SVG}Télécharger</a></div></article>`;
+  return `<main class="os-wrap" style="gap:28px">
+    <nav aria-label="Fil d'Ariane" class="mut" style="font-size:14px"><a href="#" data-a="nav" data-arg="medias" style="text-decoration:none">Mes vidéos</a> / Commande du ${new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</nav>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:flex-end"><div style="display:flex;flex-direction:column;gap:10px">
+      <span class="os-dot ${o.status === 'ready' ? 'ok' : 'prep'}" style="align-self:flex-start;font-weight:600;background:#fff;border:1px solid var(--os-line);border-radius:50px;padding:7px 12px"><i aria-hidden="true"></i>${o.status === 'ready' ? (n > 1 ? 'Prêtes' : 'Prête') : esc(o.statusLabel || 'En préparation')}</span>
+      <h1 class="t">${o.status === 'ready' ? what : 'Votre commande est en préparation'}</h1>
+      <span class="mut">Tirées de ${esc((o.options && o.options.videoTitle) || 'votre émission')} · avec le logo de l'émission et celui de ${esc(c.name)}</span></div>
+      ${n > 1 ? `<a class="os-cta" href="${esc(OpenStudio.zipUrl(id))}">Tout télécharger (.zip)</a>` : ''}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+      <div style="flex:999 1 640px;min-width:0;display:flex;flex-direction:column;gap:16px">${o.status !== 'ready' ? bkOrderCard(o) : !f || f === 'loading' ? `<div class="os-empty">Chargement de vos fichiers…</div>` : f.err ? `<div class="os-empty">Fichiers inaccessibles : ${esc(f.err)} <button class="os-link" data-a="bk-files" data-arg="${id}">Réessayer</button></div>`
+        : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px">${vids.map(card).join('')}</div>${others.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap">${others.map(x => `<a class="os-pillbtn s" href="${esc(x.downloadUrl)}" download="${esc(x.fileName)}">${DL_SVG}Fichier .${esc(x.kind)}</a>`).join('')}</div>` : ''}${f[0] && f[0].expiresAt ? `<p class="mut" style="margin:0;font-size:13px">Fichiers conservés jusqu’au ${new Date(f[0].expiresAt).toLocaleDateString('fr-FR')}.</p>` : ''}`}</div>
+      <aside style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:16px">
+        <div style="background:#fff;border:1px solid var(--os-line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:12px"><h2 style="margin:0;font-size:16px;font-weight:600;font-family:Inter,sans-serif">Et ensuite ?</h2>
+          ${kd !== 'teaser' ? `<button class="os-opt" style="padding:14px 16px;border-width:1px;background:var(--os-bg)" data-a="em-go" data-arg="teaser|${esc(o.options && o.options.videoId || '')}"><b>Faire un teaser de 15 s</b><span class="d">À partir de la même interview</span></button>` : ''}
+          ${kd !== 'subtitles' ? `<button class="os-opt" style="padding:14px 16px;border-width:1px;background:var(--os-bg)" data-a="em-go" data-arg="subtitles|${esc(o.options && o.options.videoId || '')}"><b>Sous-titrer l'interview entière</b><span class="d">Format d'origine</span></button>` : `<button class="os-opt" style="padding:14px 16px;border-width:1px;background:var(--os-bg)" data-a="em-go" data-arg="capsules|${esc(o.options && o.options.videoId || '')}"><b>Faire des capsules</b><span class="d">Les meilleurs moments, au format des réseaux</span></button>`}
+        </div>
+        <div class="os-tint"><h2>Une retouche à faire ?</h2><p>Nos monteurs peuvent reprendre une vidéo à la main.</p><button data-a="devis-open">Demander un devis ↗</button></div>
+      </aside></div></main>`;
+}
+/* ---------- Demander un devis (fenêtre) ---------- */
+function osDevisHtml(m) {
+  const vids = osPkgVideos();
+  return `<p class="mut" style="margin:0 0 20px">Un monteur de l'équipe réalise votre vidéo sur mesure. On revient vers vous avec une proposition chiffrée.</p>
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div class="os-field"><label for="dv-em">À partir de quelle émission ?</label><select id="dv-em" class="os-in" data-in="dv" data-arg="em">${(vids.length ? vids.map(v => [v.media, v.title].filter(Boolean).join(' — ')) : []).concat(['Plusieurs émissions', 'Autre (à préciser)']).map(t => `<option ${m.em === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
+    <div class="os-field"><label for="dv-txt">Que souhaitez-vous ?</label><textarea id="dv-txt" class="os-in" rows="4" data-in="dv" data-arg="txt" placeholder="Ex. : un portrait de 2 minutes pour notre site, avec des images de nos ateliers.">${esc(m.txt || '')}</textarea></div>
+    <div class="os-field"><span>Formats souhaités</span><div class="os-chipsel" role="group" aria-label="Formats souhaités">${['Vertical', 'Carré', 'Horizontal', 'Je ne sais pas encore'].map(l => `<button type="button" data-a="dv-fmt" data-arg="${l}" aria-pressed="${(m.fmts || []).includes(l)}">${l}</button>`).join('')}</div></div>
+    <div class="os-field"><label for="dv-date">Pour quand ?</label><input id="dv-date" type="date" class="os-in" style="max-width:240px" data-in="dv" data-arg="date" value="${esc(m.date || '')}"></div>
+  </div>`;
+}
 function ring(left, total, size = 132) {
   const r = 54, C = 2 * Math.PI * r, p = Math.max(0, Math.min(1, left / total));
   return `<div class="ring" style="width:${size}px;height:${size}px" role="img" aria-label="${left} jours restants sur ${total}"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="${r}" fill="none" stroke="currentColor" stroke-opacity=".18" stroke-width="9"/><circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--onair)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - p)}"/></svg><div class="lbl"><b class="num">${left}</b><span>jours restants</span></div></div>`;
 }
 
-function pDashboard(c) {
-  const left = daysLeft(c); const first = c.contact.split(' ')[0];
-  const posts = c.stats.posts;
-  let next;
-  if (S.saved.length === 0) next = { t: `Créez votre première capsule à partir de « ${(CV()[0] || VIDEOS[0]).title} » : ${(CV()[0] || VIDEOS[0]).highlights.length} moments forts sont déjà prêts.`, b: 'Créer ma première capsule', a: 'nav', arg: 'capsules' };
-  else if (posts === 0) next = { t: `Rédigez le post LinkedIn qui accompagnera votre capsule « ${S.saved[0].title} ».`, b: 'Écrire le post', a: 'nav', arg: 'publications' };
-  else {
-    const today = Math.round((TODAY - c.activatedAt) / DAY);
-    const up = CAL.find(e => e.d >= today) || CAL[CAL.length - 1];
-    next = { t: `Au programme de votre calendrier : ${up.title} sur ${NETS[up.net].name}.`, b: 'Préparer cette publication', a: 'cal-go', arg: String(CAL.indexOf(up)) };
-  }
-  const today = Math.round((TODAY - c.activatedAt) / DAY);
-  const upcoming = CAL.filter(e => e.d >= today).slice(0, 3);
-  const hv = homeVideo();
-  const kinds = homeKinds(hv);
-  const cur = kinds.find(k => k.id === (S.home || 'capsules')) || kinds[0];
-  return `
-  <section class="hero" aria-labelledby="home-h"><div class="hero-grid">
-    <div class="hero-txt">
-      ${hv ? `<span class="hero-badge"><i aria-hidden="true"></i>${hv.media ? `Votre passage ${esc(hv.media)} est prêt` : 'Votre vidéo est prête'}</span>` : `<span class="hero-badge wait"><i aria-hidden="true"></i>${BK.loading ? 'Chargement de vos vidéos…' : 'Vos vidéos arrivent bientôt'}</span>`}
-      <h1 id="home-h">Vous êtes passés à la télé.<span>Faites-le savoir.</span></h1>
-      <p>Choisissez ce que vous voulez en tirer. On s'occupe du découpage, des sous-titres et de vos logos.</p>
-      <div class="choices" role="group" aria-label="Que voulez-vous créer ?">${kinds.map(k => `<button type="button" class="choice" data-a="home-pick" data-arg="${k.id}" aria-pressed="${k.id === cur.id}"><span class="tagline">${esc(k.tag)}<span class="radio" aria-hidden="true"></span></span><b>${esc(k.label)}</b><span class="d">${esc(k.desc)}</span></button>`).join('')}</div>
-      <div class="row" style="gap:18px;align-items:center"><button class="btn btn-primary" data-a="flow-go" data-arg="${cur.id}|4" ${hv ? '' : 'disabled'}>${cur.cta} ↗</button><button class="lnk" data-a="flow-go" data-arg="${cur.id}|3" ${hv ? '' : 'disabled'}>Changer le format ou la durée</button></div>
-    </div>
-    ${hv ? `<figure class="hero-fig">${thumb(hv)}<figcaption>${esc([hv.media, hv.title].filter(Boolean).join(' · '))}${hv.date ? ` · diffusé le ${fmtD(hv.date)}` : ''}</figcaption></figure>` : ''}
-  </div></section>
-  <div class="nextstep"><div><b>À faire maintenant</b><p class="muted" style="margin-top:2px">${esc(next.t)}</p></div><button class="btn btn-ghost" data-a="${next.a}" data-arg="${next.arg}">${next.b}</button></div>
-  ${kitClientHtml(c)}
-  
-  <div class="stats">
-    <div><b class="num">${CV().length}</b><span>${CV().length > 1 ? 'vidéos OpenMedias' : 'vidéo OpenMedias'}</span></div>
-    <div><b class="num">${S.saved.length}</b><span>capsules créées</span></div>
-    <div><b class="num">${posts}</b><span>publications générées</span></div>
-    <div><b class="num">${c.stats.downloads}</b><span>téléchargements</span></div>
-  </div>
-  <section class="sec"><div class="sec-head"><h2>Vos vidéos</h2><a href="#" data-a="nav" data-arg="medias" class="small">Tout voir</a></div>
-    <div class="grid g3">${CV().map(vcard).join('') || `<p class="muted">Vos vidéos seront disponibles ici dès que l'équipe OpenMedias les aura ajoutées.</p>`}</div></section>
-  <section class="sec"><div class="sec-head"><h2>À publier cette semaine</h2><a href="#" data-a="cal-open" class="small">Calendrier complet</a></div>
-    <div class="list">${upcoming.map(e => `<div class="li"><span class="fi">${netBadge(e.net)}</span><div class="grow"><b>${esc(e.title)}</b><span class="small muted">${fmtD(addDays(c.activatedAt, e.d))}${e.d === today ? ", aujourd'hui" : ''}</span></div><button class="btn btn-ghost btn-sm" data-a="cal-go" data-arg="${CAL.indexOf(e)}">Préparer</button></div>`).join('')}</div>
-  </section>
-  <section class="sec"><div class="sec-head"><h2>Toutes nos offres</h2><a href="#" class="small" data-a="nav" data-arg="offres">Voir le détail</a></div><div class="offer-grid">${OFFERS.map(o => offerCard(o, true)).join('')}</div></section>`;
-}
-/* Accueil : vidéo mise en avant et trois raccourcis vers le parcours de création */
-function homeVideo() {
-  if (bkOn() && OpenStudio.clientSession()) { if (!BK.videos && !BK.loading) setTimeout(bkLoadVideos, 0); return (BK.videos || [])[0] || null; }
-  return CV()[0] || null;
-}
-function homeKinds(v) {
-  return [
-    { id: 'capsules', tag: '30 s · vertical', label: 'Capsules réseaux', desc: 'Les meilleurs moments, prêts pour LinkedIn et Instagram', cta: 'Créer mes capsules' },
-    { id: 'teaser', tag: '15 s · vertical', label: 'Teaser', desc: 'Pour annoncer la diffusion ou relancer après', cta: 'Créer mon teaser' },
-    { id: 'subtitles', tag: 'vidéo complète', label: 'Interview sous-titrée', desc: 'La version complète, lisible sans le son', cta: 'Sous-titrer mon interview' }
-  ];
-}
 function vcard(v) {
   return `<button class="vcard" data-a="open-video" data-arg="${v.id}" aria-label="Ouvrir ${esc(v.title)}">${thumb(v)}<div><h3>${esc(v.title)}</h3><div class="row" style="margin-top:6px;gap:6px"><span class="tag">${esc(v.kind)}</span><span class="small muted">${esc(v.media)}, ${fmtShort(v.date)}</span></div></div></button>`;
 }
@@ -3943,13 +4340,17 @@ function modalHtml() {
     const o = OFFERS.find(x => x.id === m.offer);
     foot = `<button class="btn btn-quiet" data-a="close">Annuler</button><button class="btn btn-primary" data-a="order-confirm">${I('check')}${o.price == null ? 'Envoyer ma demande de devis' : 'Confirmer la commande'}</button>`;
   } else if (m.type === 'flow-mod') {
-    title = 'Modifier vos réglages';
-    h = `<p class="muted" style="margin-bottom:18px">Vos choix sont repris aussitôt dans le récapitulatif.</p>` + flowModHtml();
-    foot = `<button class="btn btn-primary" data-a="close">Enregistrer</button>`;
+    title = flowKind() === 'subtitles' ? 'Modifier les sous-titres' : 'Modifier le format';
+    h = `<p class="muted" style="margin:0 0 20px">Vos choix sont repris dans le récapitulatif.</p>` + flowModHtml();
+    foot = `<button class="os-pillbtn s" style="height:48px;padding:0 22px" data-a="close">Annuler</button><button class="os-cta" data-a="close">Enregistrer</button>`;
   } else if (m.type === 'pay') {
-    title = flowPrice() == null ? 'Valider la commande' : 'Paiement';
+    title = 'Paiement';
     h = payModalHtml(m);
-    foot = `<button class="btn btn-quiet" data-a="close">Annuler</button><button class="btn btn-primary" data-a="bk-submit" ${BK.submitting || bkNoSession() ? 'disabled' : ''}>${BK.submitting ? 'Validation en cours…' : flowPrice() == null ? 'Valider et lancer ↗' : `Payer ${flowPriceTxt()} et lancer ↗`}</button>`;
+    foot = `<div style="display:flex;flex-direction:column;gap:10px;width:100%"><button class="os-cta big" style="width:100%" data-a="bk-submit" ${BK.submitting || bkNoSession() ? 'disabled' : ''}>${BK.submitting ? 'Validation en cours…' : flowPrice() == null ? 'Valider et lancer ↗' : `Payer ${flowPriceTxt()} et lancer ↗`}</button><span class="small muted" style="text-align:center">${flowPrice() == null ? 'Votre facture sera disponible dans l’onglet Factures.' : 'Paiement sécurisé. Votre facture sera disponible dans l’onglet Factures.'}</span></div>`;
+  } else if (m.type === 'devis') {
+    title = 'Demander un devis';
+    h = osDevisHtml(m);
+    foot = `<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;width:100%"><span class="small muted">${esc((client() || {}).manager || 'Votre chargée de projet')} vous répond rapidement.</span><button class="os-cta" data-a="devis-send">Envoyer ma demande</button></div>`;
   } else if (m.type === 'opus-more') { /* OpusClip */
     title = "Proposer d'autres extraits";
     h = `<p>Vous avez vu toutes les propositions de cette analyse. Vous pouvez les revoir, ou lancer une nouvelle analyse de la vidéo : elle prend plusieurs minutes.</p>`;
@@ -4233,10 +4634,24 @@ const A = {
   'bk-new': () => { S.cap.bkStep = 1; S.cap.bkOrderId = null; S.keepScroll = false; render(); },
   'bk-kind': a => { S.cap.flowKind = a; if (a === 'teaser' && !S.cap.fmt) S.cap.fmt = '9:16'; S.keepScroll = true; render(); },
   'home-pick': a => { S.home = a; S.keepScroll = true; render(); },
-  'flow-go': a => { const [kind, step] = String(a).split('|'); const v = homeVideo(); S.cap.flowKind = kind; if (v && v.bkId) S.cap.bkVideoId = v.bkId; if (!bkOn()) { S.cap.kind = kind === 'teaser' ? 'teaser' : 'capsule'; go('client', kind === 'subtitles' ? 'sous-titres' : 'capsules'); return; } S.cap.bkOrderId = null; S.cap.bkStep = S.cap.bkVideoId ? +step : 1; go('client', 'capsules'); },
+  'flow-go': a => { const [kind, step] = String(a).split('|'); const v = osPkgVideos()[0]; S.cap.flowKind = kind; S.cap.checked = false; if (v && v.bkId) S.cap.bkVideoId = v.bkId; if (!bkOn()) { S.cap.kind = kind === 'teaser' ? 'teaser' : 'capsule'; go('client', kind === 'subtitles' ? 'sous-titres' : 'capsules'); return; } S.cap.bkOrderId = null; S.cap.bkStep = S.cap.bkVideoId ? +step : 1; go('client', 'capsules'); },
   'flow-mod': () => { S.modal = { type: 'flow-mod' }; render(); },
   'pay-open': () => { S.modal = { type: 'pay', mode: 'cb' }; render(); },
   'pay-mode': a => { if (S.modal) S.modal.mode = a; S.keepScroll = true; render(); },
+  'home-filter': a => { S.hf = a; S.keepScroll = true; render(); },
+  'vid-filter': a => { S.vf = a; S.keepScroll = true; render(); },
+  'cmd-filter': a => { S.cf = a; S.keepScroll = true; render(); },
+  'order-track': a => { const o = BKO.byId[a]; if (!o) return; if (o.status === 'ready') { go('client', 'commande', a); return; } S.cap.bkOrderId = a; S.cap.lastKind = osKindOf(o); S.cap.bkStep = 5; go('client', 'capsules'); },
+  'nav-order': a => { S.modal = null; go('client', 'commande', a); },
+  'em-go': a => { const [kind, vid] = String(a).split('|'); S.cap.flowKind = kind; if (vid) S.cap.bkVideoId = vid; S.cap.bkOrderId = null; S.cap.checked = false; S.cap.bkStep = S.cap.bkVideoId ? 3 : 1; S.modal = null; go('client', 'capsules'); },
+  'devis-open': () => { const v = osPkgVideos()[0]; S.modal = { type: 'devis', em: v ? [v.media, v.title].filter(Boolean).join(' — ') : 'Plusieurs émissions', txt: '', fmts: [], date: '' }; render(); },
+  'dv-fmt': a => { const m = S.modal; if (!m) return; m.fmts = m.fmts.includes(a) ? m.fmts.filter(x => x !== a) : [...m.fmts, a]; S.keepScroll = true; render(); },
+  'devis-send': () => {
+    const m = S.modal; if (!m) return;
+    if (!String(m.txt || '').trim()) { toast('Décrivez en quelques mots la vidéo souhaitée.'); document.getElementById('dv-txt')?.focus(); return; }
+    const note = [`Émission : ${m.em}`, m.fmts.length ? `Formats : ${m.fmts.join(', ')}` : '', m.date ? `Pour le : ${new Date(m.date + 'T12:00').toLocaleDateString('fr-FR')}` : '', String(m.txt).trim()].filter(Boolean).join('\n');
+    S.modal = { type: 'order', offer: DEVIS_OFFER, opt: '', note }; A['order-confirm']();
+  },
   'bk-files': a => bkLoadFiles(a),
   'bk-orders-reload': () => { bkLoadOrders(true); },
   'bk-reload': () => { BK.videos = null; BK.err = ''; render(); bkLoadVideos(true); },
@@ -4327,6 +4742,7 @@ document.addEventListener('click', e => {
   if (el.tagName === 'A' && el.getAttribute('href') === '#') e.preventDefault();
   A[act](el.dataset.arg, el, e);
 });
+document.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.in; if (k === 'flow-check' || k === 'vf-em' || k === 'vf-fmt') e.target.dispatchEvent(new Event('input', { bubbles: true })); });
 document.addEventListener('input', e => {
   const el = e.target; const k = el.dataset && el.dataset.in; if (!k) return;
   if (k === 'a-q') { S.admin.q = el.value; const pos = el.selectionStart; S.keepScroll = true; render(); const n = document.querySelector('[data-in="a-q"]'); n.focus(); n.setSelectionRange(pos, pos); }
@@ -4335,6 +4751,10 @@ document.addEventListener('input', e => {
   else if (k === 'm-hex') { if (/^#[0-9a-fA-F]{6}$/.test(el.value)) { const m = mediaById(S.admin.arg); m[el.dataset.arg] = el.value; saveMedias(); const cp = document.getElementById('mc-' + el.dataset.arg); if (cp) cp.value = el.value; refreshMediaPreview(); } }
   else if (k === 't-ctx') { T.context = el.value; }
   else if (k === 'ord') { if (S.modal) S.modal[el.dataset.arg] = el.value; }
+  else if (k === 'dv') { if (S.modal) S.modal[el.dataset.arg] = el.value; }
+  else if (k === 'flow-check') { S.cap.checked = el.checked; S.keepScroll = true; render(); }
+  else if (k === 'vf-em') { S.vfe = el.value; S.keepScroll = true; render(); }
+  else if (k === 'vf-fmt') { S.vff = el.value; S.keepScroll = true; render(); }
   else if (k === 'nf') { if (S.modal && S.modal.f) S.modal.f[el.dataset.arg] = el.value; }
   else if (k === 'av-c') { if (S.modal && S.modal.f) S.modal.f[el.dataset.arg] = el.value; }
   else if (k === 'av-vf' || k === 'av-df') { const [key, fld] = el.dataset.arg.split('|'); const list = k === 'av-vf' ? S.modal.f.vids : S.modal.f.docs; const r = list.find(x => x.key === key); if (r) r[fld] = el.value; }
