@@ -85,6 +85,8 @@ function normalizeOptions(type, options, mapping, context = {}) {
       videoTitle: video.title,
       programmeId: video.programme_id,
       sourceKey: video.source_key,
+      // Durée mesurée au dépôt (secours si la lecture de la vidéo par ffmpeg échoue)
+      sourceDurationSec: video.duration_sec ? Number(video.duration_sec) : null,
       duration,
       format,
       subtitleStyle,

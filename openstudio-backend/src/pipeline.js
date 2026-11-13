@@ -45,7 +45,14 @@ async function submit(order) {
   if (!h.exists) throw new Error(`Vidéo source introuvable dans le stockage : ${key}`);
 
   // Estimation et contrôle des crédits
-  const durationSec = await probeDurationSec(await storage.presignDownload(key, 'source.mp4', 'inline', 600)).catch(() => null);
+  let durationSec = await probeDurationSec(await storage.presignDownload(key, 'source.mp4', 'inline', 600)).catch((e) => {
+    console.error(`[order ${shortId(order.id)}] lecture de la durée impossible : ${e && e.message}`);
+    return null;
+  });
+  if (!durationSec && order.options.sourceDurationSec) {
+    durationSec = Number(order.options.sourceDurationSec);
+    console.log(`[order ${shortId(order.id)}] durée reprise du dépôt : ${Math.round(durationSec)} s`);
+  }
   const credits = estimateCredits(durationSec, config.opus.creditsPerMinute);
   const remaining = config.opus.creditBudget - (await orders.creditsUsed());
   if (config.opus.creditBudget > 0 && credits > remaining) {
