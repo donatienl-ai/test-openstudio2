@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS credit_ledger (
 
 async function migrate() {
   await pool.query(SCHEMA);
+  await pool.query('ALTER TABLE client_videos ADD COLUMN IF NOT EXISTS duration_sec REAL');
   // L'émission « immersion » est devenue « capital »
   await pool.query("UPDATE client_videos SET programme_id = 'capital' WHERE programme_id = 'immersion'");
 }

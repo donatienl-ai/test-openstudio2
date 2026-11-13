@@ -1232,9 +1232,11 @@ async function bkUploadVideo(f) {
   const setP = t => { BK.upProg = t; const el = document.getElementById('bk-up-prog-txt'); if (el) el.textContent = t; };
   BK.uploading = true; BK.upProg = 'Préparation de l’envoi…'; S.keepScroll = true; render();
   try {
+    // Durée lue par le navigateur (sert au contrôle des crédits si le serveur ne peut pas la lire)
+    const durationSec = await new Promise(res => { try { const u = URL.createObjectURL(f); const v = document.createElement('video'); v.preload = 'metadata'; const done = d => { URL.revokeObjectURL(u); res(d); }; v.onloadedmetadata = () => done(Number.isFinite(v.duration) ? v.duration : null); v.onerror = () => done(null); setTimeout(() => done(null), 8000); v.src = u; } catch (e) { res(null); } });
     const sourceKey = await OpenStudio.uploadFile(f, 'video', p => setP(`Envoi de la vidéo : ${p} %`));
     setP('Ajout à votre espace…');
-    const v = await OpenStudio.addMyVideo({ title: f.name.replace(/\.[^.]+$/, ''), sourceKey, programmeId });
+    const v = await OpenStudio.addMyVideo({ title: f.name.replace(/\.[^.]+$/, ''), sourceKey, programmeId, durationSec });
     BK.uploading = false; BK.upProg = '';
     await bkLoadVideos(true);
     if (v && v.id) { S.cap.bkVideoId = v.id; S.keepScroll = true; render(); }

@@ -26,5 +26,13 @@ test('dépôt client : émission inconnue refusée, émission par défaut sinon'
   assert.equal(validateClientVideo({ title: 'A', sourceKey: key, programmeId: 'x' }, { enabled: true, programmes }).ok, false);
   const r = validateClientVideo({ title: ' Émission ', sourceKey: key }, { enabled: true, programmes });
   assert.equal(r.ok, true);
-  assert.deepEqual(r.value, { title: 'Émission', sourceKey: key, programmeId: 'bfm-business', broadcastDate: null });
+  assert.deepEqual(r.value, { title: 'Émission', sourceKey: key, programmeId: 'bfm-business', broadcastDate: null, durationSec: null });
+});
+
+test('dépôt client : durée mesurée par le navigateur conservée si plausible', () => {
+  const ok = validateClientVideo({ title: 'A', sourceKey: key, durationSec: 125.37 }, { enabled: true, programmes });
+  assert.equal(ok.value.durationSec, 125.4);
+  for (const d of [-1, 0, 'abc', 999999]) {
+    assert.equal(validateClientVideo({ title: 'A', sourceKey: key, durationSec: d }, { enabled: true, programmes }).value.durationSec, null);
+  }
 });

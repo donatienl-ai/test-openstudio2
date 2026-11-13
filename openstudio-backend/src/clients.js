@@ -66,11 +66,11 @@ async function list() {
   return rows;
 }
 
-async function addVideo(clientId, { programmeId, title, sourceKey, broadcastDate }) {
+async function addVideo(clientId, { programmeId, title, sourceKey, broadcastDate, durationSec }) {
   const { rows } = await db.query(
-    `INSERT INTO client_videos (id, client_id, programme_id, title, source_key, broadcast_date)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-    [crypto.randomUUID(), clientId, programmeId, title, sourceKey, broadcastDate || null]
+    `INSERT INTO client_videos (id, client_id, programme_id, title, source_key, broadcast_date, duration_sec)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [crypto.randomUUID(), clientId, programmeId, title, sourceKey, broadcastDate || null, durationSec || null]
   );
   return rows[0];
 }

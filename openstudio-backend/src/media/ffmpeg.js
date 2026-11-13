@@ -40,7 +40,11 @@ function run(args, { timeoutMs = 60 * 60 * 1000 } = {}) {
 async function probeDurationSec(input) {
   const { stderr } = await run(['-hide_banner', '-i', input], { timeoutMs: 120_000 });
   const m = /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(stderr);
-  if (!m) return null;
+  if (!m) {
+    // Diagnostic : dernières lignes de ffmpeg (sans l'URL signée)
+    console.error(`[ffmpeg] durée introuvable : ${stderr.replace(/https?:\/\/\S+/g, '<url>').trim().split('\n').slice(-3).join(' | ')}`);
+    return null;
+  }
   return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
 }
 

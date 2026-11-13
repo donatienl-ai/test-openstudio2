@@ -24,7 +24,9 @@ function validateClientVideo(body, { enabled, programmes }) {
   const programmeId = b.programmeId ? String(b.programmeId) : ids[0];
   if (!programmeId || !ids.includes(programmeId)) return { ok: false, status: 400, error: `Émission inconnue. Disponibles : ${ids.join(', ')}` };
   const broadcastDate = /^\d{4}-\d{2}-\d{2}$/.test(String(b.broadcastDate || '')) ? b.broadcastDate : null;
-  return { ok: true, value: { title, sourceKey, programmeId, broadcastDate } };
+  const d = Number(b.durationSec);
+  const durationSec = Number.isFinite(d) && d > 0 && d < 24 * 3600 ? Math.round(d * 10) / 10 : null;
+  return { ok: true, value: { title, sourceKey, programmeId, broadcastDate, durationSec } };
 }
 
 module.exports = { validateClientVideo };

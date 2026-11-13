@@ -139,8 +139,8 @@
   /** Client connecté + vidéos de son package (étape 1 « Vidéo » des capsules). */
   const getMyVideos = () => call('GET', '/api/me');
   /** Mode test : ajoute à l'espace client une vidéo déjà envoyée avec uploadFile(file, 'video'). */
-  const addMyVideo = ({ title, sourceKey, programmeId, broadcastDate }) =>
-    call('POST', '/api/me/videos', { body: { title, sourceKey, programmeId, broadcastDate } }).then((d) => d.video);
+  const addMyVideo = ({ title, sourceKey, programmeId, broadcastDate, durationSec }) =>
+    call('POST', '/api/me/videos', { body: { title, sourceKey, programmeId, broadcastDate, durationSec } }).then((d) => d.video);
   /** Commandes de l'espace client. */
   const getMyOrders = () => call('GET', '/api/me/orders').then((d) => d.orders);
 
