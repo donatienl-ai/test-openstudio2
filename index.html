@@ -1202,7 +1202,7 @@ function opusMore(j) {
    Les fichiers finaux se retrouvent dans mes-commandes.html. Sans OPENSTUDIO_API : mode démonstration inchangé. */
 const bkOn = () => !!(window.OPENSTUDIO_API && window.OpenStudio);
 const BK = { videos: null, loading: false, err: '', client: null, submitting: false, prog: '', clientUploads: false, uploading: false, upProg: '' };
-const BK_PROGRAMMES = [['bfm-business', 'BFM Business'], ['bfm', 'BFM'], ['immersion', 'Immersion']];
+const BK_PROGRAMMES = [['bfm-business', 'BFM Business'], ['bfm', 'BFM'], ['capital', 'Capital']];
 const bkVideo = x => ({ id: 'bk-' + x.id, bkId: x.id, title: x.title || 'Vidéo', media: x.programme || '', programmeId: x.programmeId || '', kind: x.programme || '', type: 'plateau', duration: 0, date: x.broadcastDate ? new Date(x.broadcastDate) : null, pal: ['#1C1C62', '#3B3BFA'], highlights: [] });
 const bkMedia = v => MEDIAS.find(m => v && m.name.toLowerCase() === String(v.media).toLowerCase()) || mediaById('openmedias');
 const bkContact = () => { const c = client(); return c ? { name: c.contact, email: c.email, company: c.name } : undefined; };

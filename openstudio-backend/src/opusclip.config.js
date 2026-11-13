@@ -14,19 +14,22 @@ module.exports = {
   // du package du client : l'équipe les enregistre par client (voir README, « Espace client »).
   // ---------------------------------------------------------------------------
   programmes: {
+    // logoKey : logo blanc sur fond transparent, déposé dans le stockage (provisoire pour les tests ;
+    // les fichiers définitifs remplaceront ces clés).
     'bfm-business': {
       title: 'BFM Business',
-      logoKey: 'programmes/bfm-business/logo.png', // PNG transparent dans le stockage
+      logoKey: 'uploads/2026-11-13/862b4d8d-b428-446b-bf5f-717af5fc66a5/logo.png', // « BFM Business Partenaire »
       sourceLang: 'fr',
     },
     bfm: {
       title: 'BFM',
-      logoKey: 'programmes/bfm/logo.png',
+      logoKey: 'uploads/2026-11-13/9f2cebeb-fb15-4ea6-b0ea-dbdb98ed6cad/logo.png', // « BFM TV »
       sourceLang: 'fr',
     },
-    immersion: {
-      title: 'Immersion',
-      logoKey: 'programmes/immersion/logo.png',
+    // Anciennement « immersion » : les vidéos déjà enregistrées sont migrées au démarrage (db.migrate).
+    capital: {
+      title: 'Capital',
+      logoKey: 'uploads/2026-11-13/bfdb2744-dba4-489c-aa7e-5b5a8268639c/logo.png',
       sourceLang: 'fr',
     },
   },
