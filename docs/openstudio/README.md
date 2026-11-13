@@ -56,7 +56,8 @@ curl -X POST $API/api/admin/clients/<CLIENT_ID>/videos -H "$AUTH" -H 'Content-Ty
 ```
 
 Programmes disponibles (logos, langue) : `programmes` dans `src/opusclip.config.js`
-(BFM Business, BFM, Immersion — à compléter).
+(BFM Business, BFM, Capital — à compléter). Les logos sont des PNG blancs sur fond transparent
+déposés dans le stockage ; leur clé est indiquée dans `logoKey`.
 
 ## Mode test : dépôt de vidéo par le client
 
