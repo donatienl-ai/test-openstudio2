@@ -65,6 +65,7 @@ module.exports = {
       discret: 'preset-fancy-Popline', // À REMPLACER : brand kit « Discret »
     },
 
+    maxClips: 3, // nombre de propositions livrées au client (les mieux classées par OpusClip)
     model: 'ClipBasic', // "ClipBasic" (talk-shows) ou "ClipAnything"
     genre: 'Auto',
     removeFillerWords: false,

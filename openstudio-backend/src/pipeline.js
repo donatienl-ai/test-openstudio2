@@ -182,8 +182,13 @@ const expiry = () => new Date(Date.now() + config.storage.retentionDays * 86400_
 
 async function finalizeCapsules(order, tmp) {
   const logos = await prepareLogos(order, tmp, { requireClientLogo: true });
-  const clips = (await opus.getExportableClips(order.opus_project_id)).filter((c) => c.uriForExport);
-  if (!clips.length) throw new Error("OpusClip n'a renvoyé aucun clip exportable");
+  const all = (await opus.getExportableClips(order.opus_project_id)).filter((c) => c.uriForExport);
+  if (!all.length) throw new Error("OpusClip n'a renvoyé aucun clip exportable");
+  // Les meilleures propositions d'abord (score OpusClip s'il est fourni), limitées à maxClips.
+  const score = (c) => Number(c.score ?? c.viralityScore ?? c.viralScore ?? NaN);
+  const ranked = all.some((c) => Number.isFinite(score(c))) ? [...all].sort((a, b) => (score(b) || 0) - (score(a) || 0)) : all;
+  const clips = ranked.slice(0, mapping.capsules.maxClips || 3);
+  console.log(`[order ${shortId(order.id)}] ${all.length} clip(s) proposés par OpusClip, ${clips.length} livré(s)`);
   const done = await orders.existingClipIds(order.id);
   const base = slug(mapping.programmes[order.options.programmeId]?.title);
   const fmt = order.options.format.replace(':', 'x');
