@@ -159,11 +159,15 @@ async function prepareLogos(order, tmp, { requireClientLogo }) {
   const client = order.client_id ? await clients.get(order.client_id) : null;
   const clientLogo = order.options.clientLogoKey || client?.logo_key || null;
   if (clientLogo) await add(clientLogo, mapping.logos.clientPosition, 'logo-client');
-  else if (requireClientLogo) throw new Error("Logo de l'entreprise cliente manquant (à ajouter dans la fiche client)");
+  else if (requireClientLogo && config.opus.dryRun) {
+    // Tests (envoi réel ciblé) : le client de test n'a pas forcément de logo ; on livre sans, en le signalant.
+    console.warn(`[order ${shortId(order.id)}] pas de logo client : capsules livrées sans (mode test uniquement)`);
+  } else if (requireClientLogo) throw new Error("Logo de l'entreprise cliente manquant (à ajouter dans la fiche client)");
   return logos;
 }
 
 async function finalize(order) {
+  console.log(`[order ${shortId(order.id)}] finalisation : récupération des clips et habillage`);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `os-${shortId(order.id)}-`));
   try {
     if (order.type === 'subtitles') await finalizeSubtitles(order, tmp);

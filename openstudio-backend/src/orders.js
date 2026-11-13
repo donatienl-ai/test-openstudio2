@@ -135,6 +135,17 @@ async function setPollClipCount(id, count) {
 }
 
 /** Remet en file les commandes restées bloquées dans un état transitoire (redémarrage du service). */
+/**
+ * Au démarrage : une finalisation « en cours » a forcément été interrompue (une seule instance).
+ * Elle est relancée ; les clips déjà livrés ne sont pas refaits.
+ */
+async function recoverInterruptedFinalizations() {
+  const { rowCount } = await db.query(
+    "UPDATE orders SET status = 'opus_done', updated_at = now() WHERE status = 'postprocessing'"
+  );
+  return rowCount;
+}
+
 async function recoverStuck(minutes = 30) {
   await db.query(
     `UPDATE orders SET status = CASE WHEN opus_project_id IS NULL THEN 'paid' ELSE 'processing' END, updated_at = now()
@@ -200,6 +211,7 @@ async function recordCredits(orderId, credits, note) {
 }
 
 module.exports = {
+  recoverInterruptedFinalizations,
   VIDEO_TYPES,
   create,
   get,
