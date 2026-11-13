@@ -59,7 +59,7 @@ function toBool(v, def) {
  *
  * capsules  : { videoId, duration, format, subtitleStyle, clientLogoKey? }
  *             context.video = vidéo du package du client (déjà vérifiée : elle lui appartient)
- * subtitles : { videoKey, transcriptKey?, spokenLanguage, subtitleLanguage, splitLongLines,
+ * subtitles : { videoKey | videoId (vidéo du package), transcriptKey?, spokenLanguage, subtitleLanguage, splitLongLines,
  *               size, outline, offsetMs? }
  */
 function normalizeOptions(type, options, mapping, context = {}) {
@@ -96,7 +96,10 @@ function normalizeOptions(type, options, mapping, context = {}) {
 
   if (type === 'subtitles') {
     const conf = mapping.subtitles;
-    const videoKey = req(options.videoKey, 'Aucune vidéo ajoutée');
+    // Vidéo du package du client (videoId, vérifiée par la route) ou vidéo envoyée pour l'occasion (videoKey)
+    const pkg = options.videoId ? context.video : null;
+    if (options.videoId && !pkg) throw new ValidationError('Cette vidéo ne fait pas partie de votre espace');
+    const videoKey = pkg ? pkg.source_key : req(options.videoKey, 'Aucune vidéo ajoutée');
     const spokenLanguage = pick(conf.languages, req(options.spokenLanguage, 'Langue parlée non sélectionnée'), normalizeLanguage);
     if (!conf.languages[spokenLanguage]) throw new ValidationError(`Langue parlée non proposée : ${options.spokenLanguage}`);
     const subtitleLanguage = pick(conf.languages, options.subtitleLanguage || spokenLanguage, normalizeLanguage);
@@ -118,11 +121,12 @@ function normalizeOptions(type, options, mapping, context = {}) {
     if (!Number.isFinite(offsetMs) || Math.abs(offsetMs) > 600_000) throw new ValidationError('Décalage de synchronisation invalide');
 
     // Programme d'origine de la vidéo (facultatif) → logo du média sur la vidéo sous-titrée
-    const programmeId = options.programmeId || null;
+    const programmeId = options.programmeId || (pkg && pkg.programme_id) || null;
     if (programmeId && !mapping.programmes[programmeId]) throw new ValidationError(`Programme inconnu : ${programmeId}`);
 
     return {
       programmeId,
+      ...(pkg ? { videoId: pkg.id, videoTitle: pkg.title, sourceDurationSec: pkg.duration_sec ? Number(pkg.duration_sec) : null } : {}),
       videoKey,
       transcriptKey,
       spokenLanguage,

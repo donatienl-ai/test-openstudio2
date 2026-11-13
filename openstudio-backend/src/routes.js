@@ -204,7 +204,9 @@ router.post('/orders/:id/validate', wrap(async (req, res) => {
   let normalized;
   try {
     const context = {};
-    if (order.type === 'capsules') context.video = await clients.getVideo(order.client_id, order.options?.videoId);
+    if (order.type === 'capsules' || (order.type === 'subtitles' && order.options?.videoId)) {
+      context.video = await clients.getVideo(order.client_id, order.options?.videoId);
+    }
     normalized = normalizeOptions(order.type, order.options, mapping, context);
 
     const needsLogo = order.type === 'capsules' || (order.type === 'subtitles' && mapping.logos.onSubtitledVideo);
