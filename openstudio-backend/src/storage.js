@@ -11,6 +11,8 @@ const {
   GetObjectCommand,
   HeadObjectCommand,
   DeleteObjectCommand,
+  PutBucketCorsCommand,
+  GetBucketCorsCommand,
 } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const config = require('./config');
@@ -82,4 +84,41 @@ async function remove(key) {
   await s3.send(new DeleteObjectCommand({ Bucket, Key: key }));
 }
 
-module.exports = { presignUpload, presignDownload, head, getStream, getText, downloadToFile, uploadFile, remove };
+/**
+ * Règle CORS du bucket : autorise le site à envoyer (PUT) et lire (GET/HEAD) via les URL signées.
+ * Backblaze B2 : la console web ne sait créer que des règles de lecture ; la règle d'envoi passe par l'API.
+ * Si le bucket a déjà des règles « natives » B2 (posées depuis la console), Backblaze refuse : il faut
+ * d'abord choisir « Ne partager aucun fichier » dans la console.
+ */
+const storageStatus = { cors: 'non vérifié', corsError: null };
+
+async function ensureCors(origins) {
+  if (!origins.length) { storageStatus.cors = 'ignoré (FRONTEND_ORIGIN vide)'; return storageStatus; }
+  const wanted = [...origins].sort().join(',');
+  try {
+    const cur = await s3.send(new GetBucketCorsCommand({ Bucket }));
+    const rule = (cur.CORSRules || []).find((r) => (r.AllowedMethods || []).includes('PUT'));
+    if (rule && [...(rule.AllowedOrigins || [])].sort().join(',') === wanted) {
+      storageStatus.cors = 'ok (déjà en place)'; storageStatus.corsError = null; return storageStatus;
+    }
+  } catch (e) { /* aucune règle S3 : on la crée */ }
+  try {
+    await s3.send(new PutBucketCorsCommand({
+      Bucket,
+      CORSConfiguration: { CORSRules: [{
+        AllowedOrigins: origins,
+        AllowedMethods: ['PUT', 'GET', 'HEAD'],
+        AllowedHeaders: ['*'],
+        ExposeHeaders: ['ETag'],
+        MaxAgeSeconds: 3600,
+      }] },
+    }));
+    storageStatus.cors = 'ok (règle créée)'; storageStatus.corsError = null;
+  } catch (e) {
+    storageStatus.cors = 'échec';
+    storageStatus.corsError = `${e.name || 'Erreur'}: ${String(e.message || '').slice(0, 200)}`;
+  }
+  return storageStatus;
+}
+
+module.exports = { storageStatus, ensureCors, presignUpload, presignDownload, head, getStream, getText, downloadToFile, uploadFile, remove };

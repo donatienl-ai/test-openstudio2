@@ -4,6 +4,7 @@ const config = require('./config');
 const db = require('./db');
 const worker = require('./worker');
 const routes = require('./routes');
+const storage = require('./storage');
 
 const app = express();
 app.disable('x-powered-by');
@@ -23,7 +24,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/health', (req, res) => res.json({ ok: true, dryRun: config.opus.dryRun }));
+app.get('/health', (req, res) => res.json({ ok: true, dryRun: config.opus.dryRun, storageCors: storage.storageStatus.cors, storageCorsError: storage.storageStatus.corsError }));
 app.use('/api', routes);
 
 app.use((req, res) => res.status(404).json({ error: 'Route inconnue' }));
@@ -46,6 +47,10 @@ async function main() {
   app.listen(config.port, () => {
     console.log(`OpenStudio back-end sur le port ${config.port} — webhook : ${config.publicBaseUrl}/api/webhooks/opusclip`);
     worker.start();
+  });
+  storage.ensureCors(config.frontendOrigins).then((st) => {
+    if (st.corsError) console.error(`[stockage] CORS du bucket : ${st.corsError}`);
+    else console.log(`[stockage] CORS du bucket : ${st.cors}`);
   });
 }
 
