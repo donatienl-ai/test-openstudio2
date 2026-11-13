@@ -1201,7 +1201,7 @@ function opusMore(j) {
    - Sous-titres : la vidéo et la transcription sont envoyées au stockage, puis la commande est validée.
    Les fichiers finaux se retrouvent dans mes-commandes.html. Sans OPENSTUDIO_API : mode démonstration inchangé. */
 const bkOn = () => !!(window.OPENSTUDIO_API && window.OpenStudio);
-const BK = { videos: null, loading: false, err: '', client: null, submitting: false, prog: '' };
+const BK = { videos: null, loading: false, err: '', client: null, submitting: false, prog: '', clientUploads: false, uploading: false, upProg: '' };
 const BK_PROGRAMMES = [['bfm-business', 'BFM Business'], ['bfm', 'BFM'], ['immersion', 'Immersion']];
 const bkVideo = x => ({ id: 'bk-' + x.id, bkId: x.id, title: x.title || 'Vidéo', media: x.programme || '', programmeId: x.programmeId || '', kind: x.programme || '', type: 'plateau', duration: 0, date: x.broadcastDate ? new Date(x.broadcastDate) : null, pal: ['#1C1C62', '#3B3BFA'], highlights: [] });
 const bkMedia = v => MEDIAS.find(m => v && m.name.toLowerCase() === String(v.media).toLowerCase()) || mediaById('openmedias');
@@ -1212,10 +1212,37 @@ if (bkOn()) { try { OpenStudio.clientSession(); } catch (e) {} }
 async function bkLoadVideos(force) {
   if (!bkOn() || BK.loading || (BK.videos && !force)) return;
   BK.loading = true; BK.err = '';
-  try { const r = await OpenStudio.getMyVideos(); BK.client = r.client || null; BK.videos = (r.videos || []).map(bkVideo); }
+  try { const r = await OpenStudio.getMyVideos(); BK.client = r.client || null; BK.clientUploads = !!r.clientUploads; BK.videos = (r.videos || []).map(bkVideo); }
   catch (e) { BK.videos = []; BK.err = e.status === 401 ? "Votre espace n'est pas encore relié aux vidéos de votre package : ouvrez le lien d'accès envoyé par l'équipe OpenMedias." : e.message; }
   BK.loading = false;
   if (S.view === 'client' && S.page === 'capsules') { S.keepScroll = true; render(); }
+}
+// Mode test (CLIENT_UPLOADS_ENABLED côté serveur) : le client dépose lui-même sa vidéo. En production, l'équipe la dépose.
+function bkUploadBox() {
+  if (!BK.clientUploads) return '';
+  const opts = BK_PROGRAMMES.map(([id, l]) => `<option value="${id}">${l}</option>`).join('');
+  return `<div class="panel stack" style="gap:12px;margin-bottom:20px"><div><b>Déposer une vidéo</b> <span class="tag">Mode test</span><p class="small muted" style="margin-top:4px;max-width:62ch">En production, les vidéos sont déposées par l'équipe OpenStudio et apparaissent directement ici.</p></div>
+    <div class="row" style="gap:10px;flex-wrap:wrap;align-items:center"><label class="small" for="bk-up-prog">Émission</label><select class="select" id="bk-up-prog" ${BK.uploading ? 'disabled' : ''}>${opts}</select>
+    <label class="btn btn-ghost btn-sm" style="cursor:pointer${BK.uploading ? ';opacity:.5;pointer-events:none' : ''}">${I('upload')}${BK.uploading ? 'Envoi en cours…' : 'Choisir une vidéo'}<input type="file" accept="video/mp4,video/quicktime,video/x-m4v,video/webm,.mp4,.mov,.m4v,.webm,.mkv" class="visually-hidden" data-in="bk-upload" ${BK.uploading ? 'disabled' : ''}></label></div>
+    <p class="small muted" id="bk-up-prog-txt" aria-live="polite">${esc(BK.upProg)}</p></div>`;
+}
+async function bkUploadVideo(f) {
+  if (!f || BK.uploading) return;
+  const programmeId = (document.getElementById('bk-up-prog') || {}).value || undefined;
+  const setP = t => { BK.upProg = t; const el = document.getElementById('bk-up-prog-txt'); if (el) el.textContent = t; };
+  BK.uploading = true; BK.upProg = 'Préparation de l’envoi…'; S.keepScroll = true; render();
+  try {
+    const sourceKey = await OpenStudio.uploadFile(f, 'video', p => setP(`Envoi de la vidéo : ${p} %`));
+    setP('Ajout à votre espace…');
+    const v = await OpenStudio.addMyVideo({ title: f.name.replace(/\.[^.]+$/, ''), sourceKey, programmeId });
+    BK.uploading = false; BK.upProg = '';
+    await bkLoadVideos(true);
+    if (v && v.id) { S.cap.bkVideoId = v.id; S.keepScroll = true; render(); }
+    toast('Vidéo déposée : elle est prête pour une commande de capsules.');
+  } catch (e) {
+    BK.uploading = false; BK.upProg = ''; S.keepScroll = true; render();
+    toast(/413|too large|trop/i.test(e.message) ? 'Fichier trop lourd.' : `Envoi impossible : ${e.message}`);
+  }
 }
 function bkCapsulesPage(c) {
   const k = S.cap; if (!BK.videos && !BK.loading) setTimeout(bkLoadVideos, 0);
@@ -1228,8 +1255,8 @@ function bkCapsulesPage(c) {
   if (stepN === 1) {
     if (BK.loading || !BK.videos) body = `<div class="panel"><div class="thinking" aria-live="polite"><i></i>Chargement des vidéos de votre package…</div></div>`;
     else if (BK.err) body = `<div class="empty">${I('video')}<h3>Vos vidéos ne sont pas accessibles</h3><p style="max-width:52ch">${esc(BK.err)}</p><button class="btn btn-ghost" data-a="bk-reload">${I('refresh')}Réessayer</button></div>`;
-    else if (!BK.videos.length) body = `<div class="empty">${I('video')}<h3>Vos vidéos arrivent bientôt</h3><p>Elles apparaîtront ici dès que l'équipe OpenMedias les aura ajoutées à votre package.</p></div>`;
-    else body = `<div class="grid g3">${BK.videos.map(x => `<button class="pick" data-a="bk-video" data-arg="${esc(x.bkId)}" aria-pressed="${k.bkVideoId === x.bkId}"><div class="thumb">${scene(x)}<div class="lower3"><span class="l1">${esc(x.media)}</span><span class="l2">${esc(x.title)}</span></div></div><div class="meta"><b>${esc(x.title)}</b><span class="tag" style="margin:4px 0">${esc(x.media || 'Vidéo')}</span><div class="small muted">${x.date ? 'Diffusée le ' + fmtD(x.date) : 'Vidéo de votre package'}</div></div></button>`).join('')}</div>
+    else if (!BK.videos.length) body = bkUploadBox() + `<div class="empty">${I('video')}<h3>Vos vidéos arrivent bientôt</h3><p>Elles apparaîtront ici dès que l'équipe OpenMedias les aura ajoutées à votre package.</p></div>`;
+    else body = bkUploadBox() + `<div class="grid g3">${BK.videos.map(x => `<button class="pick" data-a="bk-video" data-arg="${esc(x.bkId)}" aria-pressed="${k.bkVideoId === x.bkId}"><div class="thumb">${scene(x)}<div class="lower3"><span class="l1">${esc(x.media)}</span><span class="l2">${esc(x.title)}</span></div></div><div class="meta"><b>${esc(x.title)}</b><span class="tag" style="margin:4px 0">${esc(x.media || 'Vidéo')}</span><div class="small muted">${x.date ? 'Diffusée le ' + fmtD(x.date) : 'Vidéo de votre package'}</div></div></button>`).join('')}</div>
       <div class="row" style="justify-content:flex-end;margin-top:20px"><button class="btn btn-primary" data-a="bk-step" data-arg="2" ${k.bkVideoId ? '' : 'disabled'}>Continuer</button></div>`;
   } else if (stepN === 2) {
     const m = bkMedia(v);
@@ -3921,6 +3948,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const el = e.target; const k = el.dataset && el.dataset.in; if (!k) return;
   if (k === 'nf-files') { saveNf(); addFiles([...el.files]); }
+  if (k === 'bk-upload') { const f = el.files && el.files[0]; el.value = ''; bkUploadVideo(f); return; }
   if (k === 'sp-video') { const f = el.files && el.files[0]; if (!f) return; if (SUB.url && !VIDEOS.some(x => x.url === SUB.url)) URL.revokeObjectURL(SUB.url); SUB.url = URL.createObjectURL(f); SUB.file = f; SUB.name = f.name; SUB.duration = 0; SUB.err = ''; S.keepScroll = true; render(); }
   if (k === 'sp-srt') { const f = el.files && el.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const cues = parseSubs(decodeText(rd.result)); if (!cues.length) { toast("Aucun sous-titre horodaté trouvé dans ce fichier"); return; } SUB.raw = cues; SUB.cues = SUB.split ? splitLong(cues, 84) : cues.map(c => ({ ...c })); SUB.tr = {}; SUB.lang = SUB.srcLang; SUB.srtName = f.name; spLast = -2; fixSubTiming(); S.keepScroll = true; render(); }; rd.readAsArrayBuffer(f); }
   if (k === 'sp-prog') { SUB.programme = el.value; } /* Back-end OpenStudio : programme d'origine (logo du média) */

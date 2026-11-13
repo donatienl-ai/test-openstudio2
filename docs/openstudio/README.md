@@ -58,6 +58,15 @@ curl -X POST $API/api/admin/clients/<CLIENT_ID>/videos -H "$AUTH" -H 'Content-Ty
 Programmes disponibles (logos, langue) : `programmes` dans `src/opusclip.config.js`
 (BFM Business, BFM, Immersion — à compléter).
 
+## Mode test : dépôt de vidéo par le client
+
+Deux variables, à retirer en production (voir `render.yaml`) :
+- `CLIENT_UPLOADS_ENABLED=true` : la page Capsules vidéo affiche un bloc « Déposer une vidéo » ; la vidéo est envoyée
+  au stockage puis ajoutée au package du client (`POST /api/me/videos`). En production (`false`), seule l'équipe ajoute
+  les vidéos (`POST /api/admin/clients/:id/videos`) et le client les voit directement.
+- `TEST_CLIENT_NAME` : un client de test est créé au démarrage s'il n'existe pas ; le lien d'accès à son espace est
+  écrit dans les logs Render (ligne `[test] Lien de l'espace client`).
+
 ## Mise en route
 
 ### 1. Stockage (Cloudflare R2)

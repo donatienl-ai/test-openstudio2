@@ -55,5 +55,13 @@ services:
         sync: false
       - key: FILE_RETENTION_DAYS
         value: "30"
+      # Tests uniquement : le client dépose lui-même sa vidéo depuis son espace. Passer à "false" en production
+      # (les vidéos sont alors ajoutées par l'équipe via /api/admin/clients/:id/videos).
+      - key: CLIENT_UPLOADS_ENABLED
+        value: "true"
+      # Tests uniquement : client de test créé au démarrage ; son lien d'accès apparaît dans les logs Render.
+      # Laisser vide en production.
+      - key: TEST_CLIENT_NAME
+        value: "Client test OpenStudio"
       - key: ADMIN_TOKEN
         generateValue: true
