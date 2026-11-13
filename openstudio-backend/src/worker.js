@@ -90,10 +90,15 @@ function nudge() {
   setImmediate(loop);
 }
 
+async function resumeInterrupted() {
+  const n = await orders.recoverInterruptedFinalizations().catch(() => 0);
+  if (n) console.log(`[worker] ${n} finalisation(s) interrompue(s) relancée(s)`);
+}
+
 function start() {
   if (timer) return;
   timer = setInterval(loop, config.workerIntervalSec * 1000);
-  nudge();
+  resumeInterrupted().then(nudge);
   console.log(`[worker] démarré (intervalle ${config.workerIntervalSec}s, dry run : ${config.opus.dryRun}, clients en envoi réel : ${config.opus.liveClients.length})`);
 }
 
