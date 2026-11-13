@@ -44,8 +44,21 @@ async function submit(order) {
   const h = await storage.head(key);
   if (!h.exists) throw new Error(`Vidéo source introuvable dans le stockage : ${key}`);
 
+  // La vidéo est téléchargée dans un dossier temporaire : ffmpeg la lit en local (le binaire statique
+  // ne sait pas toujours résoudre les noms de domaine sur Render), puis elle est envoyée à OpusClip.
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `os-src-${shortId(order.id)}-`));
+  try {
+    const local = path.join(tmp, `source${path.extname(key).toLowerCase() || '.mp4'}`);
+    await storage.downloadToFile(key, local);
+    await submitLocal(order, local, fs.statSync(local).size);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+async function submitLocal(order, local, sizeBytes) {
   // Estimation et contrôle des crédits
-  const durationSec = await probeDurationSec(await storage.presignDownload(key, 'source.mp4', 'inline', 600)).catch(() => null);
+  const durationSec = await probeDurationSec(local).catch(() => null);
   const credits = estimateCredits(durationSec, config.opus.creditsPerMinute);
   const remaining = config.opus.creditBudget - (await orders.creditsUsed());
   if (config.opus.creditBudget > 0 && credits > remaining) {
@@ -65,7 +78,7 @@ async function submit(order) {
   if (blocked) throw new Error(blocked);
   if (config.opus.dryRun) console.log(`[test réel] commande ${shortId(order.id)} envoyée à OpusClip (client de test) — ${credits} crédits estimés`);
 
-  const uploadId = await opus.uploadVideo(await storage.getStream(key), h.size);
+  const uploadId = await opus.uploadVideo(fs.createReadStream(local), sizeBytes);
   const payload = buildProjectPayload(order, uploadId, mapping, webhookUrl());
   const { projectId } = await opus.createProject(payload);
   await orders.saveProjectId(order.id, projectId);
