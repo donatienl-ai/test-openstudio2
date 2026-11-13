@@ -36,6 +36,11 @@ async function fromRequest(req) {
   return client && tokensMatch(client.access_token, token) ? client : null;
 }
 
+async function findByName(name) {
+  const { rows } = await db.query('SELECT * FROM clients WHERE name = $1 ORDER BY created_at LIMIT 1', [name]);
+  return rows[0] || null;
+}
+
 async function update(id, fields) {
   const allowed = { name: 'name', company: 'company', email: 'email', logoKey: 'logo_key' };
   const sets = [];
@@ -92,4 +97,4 @@ async function getVideo(clientId, videoId) {
   return rows[0] || null;
 }
 
-module.exports = { create, get, fromRequest, update, list, addVideo, setVideoActive, listVideos, getVideo };
+module.exports = { create, get, findByName, fromRequest, update, list, addVideo, setVideoActive, listVideos, getVideo };

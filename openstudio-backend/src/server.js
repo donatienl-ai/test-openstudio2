@@ -5,6 +5,7 @@ const db = require('./db');
 const worker = require('./worker');
 const routes = require('./routes');
 const storage = require('./storage');
+const clients = require('./clients');
 
 const app = express();
 app.disable('x-powered-by');
@@ -44,6 +45,14 @@ async function main() {
     process.exit(1);
   }
   await db.migrate();
+  if (config.testClientName) {
+    // Tests uniquement : espace client prêt à l'emploi, sans passer par les routes admin.
+    const c = (await clients.findByName(config.testClientName))
+      || (await clients.create({ name: config.testClientName, company: config.testClientName }));
+    const site = config.frontendOrigins[0] || 'https://VOTRE-SITE';
+    console.log(`[test] Lien de l'espace client « ${c.name} » : ${site}/?client=${c.id}&clientToken=${c.access_token}`);
+  }
+  if (config.clientUploadsEnabled) console.log('[test] Dépôt de vidéos par le client ACTIVÉ (CLIENT_UPLOADS_ENABLED) : à désactiver en production.');
   app.listen(config.port, () => {
     console.log(`OpenStudio back-end sur le port ${config.port} — webhook : ${config.publicBaseUrl}/api/webhooks/opusclip`);
     worker.start();

@@ -9,6 +9,7 @@ const mapping = require('./opusclip.config');
 const db = require('./db');
 const orders = require('./orders');
 const clients = require('./clients');
+const { validateClientVideo } = require('./clientVideos');
 const storage = require('./storage');
 const worker = require('./worker');
 const { tokensMatch, tokenFromRequest, isAdmin } = require('./auth');
@@ -103,6 +104,7 @@ function publicVideo(v) {
 // ---------------------------------------------------------------------------
 router.get('/catalog', (req, res) => {
   res.json({
+    clientUploads: config.clientUploadsEnabled,
     programmes: Object.entries(mapping.programmes).map(([id, p]) => ({ id, title: p.title })),
     capsules: {
       durations: Object.keys(mapping.capsules.durations).map((d) => `${d} s`),
@@ -129,7 +131,21 @@ router.get('/me', wrap(async (req, res) => {
   res.json({
     client: { id: client.id, name: client.name, company: client.company, hasLogo: Boolean(client.logo_key) },
     videos: videos.map(publicVideo),
+    clientUploads: config.clientUploadsEnabled,
   });
+}));
+
+/** Mode test : le client ajoute lui-même une vidéo (déjà envoyée via /api/uploads) à son package. */
+router.post('/me/videos', json, wrap(async (req, res) => {
+  const client = await requireClient(req, res);
+  if (!client) return;
+  const r = validateClientVideo(req.body, { enabled: config.clientUploadsEnabled, programmes: mapping.programmes });
+  if (!r.ok) return res.status(r.status).json({ error: r.error });
+  const h = await storage.head(r.value.sourceKey);
+  if (!h.exists) return res.status(400).json({ error: 'Vidéo introuvable dans le stockage : l’envoi n’est peut-être pas terminé.' });
+  if (h.contentType && !/^video\//.test(h.contentType)) return res.status(400).json({ error: 'Ce fichier n’est pas une vidéo.' });
+  const v = await clients.addVideo(client.id, r.value);
+  res.status(201).json({ video: publicVideo(v) });
 }));
 
 router.get('/me/orders', wrap(async (req, res) => {

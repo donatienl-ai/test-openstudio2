@@ -40,6 +40,11 @@ const config = {
     retentionDays: num(process.env.FILE_RETENTION_DAYS, 30),
   },
 
+  // Tests uniquement : le client peut déposer lui-même une vidéo dans son espace (en production : l'équipe).
+  clientUploadsEnabled: bool(process.env.CLIENT_UPLOADS_ENABLED, false),
+  // Tests uniquement : nom d'un client de test créé (s'il n'existe pas) au démarrage ; son lien d'accès est écrit dans les logs.
+  testClientName: (process.env.TEST_CLIENT_NAME || '').trim(),
+
   workerIntervalSec: num(process.env.WORKER_INTERVAL_SEC, 10),
 };
 
