@@ -25,7 +25,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/health', (req, res) => res.json({ ok: true, dryRun: config.opus.dryRun, storageCors: storage.storageStatus.cors, storageCorsError: storage.storageStatus.corsError }));
+app.get('/health', (req, res) => res.json({ ok: true, dryRun: config.opus.dryRun, liveTestClients: config.opus.liveClients.length, storageCors: storage.storageStatus.cors, storageCorsError: storage.storageStatus.corsError }));
 app.use('/api', routes);
 
 app.use((req, res) => res.status(404).json({ error: 'Route inconnue' }));
@@ -39,6 +39,9 @@ async function main() {
   const missing = [];
   if (!config.databaseUrl) missing.push('DATABASE_URL');
   if (!config.opus.apiKey && !config.opus.dryRun) missing.push('OPUSCLIP_API_KEY');
+  if (!config.opus.apiKey && config.opus.liveClients.length) {
+    console.error('[test réel] OPUSCLIP_LIVE_CLIENTS est renseigné mais OPUSCLIP_API_KEY est vide : les commandes de ces clients échoueront.');
+  }
   if (!config.storage.bucket) missing.push('STORAGE_BUCKET');
   if (missing.length) {
     console.error(`Variables d'environnement manquantes : ${missing.join(', ')}`);
