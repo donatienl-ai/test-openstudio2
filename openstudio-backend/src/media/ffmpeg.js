@@ -152,7 +152,8 @@ async function renderFinal({ input, output, logos, widthRatio, marginRatio, subt
   const size = logos.length ? await probeVideoSize(input) : null;
   if (logos.length && !size) throw new Error('Vidéo illisible : dimensions introuvables');
   const { filter, outLabel } = buildFilterGraph({ logos, widthRatio, marginRatio, subtitles, videoWidth: size && size.width });
-  const args = ['-hide_banner', '-y', '-i', input];
+  // Mémoire limitée sur Render (512 Mo en offre gratuite) : peu de threads et une petite anticipation x264.
+  const args = ['-hide_banner', '-y', '-filter_complex_threads', '1', '-i', input];
   for (const l of logos) args.push('-i', l.path);
   args.push(
     '-filter_complex', filter,
@@ -160,6 +161,8 @@ async function renderFinal({ input, output, logos, widthRatio, marginRatio, subt
     '-map', '0:a?',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
+    '-threads', '2',
+    '-x264-params', 'rc-lookahead=10',
     '-crf', '20',
     '-pix_fmt', 'yuv420p',
     '-c:a', 'aac',

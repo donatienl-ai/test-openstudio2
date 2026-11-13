@@ -139,9 +139,19 @@ async function setPollClipCount(id, count) {
  * Au démarrage : une finalisation « en cours » a forcément été interrompue (une seule instance).
  * Elle est relancée ; les clips déjà livrés ne sont pas refaits.
  */
-async function recoverInterruptedFinalizations() {
+async function recoverInterruptedFinalizations(maxRestarts = 3) {
+  // Au-delà de maxRestarts redémarrages pendant la même finalisation (ex. mémoire insuffisante),
+  // la commande passe en erreur au lieu de faire redémarrer le service en boucle.
+  const { rows: stop } = await db.query(
+    `UPDATE orders SET status = 'error', updated_at = now(),
+       error = 'Post-traitement : le service a redémarré ' || (finalize_restarts + 1) || ' fois pendant l''habillage (mémoire insuffisante ?)'
+     WHERE status = 'postprocessing' AND finalize_restarts + 1 >= $1 RETURNING id`,
+    [maxRestarts]
+  );
+  for (const r of stop) console.error(`[order ${r.id}] ERREUR : finalisation abandonnée après ${maxRestarts} redémarrages`);
   const { rowCount } = await db.query(
-    "UPDATE orders SET status = 'opus_done', updated_at = now() WHERE status = 'postprocessing'"
+    `UPDATE orders SET status = 'opus_done', finalize_restarts = finalize_restarts + 1, updated_at = now()
+     WHERE status = 'postprocessing'`
   );
   return rowCount;
 }
