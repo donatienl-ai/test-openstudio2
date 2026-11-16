@@ -96,6 +96,8 @@ function publicVideo(v) {
     programmeId: v.programme_id,
     programme: programme ? programme.title : v.programme_id,
     broadcastDate: v.broadcast_date,
+    // Durée mesurée au dépôt : sert au calcul du coût des sous-titres (par tranche de 10 min)
+    durationSec: v.duration_sec ? Number(v.duration_sec) : null,
   };
 }
 

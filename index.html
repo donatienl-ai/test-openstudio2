@@ -971,6 +971,40 @@ em,i:not([class]){font-style:normal}
 .bk-ready button:focus-visible{outline:2px solid #C9C9FF;outline-offset:2px}
 @keyframes bkReadyIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (prefers-reduced-motion:reduce){.bk-ready{animation:none}}
+/* Crédits : pastille du solde, coût des options, récapitulatif, fenêtre « Vos crédits » (discret, sans couleur vive) */
+.cr-acc{display:inline-flex;align-items:center;gap:12px}
+.cr-pill{font:inherit;font-size:12px;font-weight:400;line-height:1;color:#8A8998;background:transparent;border:1px solid var(--os-line);border-radius:999px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+.cr-pill:hover{color:var(--os-mut);border-color:var(--os-line2)}
+.cr-pill.dark{color:rgba(255,255,255,.62);border-color:rgba(255,255,255,.2)}
+.cr-pill.dark:hover{color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.35)}
+.cr-pill.low{color:#B4641A;border-color:#EFCFAF;background:#FFF8F1}
+.cr-pill.dark.low{color:#F2BC8A;border-color:rgba(242,188,138,.45);background:transparent}
+.cr-pill:focus-visible{outline:2px solid var(--os-blue);outline-offset:2px}
+.os-opt .cr-cost{margin-top:auto;padding-top:4px;font-size:12px;font-weight:400;color:#8A8998}
+.cr-recap{margin:0;font-size:13px;line-height:1.5;color:var(--os-mut)}
+.cr-recap.short{color:#9A5414}
+.cr-link{font:inherit;background:none;border:0;padding:0;color:var(--os-blue);text-decoration:underline;cursor:pointer}
+.cr-modal{display:flex;flex-direction:column;gap:18px;color:var(--os-navy)}
+.cr-bal{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:16px 18px;border-radius:12px;background:var(--os-bg)}
+.cr-bal span{font-size:14px;color:var(--os-mut)}
+.cr-bal b{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:24px}
+.cr-miss{margin:0;font-size:14px;color:#9A5414}.cr-miss.ok{color:var(--os-mut)}
+.cr-done{margin:0;padding:10px 14px;border-radius:10px;background:#EAF7F0;color:#1E6B45;font-size:14px}
+.cr-prices summary{cursor:pointer;font-size:14px;color:var(--os-mut)}
+.cr-prices ul{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.cr-prices li{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.cr-prices li.note{font-size:13px;color:var(--os-mut)}
+.cr-packs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.cr-pack{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border:1px solid var(--os-line);border-radius:12px}
+.cr-pack.cr-rec{border:2px solid var(--os-blue);background:var(--os-tint)}
+.cr-pack .i{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cr-pack .i b{font-size:15px;font-weight:600}
+.cr-pack .i span{font-size:14px}
+.cr-pack .i .m{font-size:13px;color:var(--os-mut)}
+.cr-tag{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--os-blue);color:#fff;font-size:11px;font-weight:600;vertical-align:2px}
+.cr-pack .cr-buy{padding:10px 18px}
+.cr-foot{margin:0;font-size:13px;color:var(--os-mut)}
+@media (max-width:560px){.cr-pack{flex-direction:column;align-items:stretch}.cr-pack .cr-buy{width:100%}.cr-bal b{font-size:20px}}
 /* fenêtres : grand titre, bouton rond de fermeture, sans barres */
 .modal{border-radius:20px;max-width:600px}
 .modal-h{border-bottom:0;padding:32px 32px 0;align-items:flex-start}
@@ -1579,7 +1613,7 @@ function opusMore(j) {
 const bkOn = () => !!(window.OPENSTUDIO_API && window.OpenStudio);
 const BK = { videos: null, loading: false, err: '', client: null, submitting: false, prog: '', clientUploads: false, uploading: false, upProg: '' };
 const BK_PROGRAMMES = [['bfm-business', 'BFM Business'], ['bfm', 'BFM'], ['capital', 'Capital']];
-const bkVideo = x => ({ id: 'bk-' + x.id, bkId: x.id, title: x.title || 'Vidéo', media: x.programme || '', programmeId: x.programmeId || '', kind: x.programme || '', type: 'plateau', duration: 0, date: x.broadcastDate ? new Date(x.broadcastDate) : null, pal: ['#1C1C62', '#3B3BFA'], highlights: [] });
+const bkVideo = x => ({ id: 'bk-' + x.id, bkId: x.id, title: x.title || 'Vidéo', media: x.programme || '', programmeId: x.programmeId || '', kind: x.programme || '', type: 'plateau', duration: Number(x.durationSec) || 0, date: x.broadcastDate ? new Date(x.broadcastDate) : null, pal: ['#1C1C62', '#3B3BFA'], highlights: [] });
 const bkMedia = v => MEDIAS.find(m => v && m.name.toLowerCase() === String(v.media).toLowerCase()) || mediaById('openmedias');
 const bkContact = () => { const c = client(); return c ? { name: c.contact, email: c.email, company: c.name } : undefined; };
 const bkNoSession = () => !OpenStudio.clientSession();
@@ -1829,7 +1863,7 @@ function bkCapsulesPage(c) {
   } else if (n === 2) {
     const ill = { capsules: '<i style="width:38px;height:68px"></i><i style="width:38px;height:68px;background:#48406E"></i><i style="width:38px;height:68px;background:#384868"></i>', teaser: '<i style="width:46px;height:82px"></i>', subtitles: '<i style="width:150px;height:84px"></i>' };
     main = `<section class="os-card" aria-labelledby="q-type"><div><h2 id="q-type">Que voulez-vous en faire ?</h2><div class="sub">Le logo de l'émission et le vôtre sont ajoutés dans tous les cas.</div></div>
-      <div class="os-opts" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${Object.entries(FLOW_KINDS).map(([id, x]) => `<button type="button" class="os-opt" data-a="bk-kind" data-arg="${id}" aria-pressed="${kd === id}" style="gap:14px"><span class="ill" aria-hidden="true">${ill[id]}</span><span class="mono">${esc(x.tag)}</span><b style="font-size:16px">${esc(x.label)}</b><span class="d" style="font-size:14px;line-height:1.45">${esc(x.desc)}</span></button>`).join('')}</div>
+      <div class="os-opts" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${Object.entries(FLOW_KINDS).map(([id, x]) => `<button type="button" class="os-opt" data-a="bk-kind" data-arg="${id}" aria-pressed="${kd === id}" style="gap:14px"><span class="ill" aria-hidden="true">${ill[id]}</span><span class="mono">${esc(x.tag)}</span><b style="font-size:16px">${esc(x.label)}</b><span class="d" style="font-size:14px;line-height:1.45">${esc(x.desc)}</span><span class="cr-cost">${crCardCost(id)}</span></button>`).join('')}</div>
       <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:16px 18px;border-radius:12px;background:var(--os-bg)"><span style="font-size:14px;line-height:1.5"><b style="font-weight:600">Autre chose en tête ?</b> Un monteur de l'équipe peut réaliser un montage sur mesure.</span><button class="os-link" style="font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-decoration:none;text-transform:uppercase" data-a="devis-open">Demander un devis ↗</button></div></section>`;
   } else if (n === 3) {
     if (kd === 'subtitles') main = `<section class="os-card"><h2>Vos sous-titres</h2><div>${[['Langue', 'Français, la langue parlée dans la vidéo'], ['Transcription', 'Automatique, à partir du son de la vidéo'], ['Format', 'Celui de la vidéo d’origine']].map(([a1, b1]) => `<div class="os-row"><span class="k">${a1}</span><span class="v">${b1}</span></div>`).join('')}</div><p class="mut" style="margin:0;font-size:14px">La traduction dans une autre langue arrive bientôt.</p></section>`;
@@ -1853,10 +1887,10 @@ function bkCapsulesPage(c) {
       <button class="os-cta" data-a="bk-step" data-arg="${n + 1}" ${n === 1 && !v ? 'disabled' : ''}>Continuer</button>
       <span class="note">Rien n'est lancé tant que vous n'avez pas validé.</span></aside>`
     : `<aside class="os-aside" aria-labelledby="valider"><h2 id="valider">Validation</h2>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><span>${esc(FLOW_KINDS[kd].short)}</span><span style="font-weight:600">${flowPrice() == null ? 'Inclus' : flowPriceTxt()}</span></div>
-      <div class="os-paybox"><span class="mut" style="font-size:13px">Paiement</span><span style="font-size:14px">${flowPrice() == null ? 'Inclus dans votre package : rien à payer' : 'Carte bancaire, prélèvement SEPA ou virement'}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><span>${esc(FLOW_KINDS[kd].short)}</span><span style="font-weight:600">${crFmt(flowCost())}</span></div>
       <label class="os-check"><input type="checkbox" data-in="flow-check" ${k.checked ? 'checked' : ''}><span>J'ai vérifié l'émission, le format et la durée.</span></label>
-      <button class="os-cta" style="padding:17px 24px" data-a="pay-open" ${k.checked && !BK.submitting ? '' : 'disabled'}>${BK.submitting ? 'Validation en cours…' : 'Valider et lancer ↗'}</button>
+      ${crRecapHtml(flowCost(), kd === 'subtitles' && !(v && v.duration))}
+      <button class="os-cta" style="padding:17px 24px" data-a="pay-open" ${k.checked && !BK.submitting && crEnough(flowCost()) ? '' : 'disabled'}>${BK.submitting ? 'Validation en cours…' : 'Valider et lancer ↗'}</button>
       <span class="note">Une pastille vous prévient dès que c’est prêt.</span></aside>`;
   return `<main class="os-wrap"><div style="display:flex;flex-direction:column;gap:18px"><button class="os-back" data-a="${back[1].startsWith('nav') ? 'nav' : 'bk-step'}" data-arg="${back[1].split('|')[1]}">← ${back[0]}</button><h1 class="t">${h1}</h1>${steps}</div>
     <div class="os-cols"><div class="os-colm">${main}</div>${aside}</div></main>`;
@@ -1882,9 +1916,126 @@ function osLaunched(c, o) {
     </main>`;
 }
 /* Tarifs : capsules, teaser et sous-titres sont inclus dans le package (V1). Renseigner un montant en € HT active le paiement. */
-const FLOW_PRICES = { capsules: null, teaser: null, subtitles: null };
-const flowPrice = () => FLOW_PRICES[flowKind()];
-const flowPriceTxt = () => flowPrice() == null ? 'Inclus dans votre package' : `${flowPrice().toLocaleString('fr-FR')} € HT`;
+
+/* =====================================================================================
+   CRÉDITS
+   Toutes les valeurs (prix, packs, seuils) sont ici, et seulement ici.
+   ===================================================================================== */
+const CREDITS_CONFIG = {
+  welcome: 1000,          // crédits offerts à la signature du contrat
+  lowBalance: 300,        // en dessous : la pastille du solde passe en orange doux
+  blockMinutes: 10,       // sous-titres / traduction : facturés par tranche de 10 min entamée
+  costs: {
+    capsules: 300,        // projet de capsules (3 propositions), toutes durées, tous formats
+    teaser: 300,          // teaser de 15 s (1 proposition), tous formats
+    subtitles: 300,       // interview sous-titrée, par tranche de 10 min de la vidéo source
+    translation: 300,     // traduction des sous-titres, par tranche de 10 min
+  },
+  defaultPack: 'pack-900', // mis en avant quand la fenêtre est ouverte depuis la pastille
+  packs: [
+    // Complément : proposé une seule fois, et seulement quand le solde est exactement de 100 crédits
+    { id: 'complement', name: 'Complément', credits: 200, priceHT: 59, onlyAtBalance: 100, oncePerClient: true },
+    { id: 'pack-300', name: '1 production', credits: 300, priceHT: 69 },
+    { id: 'pack-900', name: '3 productions', credits: 900, priceHT: 179 },
+    { id: 'pack-1500', name: '5 productions', credits: 1500, priceHT: 279 },
+    { id: 'pack-3000', name: '10 productions', credits: 3000, priceHT: 499 },
+  ],
+};
+
+/* Coût d'une production. Le format et la durée des capsules ne changent jamais le prix. */
+function crCost(kind, { durationSec = 0, translation = false } = {}) {
+  const C = CREDITS_CONFIG;
+  if (kind === 'subtitles') {
+    const blocks = Math.max(1, Math.ceil((Number(durationSec) || 0) / (C.blockMinutes * 60)));
+    return blocks * C.costs.subtitles + (translation ? blocks * C.costs.translation : 0);
+  }
+  return C.costs[kind] != null ? C.costs[kind] : C.costs.capsules;
+}
+// Espace insécable normale : l'espace fine du format français n'est pas dessinée par la police du site (« 1000 »)
+const crNum = n => Number(n).toLocaleString('fr-FR').replace(/\u202f/g, '\u00a0');
+const crFmt = n => `${crNum(n)}\u00a0crédit${Math.abs(n) > 1 ? 's' : ''}`;
+const crCardCost = kind => ['subtitles', 'translation'].includes(kind) ? `${crFmt(CREDITS_CONFIG.costs[kind])} / ${CREDITS_CONFIG.blockMinutes} min` : crFmt(crCost(kind));
+/* Coût de la production en cours dans le parcours Créer (format et durée sans effet). */
+function flowCost() {
+  const kd = flowKind();
+  return kd === 'subtitles' ? crCost('subtitles', { durationSec: (flowVideo() || {}).duration || 0 }) : crCost(kd);
+}
+
+/* Solde et « complément déjà acheté », par client.
+   TODO backend : en production, le solde, les débits et les recharges doivent être tenus par le serveur
+   (table de mouvements, débit dans la même transaction que la validation de la commande). Ici, en test,
+   tout est dans le navigateur : un client pourrait modifier son solde lui-même. */
+const CR_KEY = 'om-credits-v1';
+let CR_MEM = {}; // repli si le stockage du navigateur n'est pas disponible (navigation privée, blocage…)
+function crAll() { try { const raw = localStorage.getItem(CR_KEY); return raw ? JSON.parse(raw) : {}; } catch (e) { return CR_MEM; } }
+function crSaveAll(all) { CR_MEM = all; try { localStorage.setItem(CR_KEY, JSON.stringify(all)); } catch (e) { /* repli mémoire */ } }
+function crClientId() { const s = window.OpenStudio && OpenStudio.clientSession && OpenStudio.clientSession(); return (s && s.id) || (client() || {}).id || 'anonyme'; }
+const crNew = () => ({ balance: CREDITS_CONFIG.welcome, complementBought: false, history: [] });
+function crState() { const all = crAll(); const id = crClientId(); if (!all[id]) { all[id] = crNew(); crSaveAll(all); } return all[id]; }
+function crUpdate(fn) { const all = crAll(); const id = crClientId(); const st = all[id] || crNew(); fn(st); st.history = (st.history || []).slice(-50); all[id] = st; crSaveAll(all); return st; }
+const crBalance = () => crState().balance;
+const crComplementOffered = () => { const st = crState(); const p = CREDITS_CONFIG.packs.find(x => x.oncePerClient); return !!p && st.balance === p.onlyAtBalance && !st.complementBought; };
+const crPacks = () => CREDITS_CONFIG.packs.filter(p => !p.oncePerClient || crComplementOffered());
+/* Pack mis en avant : le plus petit qui couvre le manque, sinon le pack par défaut. */
+function crRecommended(missing) {
+  const packs = crPacks();
+  if (missing > 0) { const fit = [...packs].sort((a, b) => a.credits - b.credits).find(p => p.credits >= missing); return (fit || packs[packs.length - 1]).id; }
+  return CREDITS_CONFIG.defaultPack;
+}
+/* Débit : appelé au moment où la commande est validée (là où OpusClip est déclenché). */
+function crDebit(cost, label) {
+  if (crBalance() < cost) return false;
+  crUpdate(st => { st.balance -= cost; st.history.push({ at: new Date().toISOString(), delta: -cost, label }); });
+  return true;
+}
+/* Achat d'un pack.
+   TODO paiement : brancher ici le vrai paiement (ouverture de la page du prestataire), et ne créditer
+   qu'après confirmation du paiement, côté serveur (webhook du prestataire). En mode test, les crédits
+   sont ajoutés immédiatement. */
+function crBuy(packId) {
+  const p = crPacks().find(x => x.id === packId); if (!p) return null;
+  crUpdate(st => { st.balance += p.credits; if (p.oncePerClient) st.complementBought = true; st.history.push({ at: new Date().toISOString(), delta: p.credits, label: `Recharge ${p.name} (test, ${p.priceHT} € HT)` }); });
+  return p;
+}
+/* Pour rejouer le parcours de test, depuis la console du navigateur : resetCredits() */
+window.resetCredits = (balance = CREDITS_CONFIG.welcome) => { crUpdate(st => { st.balance = balance; st.complementBought = false; st.history = []; }); if (typeof render === 'function') { S.keepScroll = true; render(); } return crFmt(balance); };
+
+/* Pastille du solde (en-tête, à gauche du nom du compte) : discrète, orange doux sous le seuil. */
+function crPill(dark) {
+  const b = crBalance(); const low = b < CREDITS_CONFIG.lowBalance;
+  return `<button type="button" class="cr-pill${dark ? ' dark' : ''}${low ? ' low' : ''}" data-a="credits-open" aria-label="Solde : ${crFmt(b)}. Recharger mes crédits">${crFmt(b)}</button>`;
+}
+/* Récapitulatif placé juste avant le bouton de validation. */
+function crRecapHtml(cost, approx) {
+  const b = crBalance(); const miss = cost - b;
+  return miss <= 0
+    ? `<p class="cr-recap">Cette production utilise ${crFmt(cost)}${approx ? ' (sur la base de 10 min)' : ''} · solde après validation : ${crFmt(b - cost)}</p>`
+    : `<p class="cr-recap short">Cette production utilise ${crFmt(cost)}. Il vous manque ${crFmt(miss)}. <button type="button" class="cr-link" data-a="credits-open" data-arg="recap">Recharger</button></p>`;
+}
+const crEnough = cost => crBalance() >= cost;
+/* Fenêtre « Vos crédits » */
+function creditsModalHtml(m) {
+  const b = crBalance(); const C = CREDITS_CONFIG;
+  const miss = m.from === 'recap' ? Math.max(0, (m.cost || 0) - b) : 0;
+  const rec = crRecommended(miss);
+  const prod = n => `${n} production${n > 1 ? 's' : ''}`;
+  return `<div class="cr-modal">
+    <div class="cr-bal"><span>Solde actuel</span><b>${crFmt(b)}</b></div>
+    ${m.from === 'recap' && m.cost ? (miss > 0 ? `<p class="cr-miss">Il vous manque ${crFmt(miss)} pour cette production.</p>` : `<p class="cr-miss ok">Votre solde couvre maintenant cette production.</p>`) : ''}
+    ${m.msg ? `<p class="cr-done" role="status">${esc(m.msg)}</p>` : ''}
+    <details class="cr-prices"><summary>Combien coûte une production ?</summary><ul>
+      <li><span>Projet de capsules (3 propositions)</span><span>${crFmt(C.costs.capsules)}</span></li>
+      <li><span>Teaser de 15 s (1 proposition)</span><span>${crFmt(C.costs.teaser)}</span></li>
+      <li><span>Interview sous-titrée</span><span>${crFmt(C.costs.subtitles)} / ${C.blockMinutes} min</span></li>
+      <li><span>Traduction des sous-titres</span><span>${crFmt(C.costs.translation)} / ${C.blockMinutes} min</span></li>
+      <li class="note">Le format et la durée choisis ne changent pas le prix. Les vidéos longues sont comptées par tranche de ${C.blockMinutes} minutes entamée.</li>
+    </ul></details>
+    <ul class="cr-packs" aria-label="Recharges">${crPacks().map(p => { const r = p.id === rec; const n = Math.floor((b + p.credits) / C.costs.capsules); return `<li class="cr-pack${r ? ' cr-rec' : ''}">
+      <div class="i"><b>${esc(p.name)}${r ? ' <span class="cr-tag">Recommandé</span>' : ''}</b><span>${crFmt(p.credits)} · ${crNum(p.priceHT)}\u00a0€ HT</span><span class="m">Soit ${prod(n)} avec votre solde</span></div>
+      <button type="button" class="${r ? 'os-cta' : 'os-pillbtn s'} cr-buy" data-a="credits-buy" data-arg="${p.id}">Acheter</button></li>`; }).join('')}</ul>
+    <p class="cr-foot">Besoin d'un montage sur mesure ? <button type="button" class="cr-link" data-a="devis-open">Nos monteurs peuvent s'en charger.</button></p>
+  </div>`;
+}
 function flowModHtml() {
   const k = S.cap; const kd = flowKind();
   if (kd === 'subtitles') return `<p style="margin:0">Les sous-titres sont en français, transcrits automatiquement à partir du son de la vidéo. Le format reste celui de la vidéo d’origine.</p>`;
@@ -1893,24 +2044,28 @@ function flowModHtml() {
     ${kd === 'teaser' ? '' : `<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Durée de chaque capsule</span><div class="os-seg" role="group" aria-label="Durée">${CAP_OPTIONS.kinds[0].durs.map(d => `<button type="button" data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>`}</div>`;
 }
 function payModalHtml(m) {
-  const v = flowVideo(); const kd = flowKind(); const paid = flowPrice() != null; const c = client() || {};
+  const v = flowVideo(); const kd = flowKind();
   return `<div style="display:flex;flex-direction:column;gap:22px">
-    <div class="os-paysum"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(FLOW_KINDS[kd].short)}</span><span class="small muted">${esc(v ? [v.media, v.title].filter(Boolean).join(' · ') : '')}${kd !== 'subtitles' ? ` · ${esc(flowFmt()[1].toLowerCase())} ${esc(flowFmt()[0])}` : ''}</span></div><span class="p">${paid ? flowPriceTxt() : 'Inclus'}</span></div>
-    <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Moyen de paiement</span>
-      ${paid ? `<div class="os-seg" style="display:flex" role="group" aria-label="Moyen de paiement">${[['cb', 'Carte bancaire'], ['sepa', 'Prélèvement SEPA'], ['vir', 'Virement']].map(([id, l]) => `<button type="button" style="flex:1 1 auto" data-a="pay-mode" data-arg="${id}" aria-pressed="${(m.mode || 'cb') === id}">${l}</button>`).join('')}</div>
-      <p class="small muted" style="margin:0">${m.mode === 'vir' ? 'Vous recevez nos coordonnées bancaires par e-mail. La création démarre dès réception du virement.' : 'Vous êtes redirigé vers la page sécurisée de notre prestataire de paiement.'}</p>`
-      : `<p style="margin:0;padding:14px 16px;border-radius:10px;border:1px solid #E2E0D8;font-size:14px;line-height:1.5">Cette création est incluse dans votre package : aucun paiement n’est demandé.</p>`}</div>
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px"><span class="muted">Facture au nom de <b style="color:#1A1A2E">${esc(c.name || '')}</b></span><button class="os-link" data-a="nav" data-arg="factures">Modifier</button></div>
+    <div class="os-paysum"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(FLOW_KINDS[kd].short)}</span><span class="small muted">${esc(v ? [v.media, v.title].filter(Boolean).join(' · ') : '')}${kd !== 'subtitles' ? ` · ${esc(flowFmt()[1].toLowerCase())} ${esc(flowFmt()[0])}` : ''}</span></div><span class="p">${crFmt(flowCost())}</span></div>
+    ${crRecapHtml(flowCost(), kd === 'subtitles' && !(v && v.duration))}
     ${bkNoSession() ? `<p class="small" style="color:var(--warn);margin:0">Pour commander, ouvrez le lien d'accès à votre espace envoyé par l'équipe OpenMedias.</p>` : ''}
     <p class="small muted" id="bk-prog" aria-live="polite" style="margin:0">${esc(BK.prog || '')}</p></div>`;
+}
+/* Crédits : la commande ne part pas si le solde est insuffisant (la fenêtre de recharge s'ouvre). */
+function crGuard(cost) {
+  if (crEnough(cost)) return true;
+  S.modal = { type: 'credits', from: 'recap', cost }; S.keepScroll = true; render();
+  return false;
 }
 async function bkSubmitCapsules() {
   const k = S.cap; const v = (BK.videos || []).find(x => x.bkId === k.bkVideoId); if (!v || BK.submitting) return;
   const fmt = CAP_OPTIONS.fmts.find(x => x[0] === k.fmt) || CAP_OPTIONS.fmts[0];
+  const cost = flowCost(); if (!crGuard(cost)) return;
   BK.submitting = true; S.keepScroll = true; render();
   try {
     // kind : le serveur livre 1 vidéo de 15 s pour un teaser, plusieurs capsules sinon
     const { order } = await OpenStudio.submitOrder('capsules', { videoId: v.bkId, kind: flowKind() === 'teaser' ? 'teaser' : 'capsules', duration: `${flowDur()} s`, format: `${fmt[1]} ${fmt[0]}` }, bkContact());
+    crDebit(cost, `${FLOW_KINDS[flowKind()].short} · commande ${order.id.slice(0, 8)}`); // commande validée = OpusClip déclenché
     bkAfterSubmit(order);
     BK.submitting = false; S.modal = null; k.lastKind = flowKind(); k.bkOrderId = order.id; k.bkStep = 5; S.keepScroll = false; render(); window.scrollTo(0, 0);
   } catch (e) { BK.submitting = false; S.keepScroll = true; render(); toast(e.message); }
@@ -1918,9 +2073,11 @@ async function bkSubmitCapsules() {
 /* Interview sous-titrée à partir d'une vidéo du package : le serveur reprend le fichier déjà stocké. */
 async function bkSubmitPkgSubtitles() {
   const k = S.cap; const v = flowVideo(); if (!v || BK.submitting) return;
+  const cost = flowCost(); if (!crGuard(cost)) return;
   BK.submitting = true; S.keepScroll = true; render();
   try {
     const { order } = await OpenStudio.submitOrder('subtitles', { videoId: v.bkId, spokenLanguage: LANGS.fr, subtitleLanguage: LANGS.fr, splitLongLines: true, programmeId: v.programmeId || null }, bkContact());
+    crDebit(cost, `Interview sous-titrée · commande ${order.id.slice(0, 8)}`);
     bkAfterSubmit(order);
     BK.submitting = false; S.modal = null; k.lastKind = 'subtitles'; k.bkOrderId = order.id; k.bkStep = 5; S.keepScroll = false; render(); window.scrollTo(0, 0);
   } catch (e) { BK.submitting = false; S.keepScroll = true; render(); toast(e.message); }
@@ -1929,13 +2086,15 @@ function flowSubmit() { if (bkNoSession()) { toast('Ouvrez le lien d’accès en
 // Sous-titres : bloc de validation (remplace le bouton d'enregistrement local quand le back-end est actif).
 function bkSubsCta(cs) {
   const noSession = bkNoSession();
-  return `<div class="row between"><div><b>Commander la vidéo sous-titrée</b><p class="small muted" style="margin-top:2px">${cs.length ? `Vos sous-titres en ${LANGS[SUB.lang].toLowerCase()} sont incrustés par nos serveurs` : 'Sans fichier de transcription, la vidéo est transcrite automatiquement, puis sous-titrée'}, avec le logo de votre entreprise. Vous recevez la vidéo et les fichiers .srt et .vtt dans « Mes commandes ».</p></div>
-    <button class="btn btn-primary" data-a="bk-subs" ${SUB.file && !BK.submitting && !noSession ? '' : 'disabled'}>${(SUB.lang === 'fr' ? canStFr(SUB.name) : unlocked('st-lang')) ? I('check') : I('lock')}${BK.submitting ? 'Envoi en cours…' : 'Valider ma commande'}</button></div>
+  return `<div class="row between"><div><b>Commander la vidéo sous-titrée</b><p class="small muted" style="margin-top:2px">${cs.length ? `Vos sous-titres en ${LANGS[SUB.lang].toLowerCase()} sont incrustés par nos serveurs` : 'Sans fichier de transcription, la vidéo est transcrite automatiquement, puis sous-titrée'}, avec le logo de votre entreprise. Vous recevez la vidéo et les fichiers .srt et .vtt dans « Mes commandes ».</p>${SUB.file ? crRecapHtml(subCost()).replace('data-arg="recap"', 'data-arg="pill"') : ''}</div>
+    <button class="btn btn-primary" data-a="bk-subs" ${SUB.file && !BK.submitting && !noSession && crEnough(subCost()) ? '' : 'disabled'}>${(SUB.lang === 'fr' ? canStFr(SUB.name) : unlocked('st-lang')) ? I('check') : I('lock')}${BK.submitting ? 'Envoi en cours…' : 'Valider ma commande'}</button></div>
     ${noSession ? `<p class="small" style="color:var(--warn)">Pour commander, ouvrez le lien d'accès à votre espace envoyé par l'équipe OpenMedias : il relie la commande au logo de votre entreprise.</p>` : ''}
     <p class="small muted" id="bk-prog" aria-live="polite">${esc(BK.prog)}</p>`;
 }
+const subCost = () => crCost('subtitles', { durationSec: SUB.duration, translation: SUB.lang !== SUB.srcLang });
 async function bkSubmitSubtitles() {
   if (BK.submitting || !SUB.file) return;
+  const cost = subCost(); if (!crEnough(cost)) { S.modal = { type: 'credits', from: 'pill' }; toast(`Cette production utilise ${crFmt(cost)} : rechargez vos crédits.`); render(); return; }
   const setP = t => { BK.prog = t; const el = document.getElementById('bk-prog'); if (el) el.textContent = t; };
   BK.submitting = true; BK.prog = 'Préparation de l’envoi…'; S.keepScroll = true; render();
   try {
@@ -1955,6 +2114,7 @@ async function bkSubmitSubtitles() {
       size: String(Math.round(SUB.fsz)), outline: String(Math.round(SUB.stroke)),
       programmeId: SUB.programme || null
     }, bkContact());
+    crDebit(cost, `Interview sous-titrée${SUB.lang !== SUB.srcLang ? ' + traduction' : ''} · commande ${order.id.slice(0, 8)}`);
     bkAfterSubmit(order);
     BK.submitting = false; BK.prog = ''; go('client', 'commandes');
   } catch (e) { BK.submitting = false; BK.prog = ''; S.keepScroll = true; render(); toast(e.message); }
@@ -2305,7 +2465,7 @@ function osTopShell(c, tab, body) {
   const tabs = [['capsules', 'Créer'], ['emissions', 'Mes émissions'], ['medias', 'Mes créations']];
   return `<div class="os os-page"><header class="os-top"><div><div class="l"><button class="brand" data-a="nav" data-arg="dashboard">OPENSTUDIO</button>
     <nav class="os-tabs" aria-label="Navigation principale">${tabs.map(([k, l]) => `<a href="#" data-a="nav" data-arg="${k}" class="${tab === k ? 'on' : ''}" ${tab === k ? 'aria-current="page"' : ''}>${l}</a>`).join('')}</nav></div>
-    <button class="os-acc" data-a="nav" data-arg="access"><span>${esc(c.name)}</span><b aria-hidden="true">${esc(osInitials(c.contact || c.name))}</b></button></div></header>
+    <div class="cr-acc">${crPill()}<button class="os-acc" data-a="nav" data-arg="access"><span>${esc(c.name)}</span><b aria-hidden="true">${esc(osInitials(c.contact || c.name))}</b></button></div></div></header>
     ${body}</div>`;
 }
 function viewClient() {
@@ -2359,7 +2519,7 @@ function osHome(c) {
   const lib = (f === 'all' || f === 'prep' ? prep.map(osPrepCard) : []).concat(shown.map(osClipCard));
   return `<div class="os" style="background:#fff"><section class="os-band" aria-labelledby="accroche"><div>
     <div class="os-bandnav"><button class="brand" data-a="nav" data-arg="dashboard">OPENSTUDIO</button>
-      <nav aria-label="Navigation principale"><a href="#" data-a="nav" data-arg="emissions">Mes émissions</a><a href="#" data-a="nav" data-arg="medias">Mes créations</a><a href="mailto:contact@openmedias.fr">Aide</a><button class="who" data-a="nav" data-arg="access">${esc(c.name)}</button></nav></div>
+      <nav aria-label="Navigation principale"><a href="#" data-a="nav" data-arg="emissions">Mes émissions</a><a href="#" data-a="nav" data-arg="medias">Mes créations</a><a href="mailto:contact@openmedias.fr">Aide</a><span class="cr-acc">${crPill(true)}<button class="who" data-a="nav" data-arg="access">${esc(c.name)}</button></span></nav></div>
     <div class="os-hero"><div class="txt">
       ${hv ? `<span class="os-badge"><i aria-hidden="true"></i>${hv.media ? `Votre interview ${esc(hv.media)} est prête` : 'Votre interview est prête'}</span>` : `<span class="os-badge wait"><i aria-hidden="true"></i>${BK.loading ? 'Chargement de vos émissions…' : 'Votre interview arrive bientôt'}</span>`}
       <h1 id="accroche">Vous êtes passés à la télé.<span>Faites-le savoir.</span></h1>
@@ -4402,10 +4562,14 @@ function modalHtml() {
     title = flowKind() === 'subtitles' ? 'Modifier les sous-titres' : 'Modifier le format';
     h = `<p class="muted" style="margin:0 0 20px">Vos choix sont repris dans le récapitulatif.</p>` + flowModHtml();
     foot = `<button class="os-pillbtn s" style="height:48px;padding:0 22px" data-a="close">Annuler</button><button class="os-cta" data-a="close">Enregistrer</button>`;
+  } else if (m.type === 'credits') {
+    title = 'Vos crédits';
+    h = creditsModalHtml(m);
+    foot = `<button class="os-pillbtn s" style="height:44px;padding:0 20px" data-a="close">Fermer</button>`;
   } else if (m.type === 'pay') {
-    title = 'Paiement';
+    title = 'Validation';
     h = payModalHtml(m);
-    foot = `<div style="display:flex;flex-direction:column;gap:10px;width:100%"><button class="os-cta big" style="width:100%" data-a="bk-submit" ${BK.submitting || bkNoSession() ? 'disabled' : ''}>${BK.submitting ? 'Validation en cours…' : flowPrice() == null ? 'Valider et lancer ↗' : `Payer ${flowPriceTxt()} et lancer ↗`}</button><span class="small muted" style="text-align:center">${flowPrice() == null ? 'Votre facture sera disponible dans l’onglet Factures.' : 'Paiement sécurisé. Votre facture sera disponible dans l’onglet Factures.'}</span></div>`;
+    foot = `<div style="display:flex;flex-direction:column;gap:10px;width:100%"><button class="os-cta big" style="width:100%" data-a="bk-submit" ${BK.submitting || bkNoSession() || !crEnough(flowCost()) ? 'disabled' : ''}>${BK.submitting ? 'Validation en cours…' : 'Valider et lancer ↗'}</button><span class="small muted" style="text-align:center">Les crédits sont débités à la validation.</span></div>`;
   } else if (m.type === 'devis') {
     title = 'Demander un devis';
     h = osDevisHtml(m);
@@ -4696,7 +4860,10 @@ const A = {
     // Réglages annoncés sur la carte de l'accueil (« 30 s · vertical », « 15 s · vertical ») : pas de reste d'une création précédente
     if (kind !== 'subtitles') { S.cap.fmt = '9:16'; if (kind === 'capsules') S.cap.dur = 30; } if (v && v.bkId) S.cap.bkVideoId = v.bkId; if (!bkOn()) { S.cap.kind = kind === 'teaser' ? 'teaser' : 'capsule'; go('client', kind === 'subtitles' ? 'sous-titres' : 'capsules'); return; } S.cap.bkOrderId = null; S.cap.bkStep = S.cap.bkVideoId ? +step : 1; go('client', 'capsules'); },
   'flow-mod': () => { S.modal = { type: 'flow-mod' }; render(); },
-  'pay-open': () => { S.modal = { type: 'pay', mode: 'cb' }; render(); },
+  'pay-open': () => { if (!crEnough(flowCost())) { S.modal = { type: 'credits', from: 'recap', cost: flowCost() }; render(); return; } S.modal = { type: 'pay', mode: 'cb' }; render(); },
+  /* Crédits : ouverte depuis la pastille (pack 900 mis en avant) ou depuis le récapitulatif (manque calculé) */
+  'credits-open': a => { S.modal = a === 'recap' ? { type: 'credits', from: 'recap', cost: flowCost() } : { type: 'credits', from: 'pill' }; S.keepScroll = true; render(); },
+  'credits-buy': a => { const p = crBuy(a); if (!p || !S.modal) return; S.modal.msg = `${crFmt(p.credits)} ajoutés. Nouveau solde : ${crFmt(crBalance())}.`; S.keepScroll = true; render(); },
   'pay-mode': a => { if (S.modal) S.modal.mode = a; S.keepScroll = true; render(); },
   'home-filter': a => { S.hf = a; S.keepScroll = true; render(); },
   'vid-filter': a => { S.vf = a; S.keepScroll = true; render(); },
