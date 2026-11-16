@@ -1599,13 +1599,26 @@ function bkTrackPending(o) {
   if (BK_BUSY.includes(o.status)) { if (!p.includes(o.id)) bkSetPending([...p, o.id]); return; }
   if (!p.includes(o.id)) return;
   bkSetPending(p.filter(x => x !== o.id));
-  if (o.status === 'ready' && !BKO.ready.includes(o.id)) BKO.ready.push(o.id);
+  if (o.status === 'ready' && !BKO.ready.includes(o.id)) { BKO.ready.push(o.id); bkCheckReady(o.id); }
 }
-function bkReadyPill() {
-  if (!BKO.ready.length) return '';
-  const id = BKO.ready[BKO.ready.length - 1];
-  return `<div class="bk-ready" role="status" aria-live="polite"><button class="go" data-a="bk-ready-open" data-arg="${esc(id)}"><i aria-hidden="true">✓</i>${BKO.ready.length > 1 ? 'Vos vidéos sont prêtes' : 'Votre vidéo est prête'}</button><button class="x" data-a="bk-ready-close" aria-label="Fermer">×</button></div>`;
+/* La pastille n'apparaît qu'une fois les vidéos réellement téléchargeables (au moins un fichier livré).
+   Elle vit hors de la zone redessinée par render() : elle n'est donc ni recréée ni réanimée à chaque clic. */
+function bkCheckReady(id) {
+  const f = BKO.files[id];
+  if (f === 'loading') return; // bkLoadFiles rappellera bkCheckReady
+  if (!f) { bkLoadFiles(id); return; }
+  if (!Array.isArray(f) || !f.length) BKO.ready = BKO.ready.filter(x => x !== id); // rien à télécharger : pas de pastille
+  bkShowReadyPill();
 }
+function bkShowReadyPill() {
+  const ids = BKO.ready.filter(id => Array.isArray(BKO.files[id]) && BKO.files[id].length);
+  let el = document.getElementById('bk-ready');
+  if (!ids.length || !bkOn() || S.view !== 'client') { if (el) el.remove(); return; }
+  const html = `<button class="go" data-a="bk-ready-open" data-arg="${esc(ids[ids.length - 1])}"><i aria-hidden="true">✓</i>${ids.length > 1 ? 'Vos vidéos sont prêtes' : 'Votre vidéo est prête'}</button><button class="x" data-a="bk-ready-close" aria-label="Fermer">×</button>`;
+  if (!el) { el = document.createElement('div'); el.id = 'bk-ready'; el.className = 'bk-ready'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  if (el.innerHTML !== html) el.innerHTML = html;
+}
+function bkHideReadyPill() { BKO.ready = []; const el = document.getElementById('bk-ready'); if (el) el.remove(); }
 const BK_BUSY = ['paid', 'submitting', 'processing', 'opus_done', 'postprocessing'];
 const BK_TYPES = { capsules: 'Capsules vidéo', subtitles: 'Interview sous-titrée' };
 const bkStage = st => st === 'ready' ? 4 : ['opus_done', 'postprocessing'].includes(st) ? 3 : st === 'processing' ? 2 : ['paid', 'submitting'].includes(st) ? 1 : 0;
@@ -1630,6 +1643,7 @@ async function bkLoadFiles(id) {
   BKO.files[id] = 'loading';
   try { const { files } = await OpenStudio.getDownloads(id); BKO.files[id] = files || []; }
   catch (e) { BKO.files[id] = { err: e.message }; }
+  if (BKO.ready.includes(id)) bkCheckReady(id);
   bkRerender();
 }
 async function bkLoadOrders(force) {
@@ -2069,6 +2083,7 @@ function clearTimers() { TIMERS.forEach(t => clearInterval(t)); TIMERS = []; if 
 const root = document.getElementById('root');
 function render() {
   clearTimers(); saveClients();
+  if (S.view !== 'client') { const rp = document.getElementById('bk-ready'); if (rp) rp.remove(); } // pastille « prête » : espace client seulement
   const scrollY = window.scrollY;
   let h = S.view === 'client' ? '' : protobar() + siteHeader();
   if (S.view === 'login') h += viewLogin();
@@ -2325,7 +2340,7 @@ function viewClient() {
       out = osSideShell(c, act, `<div class="os-legacy">${page}</div>`);
     }
   }
-  return imp + (bkOn() ? bkBusyIndicator() + bkReadyPill() : '') + out;
+  return imp + (bkOn() ? bkBusyIndicator() : '') + out;
 }
 /* ---------- Accueil (maquette C) ---------- */
 function osHome(c) {
@@ -4684,8 +4699,8 @@ const A = {
   'cmd-filter': a => { S.cf = a; S.keepScroll = true; render(); },
   'order-track': a => { const o = BKO.byId[a]; if (!o) return; if (o.status === 'ready') { go('client', 'commande', a); return; } S.cap.bkOrderId = a; S.cap.lastKind = osKindOf(o); S.cap.bkStep = 5; go('client', 'capsules'); },
   'nav-order': a => { S.modal = null; go('client', 'commande', a); },
-  'bk-ready-open': a => { BKO.ready = []; S.modal = null; go('client', 'commande', a); },
-  'bk-ready-close': () => { BKO.ready = []; S.keepScroll = true; render(); },
+  'bk-ready-open': a => { bkHideReadyPill(); S.modal = null; go('client', 'commande', a); },
+  'bk-ready-close': () => { bkHideReadyPill(); },
   'em-go': a => { const [kind, vid] = String(a).split('|'); S.cap.flowKind = kind; if (vid) S.cap.bkVideoId = vid; S.cap.bkOrderId = null; S.cap.checked = false; S.cap.bkStep = S.cap.bkVideoId ? 3 : 1; S.modal = null; go('client', 'capsules'); },
   'devis-open': () => { const v = osPkgVideos()[0]; S.modal = { type: 'devis', em: v ? [v.media, v.title].filter(Boolean).join(' — ') : 'Plusieurs émissions', txt: '', fmts: [], date: '' }; render(); },
   'dv-fmt': a => { const m = S.modal; if (!m) return; m.fmts = m.fmts.includes(a) ? m.fmts.filter(x => x !== a) : [...m.fmts, a]; S.keepScroll = true; render(); },
