@@ -1806,7 +1806,7 @@ function bkCapsulesPage(c) {
       <div class="os-paybox"><span class="mut" style="font-size:13px">Paiement</span><span style="font-size:14px">${flowPrice() == null ? 'Inclus dans votre package : rien à payer' : 'Carte bancaire, prélèvement SEPA ou virement'}</span></div>
       <label class="os-check"><input type="checkbox" data-in="flow-check" ${k.checked ? 'checked' : ''}><span>J'ai vérifié l'émission, le format et la durée.</span></label>
       <button class="os-cta" style="padding:17px 24px" data-a="pay-open" ${k.checked && !BK.submitting ? '' : 'disabled'}>${BK.submitting ? 'Validation en cours…' : 'Valider et lancer ↗'}</button>
-      <span class="note">Vous recevrez une confirmation par e-mail.</span></aside>`;
+      <span class="note">La création prend plusieurs minutes. Vous recevez un e-mail dès que c'est prêt.</span></aside>`;
   return `<main class="os-wrap"><div style="display:flex;flex-direction:column;gap:18px"><button class="os-back" data-a="${back[1].startsWith('nav') ? 'nav' : 'bk-step'}" data-arg="${back[1].split('|')[1]}">← ${back[0]}</button><h1 class="t">${h1}</h1>${steps}</div>
     <div class="os-cols"><div class="os-colm">${main}</div>${aside}</div></main>`;
 }
@@ -1815,12 +1815,12 @@ function osLaunched(c, o) {
   const kd = FLOW_KINDS[S.cap.lastKind] || FLOW_KINDS[osKindOf(o)] || FLOW_KINDS.capsules;
   const st = bkStage(o.status); const ready = o.status === 'ready'; const err = o.status === 'error';
   const nPh = (S.cap.lastKind || osKindOf(o)) === 'capsules' ? 3 : 1;
-  const tl = [['Commande validée', 'La confirmation est dans votre boîte mail.'], ['Préparation des vidéos', 'Découpage, sous-titres et ajout de vos logos.'], [ready ? 'Prêtes à télécharger' : 'Prêtes à télécharger', 'Elles apparaissent dans Mes créations et vous recevez un e-mail.']];
+  const tl = [['Commande validée', 'La confirmation est dans votre boîte mail.'], ['Préparation des vidéos', 'Plusieurs minutes : découpage, sous-titres et ajout de vos logos.'], [ready ? 'Prêtes à télécharger' : 'Prêtes à télécharger', 'Elles apparaissent dans Mes créations et vous recevez un e-mail.']];
   const state = i => i === 0 ? 'done' : i === 1 ? (ready ? 'done' : 'now') : (ready ? 'done' : '');
   return `<section class="os-launch" aria-labelledby="ok"><div><div class="txt">
       <span class="kick">Commande n° ${esc(o.id.slice(0, 8))} · ${new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}</span>
       <h1 id="ok">${err ? 'Un problème est survenu.' : ready ? 'C’est prêt.' : 'C’est lancé.'}<span>${err ? 'Notre équipe a été prévenue.' : ready ? 'Vos vidéos vous attendent.' : esc(kd.ready)}</span></h1>
-      <p>${err ? esc(o.error || 'Votre chargée de projet revient vers vous rapidement.') : ready ? 'Regardez-les, puis téléchargez celles qui vous plaisent.' : 'Vous pouvez fermer cette page : un e-mail vous prévient dès qu’elles sont prêtes à télécharger.'}</p>
+      <p>${err ? esc(o.error || 'Votre chargée de projet revient vers vous rapidement.') : ready ? 'Regardez-les, puis téléchargez celles qui vous plaisent.' : 'La préparation prend plusieurs minutes. Vous pouvez fermer cette page : vous recevez un e-mail dès que c’est prêt, et vos vidéos apparaissent dans Mes créations.'}</p>
       <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">${ready ? `<button class="os-cta" data-a="nav-order" data-arg="${o.id}">Voir mes vidéos ↗</button>` : `<button class="os-cta" data-a="nav" data-arg="medias">Suivre dans Mes créations ↗</button>`}<button class="os-link" style="color:#C9C9FF" data-a="bk-new">Créer une autre vidéo</button></div></div>
       <div class="os-ph" aria-hidden="true">${'<span class="phb"></span>'.repeat(nPh)}</div></div></section>
     <main class="os-wrap">
@@ -1850,6 +1850,7 @@ function payModalHtml(m) {
       ${paid ? `<div class="os-seg" style="display:flex" role="group" aria-label="Moyen de paiement">${[['cb', 'Carte bancaire'], ['sepa', 'Prélèvement SEPA'], ['vir', 'Virement']].map(([id, l]) => `<button type="button" style="flex:1 1 auto" data-a="pay-mode" data-arg="${id}" aria-pressed="${(m.mode || 'cb') === id}">${l}</button>`).join('')}</div>
       <p class="small muted" style="margin:0">${m.mode === 'vir' ? 'Vous recevez nos coordonnées bancaires par e-mail. La création démarre dès réception du virement.' : 'Vous êtes redirigé vers la page sécurisée de notre prestataire de paiement.'}</p>`
       : `<p style="margin:0;padding:14px 16px;border-radius:10px;border:1px solid #E2E0D8;font-size:14px;line-height:1.5">Cette création est incluse dans votre package : aucun paiement n’est demandé.</p>`}</div>
+    <div style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:12px;background:#EEEEFF;font-size:14px;line-height:1.5"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#3B3BF9" stroke-width="1.6" style="flex:none;margin-top:2px"><circle cx="9" cy="9" r="7.2"/><path d="M9 5v4.2l2.6 1.6"/></svg><span><b style="font-weight:600">La création prend plusieurs minutes.</b> Inutile de rester sur la page : vous recevez un e-mail dès que ${flowKind() === 'capsules' ? 'vos capsules sont prêtes' : flowKind() === 'teaser' ? 'votre teaser est prêt' : 'votre interview sous-titrée est prête'}, et ${flowKind() === 'capsules' ? 'elles apparaissent' : 'elle apparaît'} dans Mes créations.</span></div>
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px"><span class="muted">Facture au nom de <b style="color:#1A1A2E">${esc(c.name || '')}</b></span><button class="os-link" data-a="nav" data-arg="factures">Modifier</button></div>
     ${bkNoSession() ? `<p class="small" style="color:var(--warn);margin:0">Pour commander, ouvrez le lien d'accès à votre espace envoyé par l'équipe OpenMedias.</p>` : ''}
     <p class="small muted" id="bk-prog" aria-live="polite" style="margin:0">${esc(BK.prog || '')}</p></div>`;
