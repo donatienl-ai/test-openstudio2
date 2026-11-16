@@ -1775,7 +1775,7 @@ function flowRows(v) {
   const kd = flowKind(); const f = flowFmt();
   const rows = [['Émission', v ? [v.media, v.title].filter(Boolean).join(' · ') : '—', 'step|1'], ['Type', FLOW_KINDS[kd].short, 'step|2']];
   if (kd === 'subtitles') rows.push(['Sous-titres', 'En français, transcription automatique', 'mod']);
-  else rows.push(['Format', `${f[1]} ${f[0]}`, 'mod'], ['Durée', kd === 'teaser' ? '15 s' : `Environ ${flowDur()} s par capsule`, 'mod'], ['Sous-titres', 'En blanc, ajoutés automatiquement', '']);
+  else rows.push(['Format', `${f[1]} ${f[0]}`, 'mod'], ['Durée', kd === 'teaser' ? '15 s' : `${flowDur()} s par capsule`, 'mod'], ['Sous-titres', 'En blanc, ajoutés automatiquement', '']);
   rows.push(['Habillage', 'Logo de l’émission et logo de votre entreprise', ''], ['Livraison', 'À télécharger dans Mes créations', '']);
   return rows;
 }

@@ -39,15 +39,19 @@ module.exports = {
   // ---------------------------------------------------------------------------
   capsules: {
     // « Durée de chaque capsule » : 15 s | 30 s | 45 s | 60 s
-    // → curationPref.clipDurations (fourchette [min, max] en secondes, ±5 s autour de la cible
-    //   pour laisser OpusClip couper sur une fin de phrase).
-    // À VÉRIFIER : la doc ne précise pas l'unité ; les exemples suggèrent des secondes.
+    // → curationPref.clipDurations (fourchette [min, max] en secondes, vérifiée sur un projet réel :
+    //   OpusClip livre des extraits dans la fourchette demandée).
+    // La durée choisie par le client est respectée À LA SECONDE : on demande des extraits au moins
+    // aussi longs que la cible (cible → cible + 5 s), puis le post-traitement les coupe exactement
+    // à la durée choisie, avec un court fondu sonore (pipeline.finalizeCapsules → renderFinal).
     durations: {
-      15: [[10, 20]],
-      30: [[25, 35]],
-      45: [[40, 50]],
-      60: [[55, 65]],
+      15: [[15, 20]],
+      30: [[30, 35]],
+      45: [[45, 50]],
+      60: [[60, 65]],
     },
+    // Extraits plus courts que la cible : acceptés seulement s'il en manque, et à moins de 1 s près.
+    durationToleranceSec: 1,
 
     // « Format » : Vertical 9:16 | Carré 1:1 | Horizontal 16:9 → renderPref.layoutAspectRatio.
     // À VÉRIFIER : la doc cite portrait / landscape / square sans lister les valeurs exactes.

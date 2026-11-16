@@ -180,6 +180,19 @@ async function finalize(order) {
 
 const expiry = () => new Date(Date.now() + config.storage.retentionDays * 86400_000);
 
+/**
+ * Répartit les extraits OpusClip (déjà classés) selon la durée cible :
+ * long = au moins la cible (ou durée inconnue) → coupés exactement à la cible ;
+ * short = un peu plus courts que la cible (à `toleranceSec` près), utilisés seulement en complément.
+ * Les extraits plus courts encore sont écartés.
+ */
+function pickClipsForDuration(ranked, targetSec, toleranceSec) {
+  const ms = (c) => Number(c.durationMs);
+  const long = ranked.filter((c) => !Number.isFinite(ms(c)) || ms(c) >= targetSec * 1000 - 50);
+  const short = ranked.filter((c) => Number.isFinite(ms(c)) && ms(c) < targetSec * 1000 - 50 && ms(c) >= (targetSec - toleranceSec) * 1000);
+  return { long, short };
+}
+
 async function finalizeCapsules(order, tmp) {
   const logos = await prepareLogos(order, tmp, { requireClientLogo: true });
   const all = (await opus.getExportableClips(order.opus_project_id)).filter((c) => c.uriForExport);
@@ -188,8 +201,16 @@ async function finalizeCapsules(order, tmp) {
   const score = (c) => Number(c.score ?? c.viralityScore ?? c.viralScore ?? NaN);
   const ranked = all.some((c) => Number.isFinite(score(c))) ? [...all].sort((a, b) => (score(b) || 0) - (score(a) || 0)) : all;
   const delivery = capsuleDelivery(order.options, mapping); // capsules : 3 vidéos ; teaser : 1
-  const clips = ranked.slice(0, delivery.maxClips);
-  console.log(`[order ${shortId(order.id)}] ${all.length} clip(s) proposés par OpusClip, ${clips.length} livré(s)`);
+  // Durée choisie par le client, respectée à la seconde : extraits au moins aussi longs que la cible
+  // (coupés ensuite exactement à la cible), puis, s'il en manque, extraits à moins de 1 s près.
+  const target = Number(order.options.duration);
+  const { long, short } = pickClipsForDuration(ranked, target, mapping.capsules.durationToleranceSec ?? 1);
+  const clips = [...long, ...short].slice(0, delivery.maxClips);
+  if (!clips.length) {
+    const got = all.map((c) => (Number.isFinite(c.durationMs) ? `${Math.round(c.durationMs / 1000)} s` : '?')).join(', ');
+    throw new Error(`Aucun extrait OpusClip d'au moins ${target} s (reçus : ${got})`);
+  }
+  console.log(`[order ${shortId(order.id)}] ${all.length} clip(s) proposés par OpusClip, ${clips.length} livré(s) à ${target} s`);
   const done = await orders.existingClipIds(order.id);
   const base = slug(mapping.programmes[order.options.programmeId]?.title);
   const fmt = order.options.format.replace(':', 'x');
@@ -203,7 +224,8 @@ async function finalizeCapsules(order, tmp) {
     const input = path.join(tmp, `clip-${n}.mp4`);
     const output = path.join(tmp, `final-${n}.mp4`);
     await downloadUrlToFile(clip.uriForExport, input);
-    await renderFinal({ input, output, logos, widthRatio: mapping.logos.widthRatio, marginRatio: mapping.logos.marginRatio });
+    await renderFinal({ input, output, logos, widthRatio: mapping.logos.widthRatio, marginRatio: mapping.logos.marginRatio, maxDurationSec: target });
+    const finalSec = await probeDurationSec(output).catch(() => null);
 
     const fileName = delivery.kind === 'teaser'
       ? `${base}_teaser_${order.options.duration}s_${fmt}.mp4`
@@ -215,7 +237,8 @@ async function finalizeCapsules(order, tmp) {
       storageKey: key,
       fileName,
       title: clip.title || (delivery.kind === 'teaser' ? 'Teaser' : `Capsule ${n}`),
-      durationMs: Number.isFinite(clip.durationMs) ? Math.round(clip.durationMs) : null,
+      // Durée réelle du fichier livré (et non celle de l'extrait OpusClip avant coupe)
+      durationMs: finalSec ? Math.round(finalSec * 1000) : Number.isFinite(clip.durationMs) ? Math.min(Math.round(clip.durationMs), target * 1000) : null,
       sizeBytes: size,
       opusClipId: clipId,
       expiresAt: expiry(),
@@ -301,4 +324,4 @@ async function finalizeSubtitles(order, tmp) {
   });
 }
 
-module.exports = { submit, poll, finalize, sourceKeyFor };
+module.exports = { submit, poll, finalize, sourceKeyFor, pickClipsForDuration };

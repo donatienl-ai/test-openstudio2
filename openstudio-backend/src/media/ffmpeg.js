@@ -147,8 +147,9 @@ function buildForceStyle({ fontName, fontSize, outline, outlineColour, primaryCo
  * @param {number} p.widthRatio
  * @param {number} p.marginRatio
  * @param {null|{srtPath: string, forceStyle: string}} [p.subtitles]
+ * @param {number} [p.maxDurationSec]  coupe la vidéo à cette durée exacte (fondu sonore de fin)
  */
-async function renderFinal({ input, output, logos, widthRatio, marginRatio, subtitles = null }) {
+async function renderFinal({ input, output, logos, widthRatio, marginRatio, subtitles = null, maxDurationSec = null }) {
   const size = logos.length ? await probeVideoSize(input) : null;
   if (logos.length && !size) throw new Error('Vidéo illisible : dimensions introuvables');
   const { filter, outLabel } = buildFilterGraph({ logos, widthRatio, marginRatio, subtitles, videoWidth: size && size.width });
@@ -159,6 +160,7 @@ async function renderFinal({ input, output, logos, widthRatio, marginRatio, subt
     '-filter_complex', filter,
     '-map', `[${outLabel}]`,
     '-map', '0:a?',
+    ...(maxDurationSec ? ['-t', String(maxDurationSec), '-af', `afade=t=out:st=${Math.max(0, maxDurationSec - 0.3).toFixed(2)}:d=0.3`] : []),
     '-c:v', 'libx264',
     '-preset', 'veryfast',
     '-threads', '2',
