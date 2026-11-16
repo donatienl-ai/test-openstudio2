@@ -57,7 +57,8 @@ function toBool(v, def) {
 /**
  * Valide les options d'une commande et renvoie une version normalisée.
  *
- * capsules  : { videoId, duration, format, clientLogoKey? } (sous-titres : modèle unique)
+ * capsules  : { videoId, kind? ('capsules' | 'teaser'), duration, format, clientLogoKey? } (sous-titres : modèle unique)
+ *             teaser → durée imposée (capsules.teaser.duration) et une seule vidéo livrée
  *             context.video = vidéo du package du client (déjà vérifiée : elle lui appartient)
  * subtitles : { videoKey | videoId (vidéo du package), transcriptKey?, spokenLanguage, subtitleLanguage, splitLongLines,
  *               size, outline, offsetMs? }
@@ -72,7 +73,9 @@ function normalizeOptions(type, options, mapping, context = {}) {
     const programme = mapping.programmes[video.programme_id];
     if (!programme) throw new ValidationError(`Programme non configuré : ${video.programme_id}`);
 
-    const duration = pick(mapping.capsules.durations, req(options.duration, 'Durée de capsule non sélectionnée'), normalizeDuration);
+    const kind = options.kind === 'teaser' ? 'teaser' : 'capsules';
+    const durationInput = kind === 'teaser' ? mapping.capsules.teaser.duration : req(options.duration, 'Durée de capsule non sélectionnée');
+    const duration = pick(mapping.capsules.durations, durationInput, normalizeDuration);
     if (!mapping.capsules.durations[duration]) throw new ValidationError(`Durée non proposée : ${options.duration}`);
     const format = pick(mapping.capsules.formats, req(options.format, 'Format non sélectionné'), normalizeFormat);
     if (!mapping.capsules.formats[format]) throw new ValidationError(`Format non proposé : ${options.format}`);
@@ -85,6 +88,7 @@ function normalizeOptions(type, options, mapping, context = {}) {
       sourceKey: video.source_key,
       // Durée mesurée au dépôt (secours si la lecture de la vidéo par ffmpeg échoue)
       sourceDurationSec: video.duration_sec ? Number(video.duration_sec) : null,
+      kind,
       duration,
       format,
       clientLogoKey: options.clientLogoKey || null,
@@ -150,6 +154,17 @@ function normalizeOptions(type, options, mapping, context = {}) {
  * @param {object} mapping     opusclip.config
  * @param {string} webhookUrl  URL publique de notre webhook
  */
+/** Livraison d'une commande « capsules » : nombre de vidéos et nom des fichiers selon le type choisi. */
+function capsuleDelivery(options, mapping) {
+  const teaser = options.kind === 'teaser';
+  return {
+    kind: teaser ? 'teaser' : 'capsules',
+    maxClips: teaser ? mapping.capsules.teaser.maxClips : mapping.capsules.maxClips || 3,
+    fileLabel: teaser ? 'teaser' : 'capsule',
+    title: teaser ? 'Teaser' : 'Capsule',
+  };
+}
+
 function buildProjectPayload(order, videoRef, mapping, webhookUrl) {
   const o = order.options;
   const conclusionActions = [{ type: 'WEBHOOK', url: webhookUrl, notifyFailure: true }];
@@ -233,6 +248,7 @@ function shortId(id) {
 }
 
 module.exports = {
+  capsuleDelivery,
   ValidationError,
   VIDEO_TYPES,
   NON_VIDEO_TYPES,

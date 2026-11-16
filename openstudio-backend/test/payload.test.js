@@ -62,6 +62,27 @@ test('capsules : la vidéo du package fixe le programme, la source et la langue'
   assert.deepEqual(p.conclusionActions, [{ type: 'WEBHOOK', url: hook, notifyFailure: true }]);
 });
 
+test('capsules / teaser : le type choisi est conservé et pilote la livraison', () => {
+  const { capsuleDelivery } = require('../src/opusclip/payload');
+  // Capsules (y compris en 15 s) : restent des capsules, 3 vidéos
+  for (const duration of ['15 s', '30 s']) {
+    const o = normalizeOptions('capsules', { videoId: 'v1', kind: 'capsules', duration, format: '9:16' }, real, { video });
+    assert.equal(o.kind, 'capsules');
+    assert.deepEqual(capsuleDelivery(o, real), { kind: 'capsules', maxClips: real.capsules.maxClips, fileLabel: 'capsule', title: 'Capsule' });
+  }
+  // Sans type (ancien site) : capsules
+  assert.equal(normalizeOptions('capsules', { videoId: 'v1', duration: '15 s', format: '9:16' }, real, { video }).kind, 'capsules');
+  // Teaser : 15 s imposées quelle que soit la durée reçue, une seule vidéo
+  for (const duration of [undefined, '30 s', '60 s']) {
+    const o = normalizeOptions('capsules', { videoId: 'v1', kind: 'teaser', duration, format: '9:16' }, real, { video });
+    assert.equal(o.kind, 'teaser');
+    assert.equal(o.duration, '15');
+    assert.deepEqual(capsuleDelivery(o, real), { kind: 'teaser', maxClips: 1, fileLabel: 'teaser', title: 'Teaser' });
+    const p = buildProjectPayload({ id: ID, type: 'capsules', options: o }, 'u', real, hook);
+    assert.deepEqual(p.curationPref.clipDurations, real.capsules.durations['15']);
+  }
+});
+
 test('capsules : vidéo hors du package du client → refusée', () => {
   assert.throws(
     () => normalizeOptions('capsules', { videoId: 'v-autre', duration: '30 s', format: '9:16' }, real, { video: null }),
