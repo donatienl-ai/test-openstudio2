@@ -40,10 +40,10 @@ Les libellés affichés sont acceptés tels quels :
   videoId: 'id de la vidéo choisie à l'étape 1',
   duration: '30 s',          // '15 s' | '30 s' | '45 s' | '60 s'
   format: 'Vertical 9:16',   // 'Vertical 9:16' | 'Carré 1:1' | 'Horizontal 16:9'
-  subtitleStyle: 'Impact',   // 'Impact' | 'Classique' | 'Discret'
 }
 ```
 
+Les sous-titres suivent un modèle unique, sans choix côté client (`capsules.brandTemplateId`).
 Le logo de l'entreprise est pris dans la fiche client (géré par l'équipe) ; celui du média
 (BFM Business…) vient du programme de la vidéo.
 
@@ -60,7 +60,6 @@ document.querySelector('#btn-valider-capsules').addEventListener('click', async 
       videoId: document.querySelector('input[name="video"]:checked')?.value,
       duration: document.querySelector('.duree.active')?.textContent,   // « 30 s »
       format: document.querySelector('.format.active')?.dataset.format,  // « 9:16 »
-      subtitleStyle: document.querySelector('.style.active')?.textContent, // « Impact »
     });
     location.href = link;
   } catch (err) {

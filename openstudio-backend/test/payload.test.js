@@ -21,14 +21,12 @@ const video = { id: 'v1', title: 'Passage du 12 mars', programme_id: 'bfm-busine
 test('capsules : libellés de la page acceptés tels quels → payload OpusClip', () => {
   for (const [duration, range] of [['15 s', [[10, 20]]], ['30 s', [[25, 35]]], ['45 s', [[40, 50]]], ['60 s', [[55, 65]]]]) {
     for (const [format, expected] of [['Vertical 9:16', 'portrait'], ['Carré 1:1', 'square'], ['Horizontal 16:9', 'landscape']]) {
-      for (const style of ['Impact', 'Classique', 'Discret']) {
-        const options = normalizeOptions('capsules', { videoId: 'v1', duration, format, subtitleStyle: style }, real, { video });
-        const p = buildProjectPayload({ id: ID, type: 'capsules', options }, 'upload-xyz', real, hook);
-        assert.equal(p.videoUrl, 'upload-xyz');
-        assert.equal(p.renderPref.layoutAspectRatio, expected);
-        assert.deepEqual(p.curationPref.clipDurations, range);
-        assert.equal(p.brandTemplateId, real.capsules.subtitleStyles[style.toLowerCase()]);
-      }
+      const options = normalizeOptions('capsules', { videoId: 'v1', duration, format }, real, { video });
+      const p = buildProjectPayload({ id: ID, type: 'capsules', options }, 'upload-xyz', real, hook);
+      assert.equal(p.videoUrl, 'upload-xyz');
+      assert.equal(p.renderPref.layoutAspectRatio, expected);
+      assert.deepEqual(p.curationPref.clipDurations, range);
+      assert.equal(p.brandTemplateId, real.capsules.brandTemplateId);
     }
   }
 });
@@ -38,14 +36,15 @@ test('capsules : un seul brandTemplateId (celui de la config) et aucune option a
   const TEXT_OPTIONS = /caption|highlight|emphasis|emoji|keyword|uppercase|font|subtitle|hook|broll|template|brandkit/i;
   const keysOf = (o, prefix = '') =>
     Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' && !Array.isArray(v) ? [`${prefix}${k}`, ...keysOf(v, `${prefix}${k}.`)] : [`${prefix}${k}`]));
-  const templates = new Set(Object.values(real.capsules.subtitleStyles));
-  assert.equal(templates.size, 1, 'les trois styles pointent vers le même template');
-  for (const style of ['Impact', 'Classique', 'Discret']) {
+  assert.equal(real.capsules.subtitleStyles, undefined, 'plus de choix de style : un modèle unique');
+  // Sans style, ou avec un style envoyé par une ancienne version du site (ignoré)
+  for (const style of [undefined, 'Impact', 'Discret', 'Néon']) {
     const options = normalizeOptions('capsules', { videoId: 'v1', duration: '30 s', format: '9:16', subtitleStyle: style }, real, { video });
+    assert.equal(options.subtitleStyle, undefined);
     const p = buildProjectPayload({ id: ID, type: 'capsules', options }, 'u', real, hook);
     const keys = keysOf(p);
     assert.deepEqual(keys.filter((k) => /brandTemplateId$/i.test(k)), ['brandTemplateId']);
-    assert.equal(p.brandTemplateId, [...templates][0]);
+    assert.equal(p.brandTemplateId, real.capsules.brandTemplateId);
     assert.doesNotMatch(p.brandTemplateId, /^preset-/, 'pas de preset OpusClip');
     assert.deepEqual(keys.filter((k) => k !== 'brandTemplateId' && TEXT_OPTIONS.test(k.split('.').pop())), []);
     assert.equal(p.renderPref.quickstartConfig, undefined);
@@ -53,7 +52,7 @@ test('capsules : un seul brandTemplateId (celui de la config) et aucune option a
 });
 
 test('capsules : la vidéo du package fixe le programme, la source et la langue', () => {
-  const options = normalizeOptions('capsules', { videoId: 'v1', duration: '30', format: '9:16', subtitleStyle: 'impact' }, real, { video });
+  const options = normalizeOptions('capsules', { videoId: 'v1', duration: '30', format: '9:16' }, real, { video });
   assert.equal(options.programmeId, 'bfm-business');
   assert.equal(options.sourceKey, 'clients/c1/bfm.mp4');
   const p = buildProjectPayload({ id: ID, type: 'capsules', options }, 'u', real, hook);
@@ -65,15 +64,14 @@ test('capsules : la vidéo du package fixe le programme, la source et la langue'
 
 test('capsules : vidéo hors du package du client → refusée', () => {
   assert.throws(
-    () => normalizeOptions('capsules', { videoId: 'v-autre', duration: '30 s', format: '9:16', subtitleStyle: 'impact' }, real, { video: null }),
+    () => normalizeOptions('capsules', { videoId: 'v-autre', duration: '30 s', format: '9:16' }, real, { video: null }),
     /ne fait pas partie de votre espace/
   );
 });
 
 test('capsules : option non proposée → erreur explicite', () => {
-  assert.throws(() => normalizeOptions('capsules', { videoId: 'v1', duration: '20 s', format: '9:16', subtitleStyle: 'impact' }, real, { video }), /Durée non proposée/);
-  assert.throws(() => normalizeOptions('capsules', { videoId: 'v1', duration: '30 s', format: '4:3', subtitleStyle: 'impact' }, real, { video }), ValidationError);
-  assert.throws(() => normalizeOptions('capsules', { videoId: 'v1', duration: '30 s', format: '9:16', subtitleStyle: 'Néon' }, real, { video }), /Aucun template/);
+  assert.throws(() => normalizeOptions('capsules', { videoId: 'v1', duration: '20 s', format: '9:16' }, real, { video }), /Durée non proposée/);
+  assert.throws(() => normalizeOptions('capsules', { videoId: 'v1', duration: '30 s', format: '4:3' }, real, { video }), ValidationError);
 });
 
 // ---------------------------------------------------------------------------
