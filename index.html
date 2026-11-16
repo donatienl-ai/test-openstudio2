@@ -958,7 +958,10 @@ em,i:not([class]){font-style:normal}
 .os-tl span{font-size:14px;color:var(--os-mut);line-height:1.45}
 .os-help{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:18px 22px;border-radius:12px;background:var(--os-tint);font-size:14px}
 .os-help a{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-decoration:none}
-.bk-pill{top:auto;bottom:20px;right:20px}
+.bk-pill{top:auto;bottom:20px;right:20px;padding:8px 16px 8px 12px;gap:10px}
+.bk-pill .t{display:flex;flex-direction:column;align-items:flex-start;line-height:1.3;text-align:left}
+.bk-pill .t b{font-weight:600}
+.bk-pill .t small{font-size:12px;opacity:.65}
 .bk-ready{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:85;display:flex;align-items:center;gap:2px;background:#1A1A2E;color:#fff;border-radius:999px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:calc(100vw - 32px);animation:bkReadyIn .25s ease-out}
 .bk-ready button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:999px}
 .bk-ready .go{display:flex;align-items:center;gap:10px;padding:9px 14px 9px 10px;font-size:14px;font-weight:600}
@@ -1683,10 +1686,18 @@ function pCommandes() {
   return head + `<div class="stack" style="gap:16px">${ids.map(id => bkOrderCard(BKO.byId[id])).join('')}</div>`;
 }
 /* Factures : une ligne par commande (création vidéo et prestations), avec les informations de facturation. */
+/* Temps écoulé depuis le lancement (« 12 min », « 1 h 05 »), mis à jour chaque minute sans redessiner la page. */
+const BK_ETA = 'En général 10 à 30 min';
+function bkSince(iso) {
+  const m = Math.max(1, Math.floor((Date.now() - new Date(iso)) / 60000));
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`;
+}
+setInterval(() => document.querySelectorAll('[data-bk-since]').forEach(el => { el.textContent = bkSince(el.dataset.bkSince); }), 30000);
 function bkBusyIndicator() {
   const b = bkBusyOrders(); if (!b.length) return '';
   const label = b.length > 1 ? `${b.length} préparations en cours` : (b[0].type === 'capsules' ? 'Préparation de vos capsules…' : 'Préparation de votre vidéo…');
-  return `<div class="bk-topbar" aria-hidden="true"><i></i></div><button class="bk-pill" data-a="nav" data-arg="commandes" role="status" aria-live="polite"><i aria-hidden="true"></i>${label}</button>`;
+  const since = b.map(o => o.createdAt).filter(Boolean).sort()[0]; // la plus ancienne
+  return `<div class="bk-topbar" aria-hidden="true"><i></i></div><button class="bk-pill" data-a="nav" data-arg="commandes" aria-label="${esc(label + ' ' + BK_ETA)}"><i aria-hidden="true"></i><span class="t" aria-hidden="true"><b>${label}${since ? ` · <span data-bk-since="${esc(since)}">${bkSince(since)}</span>` : ''}</b><small>${BK_ETA}</small></span></button>`;
 }
 function bkAfterSubmit(order) {
   BKO.byId[order.id] = order;
