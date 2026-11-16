@@ -958,7 +958,10 @@ em,i:not([class]){font-style:normal}
 .os-tl span{font-size:14px;color:var(--os-mut);line-height:1.45}
 .os-help{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:18px 22px;border-radius:12px;background:var(--os-tint);font-size:14px}
 .os-help a{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-decoration:none}
-.bk-pill{top:auto;bottom:20px;right:20px}
+.bk-pill{top:auto;bottom:20px;right:20px;padding:8px 16px 8px 12px;gap:10px}
+.bk-pill .t{display:flex;flex-direction:column;align-items:flex-start;line-height:1.3;text-align:left}
+.bk-pill .t b{font-weight:600}
+.bk-pill .t small{font-size:12px;opacity:.65}
 .bk-ready{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:85;display:flex;align-items:center;gap:2px;background:#1A1A2E;color:#fff;border-radius:999px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:calc(100vw - 32px);animation:bkReadyIn .25s ease-out}
 .bk-ready button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:999px}
 .bk-ready .go{display:flex;align-items:center;gap:10px;padding:9px 14px 9px 10px;font-size:14px;font-weight:600}
@@ -1596,13 +1599,26 @@ function bkTrackPending(o) {
   if (BK_BUSY.includes(o.status)) { if (!p.includes(o.id)) bkSetPending([...p, o.id]); return; }
   if (!p.includes(o.id)) return;
   bkSetPending(p.filter(x => x !== o.id));
-  if (o.status === 'ready' && !BKO.ready.includes(o.id)) BKO.ready.push(o.id);
+  if (o.status === 'ready' && !BKO.ready.includes(o.id)) { BKO.ready.push(o.id); bkCheckReady(o.id); }
 }
-function bkReadyPill() {
-  if (!BKO.ready.length) return '';
-  const id = BKO.ready[BKO.ready.length - 1];
-  return `<div class="bk-ready" role="status" aria-live="polite"><button class="go" data-a="bk-ready-open" data-arg="${esc(id)}"><i aria-hidden="true">✓</i>${BKO.ready.length > 1 ? 'Vos vidéos sont prêtes' : 'Votre vidéo est prête'}</button><button class="x" data-a="bk-ready-close" aria-label="Fermer">×</button></div>`;
+/* La pastille n'apparaît qu'une fois les vidéos réellement téléchargeables (au moins un fichier livré).
+   Elle vit hors de la zone redessinée par render() : elle n'est donc ni recréée ni réanimée à chaque clic. */
+function bkCheckReady(id) {
+  const f = BKO.files[id];
+  if (f === 'loading') return; // bkLoadFiles rappellera bkCheckReady
+  if (!f) { bkLoadFiles(id); return; }
+  if (!Array.isArray(f) || !f.length) BKO.ready = BKO.ready.filter(x => x !== id); // rien à télécharger : pas de pastille
+  bkShowReadyPill();
 }
+function bkShowReadyPill() {
+  const ids = BKO.ready.filter(id => Array.isArray(BKO.files[id]) && BKO.files[id].length);
+  let el = document.getElementById('bk-ready');
+  if (!ids.length || !bkOn() || S.view !== 'client') { if (el) el.remove(); return; }
+  const html = `<button class="go" data-a="bk-ready-open" data-arg="${esc(ids[ids.length - 1])}"><i aria-hidden="true">✓</i>${ids.length > 1 ? 'Vos vidéos sont prêtes' : 'Votre vidéo est prête'}</button><button class="x" data-a="bk-ready-close" aria-label="Fermer">×</button>`;
+  if (!el) { el = document.createElement('div'); el.id = 'bk-ready'; el.className = 'bk-ready'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  if (el.innerHTML !== html) el.innerHTML = html;
+}
+function bkHideReadyPill() { BKO.ready = []; const el = document.getElementById('bk-ready'); if (el) el.remove(); }
 const BK_BUSY = ['paid', 'submitting', 'processing', 'opus_done', 'postprocessing'];
 const BK_TYPES = { capsules: 'Capsules vidéo', subtitles: 'Interview sous-titrée' };
 const bkStage = st => st === 'ready' ? 4 : ['opus_done', 'postprocessing'].includes(st) ? 3 : st === 'processing' ? 2 : ['paid', 'submitting'].includes(st) ? 1 : 0;
@@ -1627,6 +1643,7 @@ async function bkLoadFiles(id) {
   BKO.files[id] = 'loading';
   try { const { files } = await OpenStudio.getDownloads(id); BKO.files[id] = files || []; }
   catch (e) { BKO.files[id] = { err: e.message }; }
+  if (BKO.ready.includes(id)) bkCheckReady(id);
   bkRerender();
 }
 async function bkLoadOrders(force) {
@@ -1683,10 +1700,18 @@ function pCommandes() {
   return head + `<div class="stack" style="gap:16px">${ids.map(id => bkOrderCard(BKO.byId[id])).join('')}</div>`;
 }
 /* Factures : une ligne par commande (création vidéo et prestations), avec les informations de facturation. */
+/* Temps écoulé depuis le lancement (« 12 min », « 1 h 05 »), mis à jour chaque minute sans redessiner la page. */
+const BK_ETA = 'En général 10 à 30 min';
+function bkSince(iso) {
+  const m = Math.max(1, Math.floor((Date.now() - new Date(iso)) / 60000));
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`;
+}
+setInterval(() => document.querySelectorAll('[data-bk-since]').forEach(el => { el.textContent = bkSince(el.dataset.bkSince); }), 30000);
 function bkBusyIndicator() {
   const b = bkBusyOrders(); if (!b.length) return '';
   const label = b.length > 1 ? `${b.length} préparations en cours` : (b[0].type === 'capsules' ? 'Préparation de vos capsules…' : 'Préparation de votre vidéo…');
-  return `<div class="bk-topbar" aria-hidden="true"><i></i></div><button class="bk-pill" data-a="nav" data-arg="commandes" role="status" aria-live="polite"><i aria-hidden="true"></i>${label}</button>`;
+  const since = b.map(o => o.createdAt).filter(Boolean).sort()[0]; // la plus ancienne
+  return `<div class="bk-topbar" aria-hidden="true"><i></i></div><button class="bk-pill" data-a="nav" data-arg="commandes" aria-label="${esc(label + ' ' + BK_ETA)}"><i aria-hidden="true"></i><span class="t" aria-hidden="true"><b>${label}${since ? ` · <span data-bk-since="${esc(since)}">${bkSince(since)}</span>` : ''}</b><small>${BK_ETA}</small></span></button>`;
 }
 function bkAfterSubmit(order) {
   BKO.byId[order.id] = order;
@@ -2058,6 +2083,7 @@ function clearTimers() { TIMERS.forEach(t => clearInterval(t)); TIMERS = []; if 
 const root = document.getElementById('root');
 function render() {
   clearTimers(); saveClients();
+  if (S.view !== 'client') { const rp = document.getElementById('bk-ready'); if (rp) rp.remove(); } // pastille « prête » : espace client seulement
   const scrollY = window.scrollY;
   let h = S.view === 'client' ? '' : protobar() + siteHeader();
   if (S.view === 'login') h += viewLogin();
@@ -2314,7 +2340,7 @@ function viewClient() {
       out = osSideShell(c, act, `<div class="os-legacy">${page}</div>`);
     }
   }
-  return imp + (bkOn() ? bkBusyIndicator() + bkReadyPill() : '') + out;
+  return imp + (bkOn() ? bkBusyIndicator() : '') + out;
 }
 /* ---------- Accueil (maquette C) ---------- */
 function osHome(c) {
@@ -4673,8 +4699,8 @@ const A = {
   'cmd-filter': a => { S.cf = a; S.keepScroll = true; render(); },
   'order-track': a => { const o = BKO.byId[a]; if (!o) return; if (o.status === 'ready') { go('client', 'commande', a); return; } S.cap.bkOrderId = a; S.cap.lastKind = osKindOf(o); S.cap.bkStep = 5; go('client', 'capsules'); },
   'nav-order': a => { S.modal = null; go('client', 'commande', a); },
-  'bk-ready-open': a => { BKO.ready = []; S.modal = null; go('client', 'commande', a); },
-  'bk-ready-close': () => { BKO.ready = []; S.keepScroll = true; render(); },
+  'bk-ready-open': a => { bkHideReadyPill(); S.modal = null; go('client', 'commande', a); },
+  'bk-ready-close': () => { bkHideReadyPill(); },
   'em-go': a => { const [kind, vid] = String(a).split('|'); S.cap.flowKind = kind; if (vid) S.cap.bkVideoId = vid; S.cap.bkOrderId = null; S.cap.checked = false; S.cap.bkStep = S.cap.bkVideoId ? 3 : 1; S.modal = null; go('client', 'capsules'); },
   'devis-open': () => { const v = osPkgVideos()[0]; S.modal = { type: 'devis', em: v ? [v.media, v.title].filter(Boolean).join(' — ') : 'Plusieurs émissions', txt: '', fmts: [], date: '' }; render(); },
   'dv-fmt': a => { const m = S.modal; if (!m) return; m.fmts = m.fmts.includes(a) ? m.fmts.filter(x => x !== a) : [...m.fmts, a]; S.keepScroll = true; render(); },
