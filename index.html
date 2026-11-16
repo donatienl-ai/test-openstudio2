@@ -1909,7 +1909,8 @@ async function bkSubmitCapsules() {
   const fmt = CAP_OPTIONS.fmts.find(x => x[0] === k.fmt) || CAP_OPTIONS.fmts[0];
   BK.submitting = true; S.keepScroll = true; render();
   try {
-    const { order } = await OpenStudio.submitOrder('capsules', { videoId: v.bkId, duration: `${flowDur()} s`, format: `${fmt[1]} ${fmt[0]}` }, bkContact());
+    // kind : le serveur livre 1 vidéo de 15 s pour un teaser, plusieurs capsules sinon
+    const { order } = await OpenStudio.submitOrder('capsules', { videoId: v.bkId, kind: flowKind() === 'teaser' ? 'teaser' : 'capsules', duration: `${flowDur()} s`, format: `${fmt[1]} ${fmt[0]}` }, bkContact());
     bkAfterSubmit(order);
     BK.submitting = false; S.modal = null; k.lastKind = flowKind(); k.bkOrderId = order.id; k.bkStep = 5; S.keepScroll = false; render(); window.scrollTo(0, 0);
   } catch (e) { BK.submitting = false; S.keepScroll = true; render(); toast(e.message); }
@@ -2256,7 +2257,8 @@ function osOrders() {
 const osFmtOf = o => { const f = String((o.options && o.options.format) || ''); return o.type === 'subtitles' ? '16:9' : f.includes('16:9') ? '16:9' : f.includes('1:1') ? '1:1' : '9:16'; };
 const osFmtCls = f => f === '16:9' ? 'r169' : f === '1:1' ? 'r11' : '';
 const osFmtName = f => f === '16:9' ? 'Horizontal' : f === '1:1' ? 'Carré' : 'Vertical';
-const osKindOf = o => o.type === 'subtitles' ? 'subtitles' : /^15/.test(String((o.options && o.options.duration) || '')) ? 'teaser' : 'capsules';
+// Type choisi par le client, enregistré dans la commande (et non plus deviné d'après la durée : des capsules de 15 s restent des capsules)
+const osKindOf = o => o.type === 'subtitles' ? 'subtitles' : (o.options && o.options.kind) === 'teaser' ? 'teaser' : 'capsules';
 const osTypeLabel = o => ({ capsules: 'Capsules réseaux', teaser: 'Teaser', subtitles: 'Interview sous-titrée' })[osKindOf(o)];
 /* Vidéos produites (commandes prêtes) et commandes en préparation */
 function osClips() {
@@ -4690,7 +4692,9 @@ const A = {
   'bk-new': () => { S.cap.bkStep = 1; S.cap.bkOrderId = null; S.keepScroll = false; render(); },
   'bk-kind': a => { S.cap.flowKind = a; if (a === 'teaser' && !S.cap.fmt) S.cap.fmt = '9:16'; S.keepScroll = true; render(); },
   'home-pick': a => { S.home = a; S.keepScroll = true; render(); },
-  'flow-go': a => { const [kind, step] = String(a).split('|'); const v = osPkgVideos()[0]; S.cap.flowKind = kind; S.cap.checked = false; if (v && v.bkId) S.cap.bkVideoId = v.bkId; if (!bkOn()) { S.cap.kind = kind === 'teaser' ? 'teaser' : 'capsule'; go('client', kind === 'subtitles' ? 'sous-titres' : 'capsules'); return; } S.cap.bkOrderId = null; S.cap.bkStep = S.cap.bkVideoId ? +step : 1; go('client', 'capsules'); },
+  'flow-go': a => { const [kind, step] = String(a).split('|'); const v = osPkgVideos()[0]; S.cap.flowKind = kind; S.cap.checked = false;
+    // Réglages annoncés sur la carte de l'accueil (« 30 s · vertical », « 15 s · vertical ») : pas de reste d'une création précédente
+    if (kind !== 'subtitles') { S.cap.fmt = '9:16'; if (kind === 'capsules') S.cap.dur = 30; } if (v && v.bkId) S.cap.bkVideoId = v.bkId; if (!bkOn()) { S.cap.kind = kind === 'teaser' ? 'teaser' : 'capsule'; go('client', kind === 'subtitles' ? 'sous-titres' : 'capsules'); return; } S.cap.bkOrderId = null; S.cap.bkStep = S.cap.bkVideoId ? +step : 1; go('client', 'capsules'); },
   'flow-mod': () => { S.modal = { type: 'flow-mod' }; render(); },
   'pay-open': () => { S.modal = { type: 'pay', mode: 'cb' }; render(); },
   'pay-mode': a => { if (S.modal) S.modal.mode = a; S.keepScroll = true; render(); },

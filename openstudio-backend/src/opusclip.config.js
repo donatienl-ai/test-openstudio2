@@ -63,6 +63,8 @@ module.exports = {
     brandTemplateId: 'cmc38f93j011vbbtl9d0nt51b',
 
     maxClips: 3, // nombre de propositions livrées au client (les mieux classées par OpusClip)
+    // Teaser : même traitement OpusClip, mais une seule vidéo de 15 s (la mieux classée).
+    teaser: { duration: '15', maxClips: 1 },
     model: 'ClipBasic', // "ClipBasic" (talk-shows) ou "ClipAnything"
     genre: 'Auto',
     removeFillerWords: false,

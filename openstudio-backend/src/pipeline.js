@@ -18,7 +18,7 @@ const orders = require('./orders');
 const clients = require('./clients');
 const storage = require('./storage');
 const opus = require('./opusclip/client');
-const { buildProjectPayload, interpretProjectStatus, estimateCredits, shortId } = require('./opusclip/payload');
+const { buildProjectPayload, interpretProjectStatus, estimateCredits, shortId, capsuleDelivery } = require('./opusclip/payload');
 const { isLiveOrder, liveTestGuard } = require('./opusclip/mode');
 const { probeDurationSec, renderFinal, buildForceStyle } = require('./media/ffmpeg');
 const { mp4DurationSec } = require('./media/mp4duration');
@@ -187,7 +187,8 @@ async function finalizeCapsules(order, tmp) {
   // Les meilleures propositions d'abord (score OpusClip s'il est fourni), limitées à maxClips.
   const score = (c) => Number(c.score ?? c.viralityScore ?? c.viralScore ?? NaN);
   const ranked = all.some((c) => Number.isFinite(score(c))) ? [...all].sort((a, b) => (score(b) || 0) - (score(a) || 0)) : all;
-  const clips = ranked.slice(0, mapping.capsules.maxClips || 3);
+  const delivery = capsuleDelivery(order.options, mapping); // capsules : 3 vidéos ; teaser : 1
+  const clips = ranked.slice(0, delivery.maxClips);
   console.log(`[order ${shortId(order.id)}] ${all.length} clip(s) proposés par OpusClip, ${clips.length} livré(s)`);
   const done = await orders.existingClipIds(order.id);
   const base = slug(mapping.programmes[order.options.programmeId]?.title);
@@ -204,14 +205,16 @@ async function finalizeCapsules(order, tmp) {
     await downloadUrlToFile(clip.uriForExport, input);
     await renderFinal({ input, output, logos, widthRatio: mapping.logos.widthRatio, marginRatio: mapping.logos.marginRatio });
 
-    const fileName = `${base}_capsule-${String(n).padStart(2, '0')}_${order.options.duration}s_${fmt}.mp4`;
+    const fileName = delivery.kind === 'teaser'
+      ? `${base}_teaser_${order.options.duration}s_${fmt}.mp4`
+      : `${base}_capsule-${String(n).padStart(2, '0')}_${order.options.duration}s_${fmt}.mp4`;
     const key = `commandes/${order.id}/capsules/${fileName}`;
     const size = await storage.uploadFile(key, output);
     await orders.addDeliverable({
       orderId: order.id,
       storageKey: key,
       fileName,
-      title: clip.title || `Capsule ${n}`,
+      title: clip.title || (delivery.kind === 'teaser' ? 'Teaser' : `Capsule ${n}`),
       durationMs: Number.isFinite(clip.durationMs) ? Math.round(clip.durationMs) : null,
       sizeBytes: size,
       opusClipId: clipId,
