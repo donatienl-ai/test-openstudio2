@@ -959,6 +959,15 @@ em,i:not([class]){font-style:normal}
 .os-help{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:18px 22px;border-radius:12px;background:var(--os-tint);font-size:14px}
 .os-help a{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-decoration:none}
 .bk-pill{top:auto;bottom:20px;right:20px}
+.bk-ready{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:85;display:flex;align-items:center;gap:2px;background:#1A1A2E;color:#fff;border-radius:999px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:calc(100vw - 32px);animation:bkReadyIn .25s ease-out}
+.bk-ready button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:999px}
+.bk-ready .go{display:flex;align-items:center;gap:10px;padding:9px 14px 9px 10px;font-size:14px;font-weight:600}
+.bk-ready .go i{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#4DD69A;color:#1A1A2E;font-style:normal;font-size:13px;font-weight:800}
+.bk-ready .x{width:32px;height:32px;font-size:20px;line-height:1;opacity:.75}
+.bk-ready button:hover{background:rgba(255,255,255,.1)}.bk-ready .x:hover{opacity:1}
+.bk-ready button:focus-visible{outline:2px solid #C9C9FF;outline-offset:2px}
+@keyframes bkReadyIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.bk-ready{animation:none}}
 /* fenêtres : grand titre, bouton rond de fermeture, sans barres */
 .modal{border-radius:20px;max-width:600px}
 .modal-h{border-bottom:0;padding:32px 32px 0;align-items:flex-start}
@@ -1575,7 +1584,24 @@ if (bkOn()) { try { OpenStudio.clientSession(); } catch (e) {} }
 // ---------------------------------------------------------------------------
 // Suivi des commandes dans l'interface : le client ne quitte jamais l'espace.
 // La génération se fait sur le serveur ; ici on interroge son état et on affiche le résultat.
-const BKO = { list: null, loading: false, byId: {}, files: {}, watching: {} };
+const BKO = { list: null, loading: false, byId: {}, files: {}, watching: {}, ready: [] };
+/* Pastille « Votre vidéo est prête » : les commandes vues en préparation sont mémorisées dans ce navigateur,
+   pour prévenir aussi quand la vidéo est prête alors que la page avait été fermée. Aucun e-mail n'est envoyé. */
+const BK_PENDING_KEY = 'om-bk-pending-v1';
+const bkPending = () => { try { return JSON.parse(localStorage.getItem(BK_PENDING_KEY) || '[]'); } catch (e) { return []; } };
+const bkSetPending = ids => { try { localStorage.setItem(BK_PENDING_KEY, JSON.stringify(ids.slice(-30))); } catch (e) {} };
+function bkTrackPending(o) {
+  const p = bkPending();
+  if (BK_BUSY.includes(o.status)) { if (!p.includes(o.id)) bkSetPending([...p, o.id]); return; }
+  if (!p.includes(o.id)) return;
+  bkSetPending(p.filter(x => x !== o.id));
+  if (o.status === 'ready' && !BKO.ready.includes(o.id)) BKO.ready.push(o.id);
+}
+function bkReadyPill() {
+  if (!BKO.ready.length) return '';
+  const id = BKO.ready[BKO.ready.length - 1];
+  return `<div class="bk-ready" role="status" aria-live="polite"><button class="go" data-a="bk-ready-open" data-arg="${esc(id)}"><i aria-hidden="true">✓</i>${BKO.ready.length > 1 ? 'Vos vidéos sont prêtes' : 'Votre vidéo est prête'}</button><button class="x" data-a="bk-ready-close" aria-label="Fermer">×</button></div>`;
+}
 const BK_BUSY = ['paid', 'submitting', 'processing', 'opus_done', 'postprocessing'];
 const BK_TYPES = { capsules: 'Capsules vidéo', subtitles: 'Interview sous-titrée' };
 const bkStage = st => st === 'ready' ? 4 : ['opus_done', 'postprocessing'].includes(st) ? 3 : st === 'processing' ? 2 : ['paid', 'submitting'].includes(st) ? 1 : 0;
@@ -1587,10 +1613,10 @@ function bkWatch(id) {
     if (!o) return;
     const prev = BKO.byId[id];
     BKO.byId[id] = o;
+    bkTrackPending(o);
     if (o.status === 'ready' && !BKO.files[id]) bkLoadFiles(id);
     // On ne redessine que si l'état change (sinon les vidéos en lecture repartiraient de zéro).
     if (!prev || prev.status !== o.status) {
-      if (prev && o.status === 'ready') toast(o.type === 'capsules' ? 'Vos capsules sont prêtes.' : 'Votre vidéo est prête.');
       if (prev && o.status === 'error') toast('La commande a rencontré un problème : notre équipe a été prévenue.');
       bkRerender();
     }
@@ -1608,7 +1634,7 @@ async function bkLoadOrders(force) {
   try {
     const list = await OpenStudio.getMyOrders();
     BKO.list = list.map(o => o.id);
-    list.forEach(o => { BKO.byId[o.id] = o; if (BK_BUSY.includes(o.status)) bkWatch(o.id); });
+    list.forEach(o => { BKO.byId[o.id] = o; bkTrackPending(o); if (BK_BUSY.includes(o.status)) bkWatch(o.id); });
   } catch (e) { BKO.list = BKO.list || []; }
   BKO.loading = false; bkRerender();
 }
@@ -1663,6 +1689,7 @@ function bkBusyIndicator() {
 }
 function bkAfterSubmit(order) {
   BKO.byId[order.id] = order;
+  bkTrackPending(order);
   BKO.list = [order.id, ...(BKO.list || []).filter(x => x !== order.id)];
   bkWatch(order.id);
 }
@@ -1724,7 +1751,7 @@ function flowRows(v) {
   const rows = [['Émission', v ? [v.media, v.title].filter(Boolean).join(' · ') : '—', 'step|1'], ['Type', FLOW_KINDS[kd].short, 'step|2']];
   if (kd === 'subtitles') rows.push(['Sous-titres', 'En français, transcription automatique', 'mod']);
   else rows.push(['Format', `${f[1]} ${f[0]}`, 'mod'], ['Durée', kd === 'teaser' ? '15 s' : `Environ ${flowDur()} s par capsule`, 'mod'], ['Style des sous-titres', flowStyle()[1], 'mod']);
-  rows.push(['Habillage', 'Logo de l’émission et logo de votre entreprise', ''], ['Livraison', 'À télécharger dans Commandes, un e-mail vous prévient', '']);
+  rows.push(['Habillage', 'Logo de l’émission et logo de votre entreprise', ''], ['Livraison', 'À télécharger dans Mes créations', '']);
   return rows;
 }
 function flowStepper(n) {
@@ -1806,7 +1833,7 @@ function bkCapsulesPage(c) {
       <div class="os-paybox"><span class="mut" style="font-size:13px">Paiement</span><span style="font-size:14px">${flowPrice() == null ? 'Inclus dans votre package : rien à payer' : 'Carte bancaire, prélèvement SEPA ou virement'}</span></div>
       <label class="os-check"><input type="checkbox" data-in="flow-check" ${k.checked ? 'checked' : ''}><span>J'ai vérifié l'émission, le format et la durée.</span></label>
       <button class="os-cta" style="padding:17px 24px" data-a="pay-open" ${k.checked && !BK.submitting ? '' : 'disabled'}>${BK.submitting ? 'Validation en cours…' : 'Valider et lancer ↗'}</button>
-      <span class="note">La création prend plusieurs minutes. Vous recevez un e-mail dès que c'est prêt.</span></aside>`;
+      <span class="note">Une pastille vous prévient dès que c’est prêt.</span></aside>`;
   return `<main class="os-wrap"><div style="display:flex;flex-direction:column;gap:18px"><button class="os-back" data-a="${back[1].startsWith('nav') ? 'nav' : 'bk-step'}" data-arg="${back[1].split('|')[1]}">← ${back[0]}</button><h1 class="t">${h1}</h1>${steps}</div>
     <div class="os-cols"><div class="os-colm">${main}</div>${aside}</div></main>`;
 }
@@ -1815,12 +1842,12 @@ function osLaunched(c, o) {
   const kd = FLOW_KINDS[S.cap.lastKind] || FLOW_KINDS[osKindOf(o)] || FLOW_KINDS.capsules;
   const st = bkStage(o.status); const ready = o.status === 'ready'; const err = o.status === 'error';
   const nPh = (S.cap.lastKind || osKindOf(o)) === 'capsules' ? 3 : 1;
-  const tl = [['Commande validée', 'La confirmation est dans votre boîte mail.'], ['Préparation des vidéos', 'Plusieurs minutes : découpage, sous-titres et ajout de vos logos.'], [ready ? 'Prêtes à télécharger' : 'Prêtes à télécharger', 'Elles apparaissent dans Mes créations et vous recevez un e-mail.']];
+  const tl = [['Commande validée', 'Votre demande est bien enregistrée.'], ['Préparation des vidéos', 'Découpage, sous-titres et ajout de vos logos.'], ['Prêtes à télécharger', 'Elles apparaissent dans Mes créations.']];
   const state = i => i === 0 ? 'done' : i === 1 ? (ready ? 'done' : 'now') : (ready ? 'done' : '');
   return `<section class="os-launch" aria-labelledby="ok"><div><div class="txt">
       <span class="kick">Commande n° ${esc(o.id.slice(0, 8))} · ${new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}</span>
       <h1 id="ok">${err ? 'Un problème est survenu.' : ready ? 'C’est prêt.' : 'C’est lancé.'}<span>${err ? 'Notre équipe a été prévenue.' : ready ? 'Vos vidéos vous attendent.' : esc(kd.ready)}</span></h1>
-      <p>${err ? esc(o.error || 'Votre chargée de projet revient vers vous rapidement.') : ready ? 'Regardez-les, puis téléchargez celles qui vous plaisent.' : 'La préparation prend plusieurs minutes. Vous pouvez fermer cette page : vous recevez un e-mail dès que c’est prêt, et vos vidéos apparaissent dans Mes créations.'}</p>
+      <p>${err ? esc(o.error || 'Votre chargée de projet revient vers vous rapidement.') : ready ? 'Regardez-les, puis téléchargez celles qui vous plaisent.' : 'Vous pouvez continuer à naviguer : une pastille s’affiche en bas de l’écran dès que c’est prêt, et vos vidéos apparaissent dans Mes créations.'}</p>
       <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">${ready ? `<button class="os-cta" data-a="nav-order" data-arg="${o.id}">Voir mes vidéos ↗</button>` : `<button class="os-cta" data-a="nav" data-arg="medias">Suivre dans Mes créations ↗</button>`}<button class="os-link" style="color:#C9C9FF" data-a="bk-new">Créer une autre vidéo</button></div></div>
       <div class="os-ph" aria-hidden="true">${'<span class="phb"></span>'.repeat(nPh)}</div></div></section>
     <main class="os-wrap">
@@ -1850,7 +1877,6 @@ function payModalHtml(m) {
       ${paid ? `<div class="os-seg" style="display:flex" role="group" aria-label="Moyen de paiement">${[['cb', 'Carte bancaire'], ['sepa', 'Prélèvement SEPA'], ['vir', 'Virement']].map(([id, l]) => `<button type="button" style="flex:1 1 auto" data-a="pay-mode" data-arg="${id}" aria-pressed="${(m.mode || 'cb') === id}">${l}</button>`).join('')}</div>
       <p class="small muted" style="margin:0">${m.mode === 'vir' ? 'Vous recevez nos coordonnées bancaires par e-mail. La création démarre dès réception du virement.' : 'Vous êtes redirigé vers la page sécurisée de notre prestataire de paiement.'}</p>`
       : `<p style="margin:0;padding:14px 16px;border-radius:10px;border:1px solid #E2E0D8;font-size:14px;line-height:1.5">Cette création est incluse dans votre package : aucun paiement n’est demandé.</p>`}</div>
-    <div style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:12px;background:#EEEEFF;font-size:14px;line-height:1.5"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#3B3BF9" stroke-width="1.6" style="flex:none;margin-top:2px"><circle cx="9" cy="9" r="7.2"/><path d="M9 5v4.2l2.6 1.6"/></svg><span><b style="font-weight:600">La création prend plusieurs minutes.</b> Inutile de rester sur la page : vous recevez un e-mail dès que ${flowKind() === 'capsules' ? 'vos capsules sont prêtes' : flowKind() === 'teaser' ? 'votre teaser est prêt' : 'votre interview sous-titrée est prête'}, et ${flowKind() === 'capsules' ? 'elles apparaissent' : 'elle apparaît'} dans Mes créations.</span></div>
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px"><span class="muted">Facture au nom de <b style="color:#1A1A2E">${esc(c.name || '')}</b></span><button class="os-link" data-a="nav" data-arg="factures">Modifier</button></div>
     ${bkNoSession() ? `<p class="small" style="color:var(--warn);margin:0">Pour commander, ouvrez le lien d'accès à votre espace envoyé par l'équipe OpenMedias.</p>` : ''}
     <p class="small muted" id="bk-prog" aria-live="polite" style="margin:0">${esc(BK.prog || '')}</p></div>`;
@@ -2228,7 +2254,7 @@ function osClipCard(x) {
     <div class="foot"><div style="min-width:0"><b>${esc(x.title)}</b><small>${esc(x.meta)}</small></div><a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}">${DL_SVG}</a></div></article>`;
 }
 function osPrepCard(o) {
-  return `<article class="os-clip"><div class="prep"><span class="mono">EN PRÉPARATION</span><span>Vous recevrez un e-mail quand c'est prêt</span></div><div class="foot"><div><b>${esc(osTypeLabel(o))}</b><small><button class="os-link" style="font-size:12px" data-a="order-track" data-arg="${o.id}">Suivre</button></small></div></div></article>`;
+  return `<article class="os-clip"><div class="prep"><span class="mono">EN PRÉPARATION</span><span>Une pastille vous prévient quand c’est prêt</span></div><div class="foot"><div><b>${esc(osTypeLabel(o))}</b><small><button class="os-link" style="font-size:12px" data-a="order-track" data-arg="${o.id}">Suivre</button></small></div></div></article>`;
 }
 function osDevisCard(side) {
   return side ? `<div class="os-devis"><b>Un montage sur mesure ?</b><span>Nos monteurs prennent la main sur votre rush.</span><button data-a="devis-open">Demander un devis ↗</button></div>`
@@ -2290,7 +2316,7 @@ function viewClient() {
       out = osSideShell(c, act, `<div class="os-legacy">${page}</div>`);
     }
   }
-  return imp + (bkOn() ? bkBusyIndicator() : '') + out;
+  return imp + (bkOn() ? bkBusyIndicator() + bkReadyPill() : '') + out;
 }
 /* ---------- Accueil (maquette C) ---------- */
 function osHome(c) {
@@ -2361,7 +2387,7 @@ function osVideos(c) {
   const titles = [...new Set(clips.map(x => x.o.options && x.o.options.videoTitle).filter(Boolean))];
   const card = x => `<article class="os-vcard"><div class="stage ${osFmtCls(x.fmt)}"><video src="${esc(x.url)}" controls playsinline preload="metadata"></video></div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">${esc(x.title)}</span><span class="mut" style="font-size:13px">${esc(osFmtName(x.fmt))}${x.dur ? ' · ' + x.dur : ''}</span></div><a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}">${DL_SVG}</a></div></article>`;
-  const prepCards = (f === 'all' || f === 'prep') ? prep.map(o => `<article class="os-vcard"><div class="stage" style="border:1.5px dashed #A9A8B8;background:transparent;flex-direction:column;gap:8px;text-align:center;padding:16px;box-sizing:border-box"><span class="mono mut" style="font-size:12px">EN PRÉPARATION</span><span class="mut" style="font-size:13px;line-height:1.4">Un e-mail vous prévient dès qu'elles sont prêtes</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(osTypeLabel(o))}</span><button class="os-link" style="font-size:13px;align-self:flex-start" data-a="order-track" data-arg="${o.id}">Suivre la commande</button></div></article>`) : [];
+  const prepCards = (f === 'all' || f === 'prep') ? prep.map(o => `<article class="os-vcard"><div class="stage" style="border:1.5px dashed #A9A8B8;background:transparent;flex-direction:column;gap:8px;text-align:center;padding:16px;box-sizing:border-box"><span class="mono mut" style="font-size:12px">EN PRÉPARATION</span><span class="mut" style="font-size:13px;line-height:1.4">Une pastille vous prévient dès qu’elles sont prêtes</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(osTypeLabel(o))}</span><button class="os-link" style="font-size:13px;align-self:flex-start" data-a="order-track" data-arg="${o.id}">Suivre la commande</button></div></article>`) : [];
   const secs = Object.values(groups).map(g => `<section style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 class="os-h2">${esc(osTypeLabel(g.o))} · ${esc((g.o.options && g.o.options.videoTitle) || '')} · ${osDate(g.o.createdAt)}</h2>${g.list.length > 1 ? `<a href="${esc(OpenStudio.zipUrl(g.o.id))}" style="font-size:13px">Tout télécharger (.zip)</a>` : ''}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${g.list.map(card).join('')}</div></section>`);
   return `<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center">
@@ -4650,6 +4676,8 @@ const A = {
   'cmd-filter': a => { S.cf = a; S.keepScroll = true; render(); },
   'order-track': a => { const o = BKO.byId[a]; if (!o) return; if (o.status === 'ready') { go('client', 'commande', a); return; } S.cap.bkOrderId = a; S.cap.lastKind = osKindOf(o); S.cap.bkStep = 5; go('client', 'capsules'); },
   'nav-order': a => { S.modal = null; go('client', 'commande', a); },
+  'bk-ready-open': a => { BKO.ready = []; S.modal = null; go('client', 'commande', a); },
+  'bk-ready-close': () => { BKO.ready = []; S.keepScroll = true; render(); },
   'em-go': a => { const [kind, vid] = String(a).split('|'); S.cap.flowKind = kind; if (vid) S.cap.bkVideoId = vid; S.cap.bkOrderId = null; S.cap.checked = false; S.cap.bkStep = S.cap.bkVideoId ? 3 : 1; S.modal = null; go('client', 'capsules'); },
   'devis-open': () => { const v = osPkgVideos()[0]; S.modal = { type: 'devis', em: v ? [v.media, v.title].filter(Boolean).join(' — ') : 'Plusieurs émissions', txt: '', fmts: [], date: '' }; render(); },
   'dv-fmt': a => { const m = S.modal; if (!m) return; m.fmts = m.fmts.includes(a) ? m.fmts.filter(x => x !== a) : [...m.fmts, a]; S.keepScroll = true; render(); },
