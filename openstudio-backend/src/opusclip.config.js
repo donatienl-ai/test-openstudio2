@@ -58,11 +58,14 @@ module.exports = {
     },
 
     // « Style des sous-titres » : Impact | Classique | Discret → brandTemplateId.
-    // ⚠️ Presets OpusClip PROVISOIRES : remplacez-les par vos brand kits (npm run opus:templates).
+    // Un seul style pour l'instant : le brand template OpusClip « Chroniques » (une ligne, texte blanc
+    // Myriad, sans mot mis en avant, sans majuscules, sans emoji). Les anciens presets
+    // (Beasty / Simple / Popline) ajoutaient majuscules et mot surligné.
+    // Les trois choix pointent vers le même template ; liste des templates : npm run opus:templates.
     subtitleStyles: {
-      impact: 'preset-fancy-Beasty', // À REMPLACER : brand kit « Impact »
-      classique: 'preset-fancy-Simple', // À REMPLACER : brand kit « Classique »
-      discret: 'preset-fancy-Popline', // À REMPLACER : brand kit « Discret »
+      impact: 'cmc38f93j011vbbtl9d0nt51b', // « Chroniques »
+      classique: 'cmc38f93j011vbbtl9d0nt51b', // « Chroniques »
+      discret: 'cmc38f93j011vbbtl9d0nt51b', // « Chroniques »
     },
 
     maxClips: 3, // nombre de propositions livrées au client (les mieux classées par OpusClip)
