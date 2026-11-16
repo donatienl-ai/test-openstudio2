@@ -33,6 +33,25 @@ test('capsules : libellés de la page acceptés tels quels → payload OpusClip'
   }
 });
 
+test('capsules : un seul brandTemplateId (celui de la config) et aucune option ajoutant du texte', () => {
+  // Tout ce qui pourrait produire une seconde couche de texte ou modifier le style des sous-titres
+  const TEXT_OPTIONS = /caption|highlight|emphasis|emoji|keyword|uppercase|font|subtitle|hook|broll|template|brandkit/i;
+  const keysOf = (o, prefix = '') =>
+    Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' && !Array.isArray(v) ? [`${prefix}${k}`, ...keysOf(v, `${prefix}${k}.`)] : [`${prefix}${k}`]));
+  const templates = new Set(Object.values(real.capsules.subtitleStyles));
+  assert.equal(templates.size, 1, 'les trois styles pointent vers le même template');
+  for (const style of ['Impact', 'Classique', 'Discret']) {
+    const options = normalizeOptions('capsules', { videoId: 'v1', duration: '30 s', format: '9:16', subtitleStyle: style }, real, { video });
+    const p = buildProjectPayload({ id: ID, type: 'capsules', options }, 'u', real, hook);
+    const keys = keysOf(p);
+    assert.deepEqual(keys.filter((k) => /brandTemplateId$/i.test(k)), ['brandTemplateId']);
+    assert.equal(p.brandTemplateId, [...templates][0]);
+    assert.doesNotMatch(p.brandTemplateId, /^preset-/, 'pas de preset OpusClip');
+    assert.deepEqual(keys.filter((k) => k !== 'brandTemplateId' && TEXT_OPTIONS.test(k.split('.').pop())), []);
+    assert.equal(p.renderPref.quickstartConfig, undefined);
+  }
+});
+
 test('capsules : la vidéo du package fixe le programme, la source et la langue', () => {
   const options = normalizeOptions('capsules', { videoId: 'v1', duration: '30', format: '9:16', subtitleStyle: 'impact' }, real, { video });
   assert.equal(options.programmeId, 'bfm-business');
