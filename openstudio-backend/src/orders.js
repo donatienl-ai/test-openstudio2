@@ -173,10 +173,10 @@ async function recoverStuck(minutes = 30) {
 
 async function addDeliverable(d) {
   await db.query(
-    `INSERT INTO deliverables (id, order_id, storage_key, file_name, title, duration_ms, size_bytes, opus_clip_id, expires_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    `INSERT INTO deliverables (id, order_id, storage_key, file_name, title, duration_ms, size_bytes, opus_clip_id, expires_at, transcript)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
      ON CONFLICT (order_id, opus_clip_id) DO NOTHING`,
-    [crypto.randomUUID(), d.orderId, d.storageKey, d.fileName, d.title, d.durationMs, d.sizeBytes, d.opusClipId, d.expiresAt]
+    [crypto.randomUUID(), d.orderId, d.storageKey, d.fileName, d.title, d.durationMs, d.sizeBytes, d.opusClipId, d.expiresAt, d.transcript || null]
   );
 }
 

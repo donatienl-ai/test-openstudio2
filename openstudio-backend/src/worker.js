@@ -9,6 +9,7 @@ const orders = require('./orders');
 const pipeline = require('./pipeline');
 const storage = require('./storage');
 const db = require('./db');
+const social = require('./social/service');
 
 let busy = false;
 let timer = null;
@@ -51,8 +52,23 @@ async function step() {
   return false;
 }
 
+async function socialStep() {
+  if (!config.social.apiKey) return;
+  // Secours si la notification upload_completed n'est pas arrivée
+  await social.pollPending().catch((e) => console.warn('[social] suivi :', e.message));
+}
+
+async function socialDaily() {
+  if (!config.social.apiKey) return;
+  // Statistiques des posts publiés : actualisées une fois par jour (quand le service est éveillé ;
+  // la page « Performances » actualise aussi à l'ouverture au-delà de 24 h)
+  await social.refreshStale({ limit: 10 }).catch((e) => console.warn('[social] statistiques :', e.message));
+  await db.query("DELETE FROM social_deliveries WHERE received_at < now() - interval '7 days'");
+}
+
 async function housekeeping() {
   await orders.recoverStuck(30);
+  await socialDaily();
   // Nettoyage des salts de webhook (> 1 h)
   await db.query("DELETE FROM webhook_salts WHERE received_at < now() - interval '1 hour'");
   // Purge des fichiers livrés expirés
@@ -74,6 +90,7 @@ async function loop() {
   busy = true;
   try {
     if (tick++ % 30 === 0) await housekeeping();
+    if (tick % 6 === 0) await socialStep();
     // Traite tout ce qui est prêt, une commande à la fois (limite mémoire/CPU sur Render)
     for (let i = 0; i < 20; i++) {
       if (!(await step())) break;
