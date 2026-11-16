@@ -1815,13 +1815,13 @@ function osLaunched(c, o) {
   const kd = FLOW_KINDS[S.cap.lastKind] || FLOW_KINDS[osKindOf(o)] || FLOW_KINDS.capsules;
   const st = bkStage(o.status); const ready = o.status === 'ready'; const err = o.status === 'error';
   const nPh = (S.cap.lastKind || osKindOf(o)) === 'capsules' ? 3 : 1;
-  const tl = [['Commande validée', 'La confirmation est dans votre boîte mail.'], ['Préparation des vidéos', 'Découpage, sous-titres et ajout de vos logos.'], [ready ? 'Prêtes à télécharger' : 'Prêtes à télécharger', 'Elles apparaissent dans Mes vidéos et vous recevez un e-mail.']];
+  const tl = [['Commande validée', 'La confirmation est dans votre boîte mail.'], ['Préparation des vidéos', 'Découpage, sous-titres et ajout de vos logos.'], [ready ? 'Prêtes à télécharger' : 'Prêtes à télécharger', 'Elles apparaissent dans Mes créations et vous recevez un e-mail.']];
   const state = i => i === 0 ? 'done' : i === 1 ? (ready ? 'done' : 'now') : (ready ? 'done' : '');
   return `<section class="os-launch" aria-labelledby="ok"><div><div class="txt">
       <span class="kick">Commande n° ${esc(o.id.slice(0, 8))} · ${new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}</span>
       <h1 id="ok">${err ? 'Un problème est survenu.' : ready ? 'C’est prêt.' : 'C’est lancé.'}<span>${err ? 'Notre équipe a été prévenue.' : ready ? 'Vos vidéos vous attendent.' : esc(kd.ready)}</span></h1>
       <p>${err ? esc(o.error || 'Votre chargée de projet revient vers vous rapidement.') : ready ? 'Regardez-les, puis téléchargez celles qui vous plaisent.' : 'Vous pouvez fermer cette page : un e-mail vous prévient dès qu’elles sont prêtes à télécharger.'}</p>
-      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">${ready ? `<button class="os-cta" data-a="nav-order" data-arg="${o.id}">Voir mes vidéos ↗</button>` : `<button class="os-cta" data-a="nav" data-arg="medias">Suivre dans Mes vidéos ↗</button>`}<button class="os-link" style="color:#C9C9FF" data-a="bk-new">Créer une autre vidéo</button></div></div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">${ready ? `<button class="os-cta" data-a="nav-order" data-arg="${o.id}">Voir mes vidéos ↗</button>` : `<button class="os-cta" data-a="nav" data-arg="medias">Suivre dans Mes créations ↗</button>`}<button class="os-link" style="color:#C9C9FF" data-a="bk-new">Créer une autre vidéo</button></div></div>
       <div class="os-ph" aria-hidden="true">${'<span class="phb"></span>'.repeat(nPh)}</div></div></section>
     <main class="os-wrap">
       <section class="os-card" aria-labelledby="suite"><h2 id="suite">Et maintenant ?</h2>
@@ -2236,11 +2236,12 @@ function osDevisCard(side) {
 /* ---------- barre latérale (maquette A) ---------- */
 function osSideShell(c, active, main) {
   const nVid = osClips().length;
-  const items = [['dashboard', 'Accueil', ''], ['capsules', 'Créer une vidéo', ''], ['medias', 'Mes vidéos', nVid ? String(nVid) : ''], ['commandes', 'Commandes', ''], ['factures', 'Factures', ''], ['offres', 'Nos offres', ''], ['access', 'Mon accès', '']];
+  const items = [['emissions', 'Mes émissions', osLive() ? String(osPkgVideos().length) : ''], ['medias', 'Mes créations', nVid ? String(nVid) : ''], ['factures', 'Factures', ''], ['offres', 'Nos offres', ''], ['access', 'Mon accès', '']];
   return `<div class="os os-side">
   <nav aria-label="Navigation principale">
     <button class="os-brand" data-a="nav" data-arg="dashboard" aria-label="Accueil OpenStudio"><b>OPENSTUDIO</b><span>par OpenMedias</span></button>
-    <div class="os-nav">${items.map(([k, l, n]) => `<a href="#" data-a="nav" data-arg="${k}" class="${active === k ? 'on' : ''}" ${active === k ? 'aria-current="page"' : ''}>${l}${n ? ` <span class="mono">${n}</span>` : ''}</a>`).join('')}</div>
+    <button class="os-cta" style="width:100%" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button>
+    <div class="os-nav" style="margin-top:-12px">${items.map(([k, l, n]) => `<a href="#" data-a="nav" data-arg="${k}" class="${active === k ? 'on' : ''}" ${active === k ? 'aria-current="page"' : ''}>${l}${n ? ` <span class="mono">${n}</span>` : ''}</a>`).join('')}</div>
     ${osDevisCard(true)}
     <div class="os-nav more" style="margin-top:auto"><a href="#" data-a="logout">Se déconnecter</a></div>
   </nav>
@@ -2248,7 +2249,7 @@ function osSideShell(c, active, main) {
 }
 /* ---------- en-tête blanc à onglets ---------- */
 function osTopShell(c, tab, body) {
-  const tabs = [['capsules', 'Créer'], ['medias', 'Mes vidéos'], ['commandes', 'Commandes']];
+  const tabs = [['capsules', 'Créer'], ['emissions', 'Mes émissions'], ['medias', 'Mes créations']];
   return `<div class="os os-page"><header class="os-top"><div><div class="l"><button class="brand" data-a="nav" data-arg="dashboard">OPENSTUDIO</button>
     <nav class="os-tabs" aria-label="Navigation principale">${tabs.map(([k, l]) => `<a href="#" data-a="nav" data-arg="${k}" class="${tab === k ? 'on' : ''}" ${tab === k ? 'aria-current="page"' : ''}>${l}</a>`).join('')}</nav></div>
     <button class="os-acc" data-a="nav" data-arg="access"><span>${esc(c.name)}</span><b aria-hidden="true">${esc(osInitials(c.contact || c.name))}</b></button></div></header>
@@ -2264,8 +2265,8 @@ function viewClient() {
     case 'capsules': out = osTopShell(c, 'capsules', bkCapsulesPage(c)); break;
     case 'commande': out = osTopShell(c, 'medias', osLivraison(c, S.arg)); break;
     case 'emissions': out = osSideShell(c, 'emissions', osEmissions(c)); break;
-    case 'medias': out = osSideShell(c, 'medias', osVideos(c)); break;
-    case 'commandes': out = osSideShell(c, 'commandes', osCommandes(c)); break;
+    case 'medias': out = osSideShell(c, 'medias', osCreations(c, 'videos')); break;
+    case 'commandes': out = osSideShell(c, 'medias', osCreations(c, 'commandes')); break;
     case 'factures': out = osSideShell(c, 'factures', osFactures(c)); break;
     default: {
       // Outils sans maquette : mêmes fonctions qu'avant, dans la barre latérale A
@@ -2305,7 +2306,7 @@ function osHome(c) {
   const lib = (f === 'all' || f === 'prep' ? prep.map(osPrepCard) : []).concat(shown.map(osClipCard));
   return `<div class="os" style="background:#fff"><section class="os-band" aria-labelledby="accroche"><div>
     <div class="os-bandnav"><button class="brand" data-a="nav" data-arg="dashboard">OPENSTUDIO</button>
-      <nav aria-label="Navigation principale"><a href="#" data-a="nav" data-arg="medias">Mes vidéos</a><a href="#" data-a="nav" data-arg="commandes">Commandes</a><a href="mailto:contact@openmedias.fr">Aide</a><button class="who" data-a="nav" data-arg="access">${esc(c.name)}</button></nav></div>
+      <nav aria-label="Navigation principale"><a href="#" data-a="nav" data-arg="emissions">Mes émissions</a><a href="#" data-a="nav" data-arg="medias">Mes créations</a><a href="mailto:contact@openmedias.fr">Aide</a><button class="who" data-a="nav" data-arg="access">${esc(c.name)}</button></nav></div>
     <div class="os-hero"><div class="txt">
       ${hv ? `<span class="os-badge"><i aria-hidden="true"></i>${hv.media ? `Votre interview ${esc(hv.media)} est prête` : 'Votre interview est prête'}</span>` : `<span class="os-badge wait"><i aria-hidden="true"></i>${BK.loading ? 'Chargement de vos émissions…' : 'Votre interview arrive bientôt'}</span>`}
       <h1 id="accroche">Vous êtes passés à la télé.<span>Faites-le savoir.</span></h1>
@@ -2345,7 +2346,7 @@ function osEmissions(c) {
         : `<div class="os-empty">${bkUploadBox()}Vos émissions apparaîtront ici dès que l'équipe OpenMedias les aura déposées.</div>`}
     </section>
     <section aria-labelledby="sorties" style="display:flex;flex-direction:column;gap:14px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 id="sorties" class="os-h2">Dernières sorties</h2><a href="#" data-a="nav" data-arg="medias" style="font-size:13px">Toutes mes vidéos</a></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 id="sorties" class="os-h2">Dernières sorties</h2><a href="#" data-a="nav" data-arg="medias" style="font-size:13px">Toutes mes créations</a></div>
       ${clips.length ? `<div class="os-grid" style="grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:20px">${clips.map(osClipCard).join('')}</div>` : `<div class="os-empty">Vos vidéos terminées apparaîtront ici.</div>`}
     </section>`;
 }
@@ -2362,8 +2363,7 @@ function osVideos(c) {
   const prepCards = (f === 'all' || f === 'prep') ? prep.map(o => `<article class="os-vcard"><div class="stage" style="border:1.5px dashed #A9A8B8;background:transparent;flex-direction:column;gap:8px;text-align:center;padding:16px;box-sizing:border-box"><span class="mono mut" style="font-size:12px">EN PRÉPARATION</span><span class="mut" style="font-size:13px;line-height:1.4">Un e-mail vous prévient dès qu'elles sont prêtes</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(osTypeLabel(o))}</span><button class="os-link" style="font-size:13px;align-self:flex-start" data-a="order-track" data-arg="${o.id}">Suivre la commande</button></div></article>`) : [];
   const secs = Object.values(groups).map(g => `<section style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 class="os-h2">${esc(osTypeLabel(g.o))} · ${esc((g.o.options && g.o.options.videoTitle) || '')} · ${osDate(g.o.createdAt)}</h2>${g.list.length > 1 ? `<a href="${esc(OpenStudio.zipUrl(g.o.id))}" style="font-size:13px">Tout télécharger (.zip)</a>` : ''}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${g.list.map(card).join('')}</div></section>`);
-  return `<header class="os-head"><div style="display:flex;flex-direction:column;gap:6px"><span class="kick">${clips.length} vidéo${clips.length > 1 ? 's' : ''} · ${prep.length} commande${prep.length > 1 ? 's' : ''} en cours</span><h1>Mes vidéos</h1></div><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></header>
-    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center">
+  return `<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center">
       <div class="os-chips" role="group" aria-label="Filtrer par type">${[['all', 'Toutes'], ['capsules', 'Capsules'], ['teasers', 'Teasers'], ['subtitles', 'Sous-titrées'], ['prep', 'En préparation']].map(([k, l]) => `<button type="button" data-a="vid-filter" data-arg="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="visually-hidden" for="vf-em">Émission</label><select id="vf-em" class="os-sel" data-in="vf-em"><option value="">Toutes les émissions</option>${titles.map(t => `<option ${fe === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
       <label class="visually-hidden" for="vf-fmt">Format</label><select id="vf-fmt" class="os-sel" data-in="vf-fmt"><option value="">Tous les formats</option>${[['9:16', 'Vertical'], ['1:1', 'Carré'], ['16:9', 'Horizontal']].map(([v, l]) => `<option value="${v}" ${ff === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
@@ -2371,6 +2371,13 @@ function osVideos(c) {
     ${secs.join('') || (prepCards.length ? '' : `<div class="os-empty"><b style="color:var(--os-navy)">${osLive() ? 'Aucune vidéo pour le moment' : 'Aucun espace relié'}</b><span>${osLive() ? 'Vos capsules, teasers et interviews sous-titrées apparaîtront ici.' : "Ouvrez le lien d'accès envoyé par l'équipe OpenMedias."}</span><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></div>`)}`;
 }
 /* ---------- Commandes ---------- */
+function osCreations(c, tab) {
+  const clips = osClips(); const prep = osPrep(); const rows = osCommandRows(c);
+  const enCours = rows.filter(r => r.st === 'prep').length;
+  return `<header class="os-head"><div style="display:flex;flex-direction:column;gap:6px"><span class="kick">${clips.length} vidéo${clips.length > 1 ? 's' : ''} · ${rows.length} commande${rows.length > 1 ? 's' : ''} · ${enCours} en cours</span><h1>Mes créations</h1></div></header>
+    <div class="os-seg" role="tablist" aria-label="Mes créations" style="align-self:flex-start"><button type="button" role="tab" data-a="nav" data-arg="medias" aria-selected="${tab === 'videos'}" aria-pressed="${tab === 'videos'}">Vidéos${clips.length + prep.length ? ` · ${clips.length + prep.length}` : ''}</button><button type="button" role="tab" data-a="nav" data-arg="commandes" aria-selected="${tab === 'commandes'}" aria-pressed="${tab === 'commandes'}">Commandes${rows.length ? ` · ${rows.length}` : ''}</button></div>
+    ${tab === 'commandes' ? osCommandes(c) : osVideos(c)}`;
+}
 function osCommandRows(c) {
   const bk = osOrders().map(o => ({ date: new Date(o.createdAt), num: o.id.slice(0, 8), what: osTypeLabel(o), sub: [(o.options && o.options.videoTitle), o.type === 'capsules' ? osFmtName(osFmtOf(o)).toLowerCase() : '', o.options && o.options.duration].filter(Boolean).join(' · '),
     st: o.status === 'ready' ? 'ok' : o.status === 'error' ? 'err' : BK_BUSY.includes(o.status) ? 'prep' : o.status === 'dry_run' ? 'blue' : 'prep',
@@ -2386,8 +2393,7 @@ function osCommandes(c) {
   const cols = 'grid-template-columns:110px 110px minmax(0,1fr) 160px 110px 160px';
   const act = r => r.kind !== 'bk' ? '' : r.ready ? `<button class="os-pillbtn s" data-a="nav-order" data-arg="${r.id}">Télécharger</button>` : `<button class="os-pillbtn ${r.st === 'prep' ? 'p' : 's'}" data-a="order-track" data-arg="${r.id}">${r.st === 'prep' ? 'Suivre' : 'Voir'}</button>`;
   const enCours = all.filter(r => r.st === 'prep').length;
-  return `<header class="os-head"><div style="display:flex;flex-direction:column;gap:6px"><span class="kick">${all.length} commande${all.length > 1 ? 's' : ''} · ${enCours} en cours</span><h1>Commandes</h1></div><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></header>
-    <div class="os-chips" role="group" aria-label="Filtrer les commandes">${[['all', 'Toutes'], ['cours', 'En cours'], ['livrees', 'Livrées'], ['devis', 'Devis']].map(([k, l]) => `<button type="button" data-a="cmd-filter" data-arg="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
+  return `<div class="os-chips" role="group" aria-label="Filtrer les commandes">${[['all', 'Toutes'], ['cours', 'En cours'], ['livrees', 'Livrées'], ['devis', 'Devis']].map(([k, l]) => `<button type="button" data-a="cmd-filter" data-arg="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
     ${osLive() && !BKO.list ? `<div class="os-empty">Chargement de vos commandes…</div>` : rows.length ? `<div class="os-tbl"><div style="min-width:900px"><div class="os-tr h" style="${cols}"><span>Date</span><span>N°</span><span>Contenu</span><span>Statut</span><span>Montant</span><span></span></div>
       ${rows.map(r => `<div class="os-tr" style="${cols}"><span class="mono" style="font-size:13px">${r.date.toLocaleDateString('fr-FR')}</span><span class="mono mut" style="font-size:13px">${esc(r.num)}</span><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">${esc(r.what)}</span><span class="mut" style="font-size:13px">${esc(r.sub)}</span></div><span class="os-dot ${r.st}"><i aria-hidden="true"></i>${r.stl}</span><span style="font-size:14px">${esc(r.amount)}</span><div style="display:flex;justify-content:flex-end">${act(r)}</div></div>`).join('')}</div></div>`
       : `<div class="os-empty"><b style="color:var(--os-navy)">Aucune commande ${f === 'all' ? 'pour le moment' : 'dans cette catégorie'}</b><span>Vos capsules, teasers et interviews sous-titrées apparaîtront ici.</span></div>`}
@@ -2420,7 +2426,7 @@ function osLivraison(c, id) {
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`}</span><span class="mut" style="font-size:13px">${[osMMSS(x.durationMs), fmt, 'MP4'].filter(Boolean).join(' · ')}</span></div>
       <a class="os-pillbtn s" style="height:44px" href="${esc(x.downloadUrl)}" download="${esc(x.fileName || '')}">${DL_SVG}Télécharger</a></div></article>`;
   return `<main class="os-wrap" style="gap:28px">
-    <nav aria-label="Fil d'Ariane" class="mut" style="font-size:14px"><a href="#" data-a="nav" data-arg="medias" style="text-decoration:none">Mes vidéos</a> / Commande du ${new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</nav>
+    <nav aria-label="Fil d'Ariane" class="mut" style="font-size:14px"><a href="#" data-a="nav" data-arg="medias" style="text-decoration:none">Mes créations</a> / Commande du ${new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</nav>
     <div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:flex-end"><div style="display:flex;flex-direction:column;gap:10px">
       <span class="os-dot ${o.status === 'ready' ? 'ok' : 'prep'}" style="align-self:flex-start;font-weight:600;background:#fff;border:1px solid var(--os-line);border-radius:50px;padding:7px 12px"><i aria-hidden="true"></i>${o.status === 'ready' ? (n > 1 ? 'Prêtes' : 'Prête') : esc(o.statusLabel || 'En préparation')}</span>
       <h1 class="t">${o.status === 'ready' ? what : 'Votre commande est en préparation'}</h1>
