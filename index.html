@@ -1138,7 +1138,7 @@ loadClients();
 /* ================= État ================= */
 const S = {
   view: 'login', page: 'dashboard', arg: null, clientId: null, asAdmin: false, fails: 0, lockUntil: 0,
-  cap: { step: 1, videoId: 'v1', dur: 30, fmt: '9:16', style: 'impact', results: null, seed: 0, sel: 0, analyzing: -1, from: null },
+  cap: { step: 1, videoId: 'v1', dur: 30, fmt: '9:16', style: 'minimal', results: null, seed: 0, sel: 0, analyzing: -1, from: null },
   saved: [], visSaved: [],
   vis: { tpl: 'citation', fmt: '1:1', photo: null, results: null, loading: -1, seed: 0 },
   pub: { source: 'v1', nets: ['linkedin'], tone: 'expert', results: null, loading: false, active: null, mode: null, editing: {}, extra: 'cal' },
@@ -1169,7 +1169,8 @@ const CAP_OPTIONS = {
     { id: 'teaser', label: 'Teaser', durs: [20, 30, 40], dur: 30, fmt: '16:9', run: 'Proposer mes teasers', one: 'teaser', many: 'teasers', proposed: 'teasers proposés', dl: 'Télécharger le teaser' }
   ],
   fmts: [['9:16', 'Vertical', 'Reels, TikTok, Stories', 18, 32], ['1:1', 'Carré', 'Fil LinkedIn, Instagram', 26, 26], ['16:9', 'Horizontal', 'YouTube, site web', 36, 20]],
-  styles: [['impact', 'Impact'], ['classique', 'Classique'], ['minimal', 'Discret']],
+  // Un seul style de sous-titres, identique pour toutes les vidéos (template OpusClip « Chroniques » : texte blanc).
+  styles: [['minimal', 'Blancs']],
   lang: 'fr',
   perPage: 4,
   poll: { first: 15000, factor: 1.25, max: 60000, limit: 30 * 60000 }
@@ -1717,13 +1718,12 @@ const FLOW_STEPS = ['Émission', 'Type de vidéo', 'Format et durée', 'Récapit
 const flowKind = () => FLOW_KINDS[S.cap.flowKind] ? S.cap.flowKind : 'capsules';
 const flowDur = () => flowKind() === 'teaser' ? 15 : S.cap.dur;
 const flowFmt = () => CAP_OPTIONS.fmts.find(x => x[0] === S.cap.fmt) || CAP_OPTIONS.fmts[0];
-const flowStyle = () => CAP_OPTIONS.styles.find(x => x[0] === S.cap.style) || CAP_OPTIONS.styles[0];
 const flowVideo = () => (BK.videos || []).find(x => x.bkId === S.cap.bkVideoId) || null;
 function flowRows(v) {
   const kd = flowKind(); const f = flowFmt();
   const rows = [['Émission', v ? [v.media, v.title].filter(Boolean).join(' · ') : '—', 'step|1'], ['Type', FLOW_KINDS[kd].short, 'step|2']];
   if (kd === 'subtitles') rows.push(['Sous-titres', 'En français, transcription automatique', 'mod']);
-  else rows.push(['Format', `${f[1]} ${f[0]}`, 'mod'], ['Durée', kd === 'teaser' ? '15 s' : `Environ ${flowDur()} s par capsule`, 'mod'], ['Style des sous-titres', flowStyle()[1], 'mod']);
+  else rows.push(['Format', `${f[1]} ${f[0]}`, 'mod'], ['Durée', kd === 'teaser' ? '15 s' : `Environ ${flowDur()} s par capsule`, 'mod'], ['Sous-titres', 'En blanc, ajoutés automatiquement', '']);
   rows.push(['Habillage', 'Logo de l’émission et logo de votre entreprise', ''], ['Livraison', 'À télécharger dans Commandes, un e-mail vous prévient', '']);
   return rows;
 }
@@ -1751,14 +1751,13 @@ function flowSettingsHtml(v) {
       <div class="opt-grid" role="group" aria-label="Format">${CAP_OPTIONS.fmts.map(([f, l, u, w, h]) => flowOpt(k.fmt === f, 'cap-fmt', f, `<i style="width:${w * 2.4}px;height:${h * 2.4}px"></i>`, f, l, u)).join('')}</div></section>
     <section class="flow-card" aria-labelledby="q-dur"><h2 id="q-dur">${kd === 'teaser' ? 'Durée du teaser' : 'Durée de chaque capsule'}</h2>
       ${kd === 'teaser' ? `<p class="muted">15 secondes : le bon format pour annoncer votre passage.</p>` : `<div class="seg-ctl" role="group" aria-label="Durée">${durs.map(d => `<button data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div><p class="small muted">Les meilleurs moments de l’interview sont repérés automatiquement : vous recevez plusieurs propositions.</p>`}</section>
-    <section class="flow-card" aria-labelledby="q-sty"><h2 id="q-sty">Style des sous-titres</h2>
-      <div class="seg-ctl" role="group" aria-label="Style des sous-titres">${CAP_OPTIONS.styles.map(([st, l]) => `<button data-a="cap-style" data-arg="${st}" aria-pressed="${k.style === st}">${l}</button>`).join('')}</div>
-      <div class="row" style="gap:20px;align-items:center"><div class="frame ${fmtClass(k.fmt)}" data-style="${k.style}" style="--hl:${m.accent}">${scene(v)}${capMarks(m)}<p class="sub sub-${k.style}">${subHtml('Aperçu du *style* de vos sous-titres', k.style)}</p></div><p class="muted small" style="max-width:36ch">Le logo de votre entreprise et celui de l’émission sont ajoutés automatiquement.</p></div></section>`;
+    <section class="flow-card" aria-labelledby="q-sty"><h2 id="q-sty">Sous-titres</h2>
+      <div class="row" style="gap:20px;align-items:center"><div class="frame ${fmtClass(k.fmt)}" data-style="${k.style}" style="--hl:${m.accent}">${scene(v)}${capMarks(m)}<p class="sub sub-${k.style}">${subHtml('Aperçu de vos sous-titres', k.style)}</p></div><p class="muted small" style="max-width:36ch">Sous-titres en blanc, ajoutés automatiquement et identiques pour toutes vos vidéos. Le logo de votre entreprise et celui de l’émission sont ajoutés aussi.</p></div></section>`;
 }
 function bkCapsulesPage(c) {
   const k = S.cap; if (!BK.videos && !BK.loading && osLive()) setTimeout(bkLoadVideos, 0);
   if (!CAP_OPTIONS.kinds[0].durs.includes(k.dur)) k.dur = 30;
-  if (k.bkStyleInit !== 1) { k.style = 'classique'; k.bkStyleInit = 1; }
+  k.style = CAP_OPTIONS.styles[0][0]; // style unique
   const v = flowVideo(); const kd = flowKind();
   const tracked = k.bkStep === 5 && k.bkOrderId && BKO.byId[k.bkOrderId];
   if (tracked) return osLaunched(c, BKO.byId[k.bkOrderId]);
@@ -1789,8 +1788,8 @@ function bkCapsulesPage(c) {
       <section class="os-card" aria-labelledby="q-duree"><h2 id="q-duree">${kd === 'teaser' ? 'Durée du teaser' : 'Durée de chaque capsule'}</h2>
         ${kd === 'teaser' ? `<p class="mut" style="margin:0">15 secondes : le bon format pour annoncer votre passage.</p>` : `<div style="display:flex;flex-direction:column;gap:8px"><span class="mut" style="font-size:13px">Durée de chaque capsule</span><div class="os-seg" role="group" aria-label="Durée">${CAP_OPTIONS.kinds[0].durs.map(d => `<button type="button" data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>`}
         <p class="mut" style="margin:0;font-size:14px;line-height:1.5">Les meilleurs moments de l'interview sont repérés automatiquement. Le logo de l'émission et le vôtre sont ajoutés sur chaque ${kd === 'teaser' ? 'vidéo' : 'capsule'}.</p></section>
-      <section class="os-card" aria-labelledby="q-style"><h2 id="q-style">Style des sous-titres</h2><div class="os-seg" role="group" aria-label="Style des sous-titres">${CAP_OPTIONS.styles.map(([st, l]) => `<button type="button" data-a="cap-style" data-arg="${st}" aria-pressed="${k.style === st}">${l}</button>`).join('')}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center"><div class="frame ${fmtClass(k.fmt)}" data-style="${k.style}" style="--hl:${m.accent}">${scene(v)}${capMarks(m)}<p class="sub sub-${k.style}">${subHtml('Aperçu du *style* de vos sous-titres', k.style)}</p></div></div></section>`;
+      <section class="os-card" aria-labelledby="q-style"><h2 id="q-style">Sous-titres</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center"><div class="frame ${fmtClass(k.fmt)}" data-style="${k.style}" style="--hl:${m.accent}">${scene(v)}${capMarks(m)}<p class="sub sub-${k.style}">${subHtml('Aperçu de vos sous-titres', k.style)}</p></div><p class="mut" style="margin:0;font-size:14px;line-height:1.5;max-width:36ch">En blanc, ajoutés automatiquement et identiques pour toutes vos vidéos.</p></div></section>`;
     }
   } else {
     const prev = kd === 'subtitles' ? '' : `<section class="os-card"><h2>Ce que vous allez recevoir</h2><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:520px">${[1, 2, 3].slice(0, kd === 'teaser' ? 1 : 3).map(i => `<div style="display:flex;flex-direction:column;gap:8px"><div class="frame ${fmtClass(k.fmt)}" style="width:100%">${scene(v)}</div><span style="font-size:14px;font-weight:600">${kd === 'teaser' ? 'Teaser' : 'Capsule ' + i}</span></div>`).join('')}</div><p class="mut" style="margin:0;font-size:14px;line-height:1.5">Aperçu indicatif : les extraits sont choisis automatiquement dans votre interview au moment de la création.</p></section>`;
@@ -1839,8 +1838,7 @@ function flowModHtml() {
   if (kd === 'subtitles') return `<p style="margin:0">Les sous-titres sont en français, transcrits automatiquement à partir du son de la vidéo. Le format reste celui de la vidéo d’origine.</p>`;
   return `<div style="display:flex;flex-direction:column;gap:22px">
     <div class="os-field" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Format</span><div class="os-fmt3">${[['9:16', 'Vertical 9:16', 34, 60], ['1:1', 'Carré 1:1', 52, 52], ['16:9', 'Horizontal 16:9', 92, 52]].map(([f, l, w, h]) => `<button type="button" class="os-opt" data-a="cap-fmt" data-arg="${f}" aria-pressed="${k.fmt === f}"><span class="shape"><i style="width:${w}px;height:${h}px;border-radius:4px"></i></span><b style="font-size:14px">${l}</b></button>`).join('')}</div></div>
-    ${kd === 'teaser' ? '' : `<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Durée de chaque capsule</span><div class="os-seg" role="group" aria-label="Durée">${CAP_OPTIONS.kinds[0].durs.map(d => `<button type="button" data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>`}
-    <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Style des sous-titres</span><div class="os-seg" role="group" aria-label="Style des sous-titres">${CAP_OPTIONS.styles.map(([st, l]) => `<button type="button" data-a="cap-style" data-arg="${st}" aria-pressed="${k.style === st}">${l}</button>`).join('')}</div></div></div>`;
+    ${kd === 'teaser' ? '' : `<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Durée de chaque capsule</span><div class="os-seg" role="group" aria-label="Durée">${CAP_OPTIONS.kinds[0].durs.map(d => `<button type="button" data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>`}</div>`;
 }
 function payModalHtml(m) {
   const v = flowVideo(); const kd = flowKind(); const paid = flowPrice() != null; const c = client() || {};
@@ -1856,10 +1854,10 @@ function payModalHtml(m) {
 }
 async function bkSubmitCapsules() {
   const k = S.cap; const v = (BK.videos || []).find(x => x.bkId === k.bkVideoId); if (!v || BK.submitting) return;
-  const fmt = CAP_OPTIONS.fmts.find(x => x[0] === k.fmt) || CAP_OPTIONS.fmts[0]; const st = CAP_OPTIONS.styles.find(x => x[0] === k.style) || CAP_OPTIONS.styles[0];
+  const fmt = CAP_OPTIONS.fmts.find(x => x[0] === k.fmt) || CAP_OPTIONS.fmts[0];
   BK.submitting = true; S.keepScroll = true; render();
   try {
-    const { order } = await OpenStudio.submitOrder('capsules', { videoId: v.bkId, duration: `${flowDur()} s`, format: `${fmt[1]} ${fmt[0]}`, subtitleStyle: st[1] }, bkContact());
+    const { order } = await OpenStudio.submitOrder('capsules', { videoId: v.bkId, duration: `${flowDur()} s`, format: `${fmt[1]} ${fmt[0]}` }, bkContact());
     bkAfterSubmit(order);
     BK.submitting = false; S.modal = null; k.lastKind = flowKind(); k.bkOrderId = order.id; k.bkStep = 5; S.keepScroll = false; render(); window.scrollTo(0, 0);
   } catch (e) { BK.submitting = false; S.keepScroll = true; render(); toast(e.message); }
@@ -2141,7 +2139,7 @@ function doLogin(code) {
   go('client', 'dashboard');
 }
 function resetClientState() {
-  S.cap = { step: 1, videoId: (CV()[0] || VIDEOS[0]).id, dur: 30, fmt: '9:16', style: 'impact', results: null, seed: 0, sel: 0, analyzing: -1, kind: 'capsule', moment: null, opusKey: null };
+  S.cap = { step: 1, videoId: (CV()[0] || VIDEOS[0]).id, dur: 30, fmt: '9:16', style: 'minimal', results: null, seed: 0, sel: 0, analyzing: -1, kind: 'capsule', moment: null, opusKey: null };
   S.pub = { source: 'v1', nets: ['linkedin'], tone: 'expert', results: null, loading: false, active: null, mode: null, editing: {}, extra: 'cal' };
   S.vis = { tpl: 'citation', fmt: '1:1', photo: null, results: null, loading: -1, seed: 0 }; S.visSaved = [];
   S.saved = [];
@@ -2530,6 +2528,7 @@ function frameHtml(v, cap, fmt, style, key) {
 }
 function pCapsules(c) {
   if (bkOn()) return bkCapsulesPage(c); /* Back-end OpenStudio : vidéos du package, validation finale */
+  S.cap.style = CAP_OPTIONS.styles[0][0]; // style unique de sous-titres
   const k = S.cap; const v = video(k.videoId);
   const oj = curJob(); const opusBusy = !!(oj && !k.results && oj.status !== 'done'); /* OpusClip */
   const stepN = k.results ? 3 : (k.analyzing >= 0 || opusBusy ? 3 : k.step);
@@ -2541,7 +2540,7 @@ function pCapsules(c) {
     body = `<div class="panel"><div class="analysis" aria-live="polite"><h2 style="margin-bottom:6px">Préparation de vos ${capKind().many}</h2>${st.map((s, i) => `<div class="st ${i < k.analyzing ? 'done' : i === k.analyzing ? 'on' : ''}"><i>${i < k.analyzing ? I('check', 'icon') : ''}</i>${s}</div>`).join('')}</div></div>`;
   } else if (k.results) {
     const segs = k.results.map(r => ({ start: r.start, dur: r.dur, title: r.title }));
-    body = `<div class="panel" style="margin-bottom:18px"><div class="row between"><div><h2>${k.results.length} ${capKind().proposed}</h2><p class="muted small" style="margin-top:4px">${esc(v.title)}, ${k.dur} secondes, format ${k.fmt}, sous-titres ${k.style}</p></div>
+    body = `<div class="panel" style="margin-bottom:18px"><div class="row between"><div><h2>${k.results.length} ${capKind().proposed}</h2><p class="muted small" style="margin-top:4px">${esc(v.title)}, ${k.dur} secondes, format ${k.fmt}, sous-titres en blanc</p></div>
       <div class="row"><button class="btn btn-ghost btn-sm" data-a="cap-settings">${I('edit')}Modifier les réglages</button><button class="btn btn-ghost btn-sm" data-a="cap-regen">${I('refresh')}Proposer d'autres extraits</button></div></div>
       <div style="margin-top:16px">${timelineHtml(v, segs, k.sel, 'cap-sel')}</div></div>
       <div class="stack">${k.results.map((r, i) => r.opusId ? opusPropHtml(r, i, v) : `<article class="prop ${i === k.sel ? 'sel' : ''}" id="prop${i}"><div class="frame-wrap">${frameHtml(v, r, k.fmt, k.style, 'r' + i)}</div>
@@ -2560,7 +2559,6 @@ function pCapsules(c) {
       <div class="field"><span class="lab">Type de vidéo</span><div class="seg-ctl" role="group" aria-label="Type de vidéo">${CAP_OPTIONS.kinds.map(x => `<button data-a="cap-kind" data-arg="${x.id}" aria-pressed="${kk.id === x.id}">${x.label}</button>`).join('')}</div></div>
       <div class="field"><span class="lab">Durée de chaque ${kk.one}</span><div class="seg-ctl" role="group" aria-label="Durée">${kk.durs.map(d => `<button data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div>${isOpusVideo(v) ? `<span class="small muted">Durée visée : la durée réelle de chaque proposition est affichée.</span>` : ''}</div>
       <div class="field"><span class="lab">Format</span><div class="row" role="group" aria-label="Format">${fm.map(([f, l, u, w, h]) => `<button class="fmt-opt" data-a="cap-fmt" data-arg="${f}" aria-pressed="${k.fmt === f}"><i style="width:${w}px;height:${h}px"></i><b>${l} ${f}</b><small>${u}</small></button>`).join('')}</div>${k.fmt === '16:9' && v.w && v.h && v.h > v.w ? `<span class="small" style="color:var(--warn)">Cette vidéo est verticale : au format horizontal 16:9, elle ne remplira pas tout le cadre. Le format vertical 9:16 donnera un meilleur résultat.</span>` : ''}</div>
-      <div class="field"><span class="lab">Style des sous-titres</span><div class="seg-ctl" role="group" aria-label="Style des sous-titres">${CAP_OPTIONS.styles.map(([s, l]) => `<button data-a="cap-style" data-arg="${s}" aria-pressed="${k.style === s}">${l}</button>`).join('')}</div></div>
       ${isOpusVideo(v) && k.moment != null ? `<p class="small muted">Extraits recherchés autour du moment choisi, à ${tc(k.moment)}. <a href="#" data-a="cap-moment-clear">Analyser toute la vidéo</a></p>` : ''}
       <div class="row" style="gap:20px;align-items:center"><div>${isOpusVideo(v) ? opusPreviewHtml(v) : frameHtml(v, { lines: v.highlights[0].lines, dur: k.dur }, k.fmt, k.style, 'preview')}</div><p class="muted small" style="max-width:36ch">Aperçu du rendu avec « ${esc(v.title)} ». Le logo de votre entreprise est ajouté en haut de la ${kk.id === 'teaser' ? 'vidéo' : 'capsule'}.</p></div>
       ${isOpusVideo(v) && !opusReady(v) ? `<p class="small" style="color:var(--warn)">${v.upload.status === 'error' ? "Cette vidéo n'a pas pu être envoyée sur l'hébergement : l'équipe OpenMedias doit la déposer à nouveau." : "Cette vidéo est en cours d'envoi par l'équipe OpenMedias : vous pourrez lancer votre demande dès qu'elle sera prête."}</p>` : ''}
@@ -4535,7 +4533,6 @@ const A = {
   'cap-step': a => { S.cap.step = +a; S.keepScroll = true; render(); },
   'cap-dur': a => { S.cap.dur = +a; S.keepScroll = true; render(); },
   'cap-fmt': a => { S.cap.fmt = a; S.keepScroll = true; render(); },
-  'cap-style': a => { S.cap.style = a; S.keepScroll = true; render(); },
   'cap-settings': () => { S.cap.prev = S.cap.results; S.cap.results = null; S.cap.step = 2; render(); },
   'cap-back': () => { if (S.cap.prev) { S.cap.results = S.cap.prev; S.cap.prev = null; render(); } },
   'cap-run': () => runAnalysis(),

@@ -57,16 +57,10 @@ module.exports = {
       '16:9': 'landscape',
     },
 
-    // « Style des sous-titres » : Impact | Classique | Discret → brandTemplateId.
-    // Un seul style pour l'instant : le brand template OpusClip « Chroniques » (une ligne, texte blanc
-    // Myriad, sans mot mis en avant, sans majuscules, sans emoji). Les anciens presets
-    // (Beasty / Simple / Popline) ajoutaient majuscules et mot surligné.
-    // Les trois choix pointent vers le même template ; liste des templates : npm run opus:templates.
-    subtitleStyles: {
-      impact: 'cmc38f93j011vbbtl9d0nt51b', // « Chroniques »
-      classique: 'cmc38f93j011vbbtl9d0nt51b', // « Chroniques »
-      discret: 'cmc38f93j011vbbtl9d0nt51b', // « Chroniques »
-    },
+    // Sous-titres : un modèle unique pour toutes les capsules (pas de choix côté client) →
+    // brandTemplateId. Brand template OpusClip « Chroniques » : une ligne, texte blanc Myriad,
+    // sans mot mis en avant, sans majuscules, sans emoji. Liste des templates : npm run opus:templates.
+    brandTemplateId: 'cmc38f93j011vbbtl9d0nt51b',
 
     maxClips: 3, // nombre de propositions livrées au client (les mieux classées par OpusClip)
     model: 'ClipBasic', // "ClipBasic" (talk-shows) ou "ClipAnything"
