@@ -57,7 +57,7 @@ function toBool(v, def) {
 /**
  * Valide les options d'une commande et renvoie une version normalisée.
  *
- * capsules  : { videoId, duration, format, subtitleStyle, clientLogoKey? }
+ * capsules  : { videoId, duration, format, clientLogoKey? } (sous-titres : modèle unique)
  *             context.video = vidéo du package du client (déjà vérifiée : elle lui appartient)
  * subtitles : { videoKey | videoId (vidéo du package), transcriptKey?, spokenLanguage, subtitleLanguage, splitLongLines,
  *               size, outline, offsetMs? }
@@ -76,10 +76,8 @@ function normalizeOptions(type, options, mapping, context = {}) {
     if (!mapping.capsules.durations[duration]) throw new ValidationError(`Durée non proposée : ${options.duration}`);
     const format = pick(mapping.capsules.formats, req(options.format, 'Format non sélectionné'), normalizeFormat);
     if (!mapping.capsules.formats[format]) throw new ValidationError(`Format non proposé : ${options.format}`);
-    const subtitleStyle = pick(mapping.capsules.subtitleStyles, req(options.subtitleStyle, 'Style de sous-titres non sélectionné'), normalizeLabel);
-    if (!mapping.capsules.subtitleStyles[subtitleStyle]) {
-      throw new ValidationError(`Aucun template OpusClip pour le style : ${options.subtitleStyle}`);
-    }
+    // Style de sous-titres unique (mapping.capsules.brandTemplateId) : un éventuel options.subtitleStyle
+    // envoyé par une ancienne version du site est ignoré.
     return {
       videoId: video.id,
       videoTitle: video.title,
@@ -89,7 +87,6 @@ function normalizeOptions(type, options, mapping, context = {}) {
       sourceDurationSec: video.duration_sec ? Number(video.duration_sec) : null,
       duration,
       format,
-      subtitleStyle,
       clientLogoKey: options.clientLogoKey || null,
     };
   }
@@ -165,7 +162,7 @@ function buildProjectPayload(order, videoRef, mapping, webhookUrl) {
       uploadedVideoAttr: {
         title: `${programme.title}${o.videoTitle ? ` — ${o.videoTitle}` : ''} — commande ${shortId(order.id)}`,
       },
-      brandTemplateId: mapping.capsules.subtitleStyles[o.subtitleStyle],
+      brandTemplateId: mapping.capsules.brandTemplateId,
       curationPref: {
         model: mapping.capsules.model,
         clipDurations: mapping.capsules.durations[o.duration],

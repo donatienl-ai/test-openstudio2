@@ -109,7 +109,6 @@ router.get('/catalog', (req, res) => {
     capsules: {
       durations: Object.keys(mapping.capsules.durations).map((d) => `${d} s`),
       formats: Object.keys(mapping.capsules.formats),
-      subtitleStyles: Object.keys(mapping.capsules.subtitleStyles),
     },
     subtitles: {
       languages: Object.keys(mapping.subtitles.languages),
