@@ -2190,7 +2190,7 @@ const DEVIS_OFFER = 'montage';
    Accueil (C), Mes émissions (A), Mes vidéos, Commandes, Factures, parcours de création (étapes 1 à 4),
    commande lancée, vidéos prêtes, fenêtres Modifier, Paiement et Demander un devis. Données : API OpenStudio. */
 const OS_SIDE_PAGES = ['emissions', 'medias', 'commandes', 'factures'];
-const OS_MORE = [['sources', 'Médias du tournage'], ['creer', 'Visuels et publications'], ['downloads', 'Mes créations'], ['offres', 'Nos offres'], ['access', 'Mon accès']];
+/* Menu de l'espace client : un seul niveau, sans doublon (Mes vidéos regroupe toutes les vidéos produites) */
 const DL_SVG = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v9M4 7l4 4 4-4M3 14h10"/></svg>';
 const osLive = () => bkOn() && !!OpenStudio.clientSession();
 const osInitials = n => String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
@@ -2236,13 +2236,13 @@ function osDevisCard(side) {
 /* ---------- barre latérale (maquette A) ---------- */
 function osSideShell(c, active, main) {
   const nVid = osClips().length;
-  const items = [['emissions', 'Mes émissions', osLive() ? String(osPkgVideos().length) : ''], ['medias', 'Mes vidéos', nVid ? String(nVid) : ''], ['commandes', 'Commandes', ''], ['factures', 'Factures', '']];
+  const items = [['dashboard', 'Accueil', ''], ['capsules', 'Créer une vidéo', ''], ['medias', 'Mes vidéos', nVid ? String(nVid) : ''], ['commandes', 'Commandes', ''], ['factures', 'Factures', ''], ['offres', 'Nos offres', ''], ['access', 'Mon accès', '']];
   return `<div class="os os-side">
   <nav aria-label="Navigation principale">
     <button class="os-brand" data-a="nav" data-arg="dashboard" aria-label="Accueil OpenStudio"><b>OPENSTUDIO</b><span>par OpenMedias</span></button>
     <div class="os-nav">${items.map(([k, l, n]) => `<a href="#" data-a="nav" data-arg="${k}" class="${active === k ? 'on' : ''}" ${active === k ? 'aria-current="page"' : ''}>${l}${n ? ` <span class="mono">${n}</span>` : ''}</a>`).join('')}</div>
     ${osDevisCard(true)}
-    <div class="os-nav more" style="margin-top:auto"><span class="kick" style="padding:0 12px 6px">Autres outils</span>${OS_MORE.map(([k, l]) => `<a href="#" data-a="nav" data-arg="${k}" class="${active === k ? 'on' : ''}">${l}</a>`).join('')}<a href="#" data-a="logout">Se déconnecter</a></div>
+    <div class="os-nav more" style="margin-top:auto"><a href="#" data-a="logout">Se déconnecter</a></div>
   </nav>
   <main class="os-main" id="main">${main}</main></div>`;
 }
@@ -2305,7 +2305,7 @@ function osHome(c) {
   const lib = (f === 'all' || f === 'prep' ? prep.map(osPrepCard) : []).concat(shown.map(osClipCard));
   return `<div class="os" style="background:#fff"><section class="os-band" aria-labelledby="accroche"><div>
     <div class="os-bandnav"><button class="brand" data-a="nav" data-arg="dashboard">OPENSTUDIO</button>
-      <nav aria-label="Navigation principale"><a href="#" data-a="nav" data-arg="medias">Mes vidéos</a><a href="#" data-a="nav" data-arg="commandes">Commandes</a><a href="#" data-a="nav" data-arg="emissions">Mes émissions</a><a href="mailto:contact@openmedias.fr">Aide</a><button class="who" data-a="nav" data-arg="access">${esc(c.name)}</button></nav></div>
+      <nav aria-label="Navigation principale"><a href="#" data-a="nav" data-arg="medias">Mes vidéos</a><a href="#" data-a="nav" data-arg="commandes">Commandes</a><a href="mailto:contact@openmedias.fr">Aide</a><button class="who" data-a="nav" data-arg="access">${esc(c.name)}</button></nav></div>
     <div class="os-hero"><div class="txt">
       ${hv ? `<span class="os-badge"><i aria-hidden="true"></i>${hv.media ? `Votre interview ${esc(hv.media)} est prête` : 'Votre interview est prête'}</span>` : `<span class="os-badge wait"><i aria-hidden="true"></i>${BK.loading ? 'Chargement de vos émissions…' : 'Votre interview arrive bientôt'}</span>`}
       <h1 id="accroche">Vous êtes passés à la télé.<span>Faites-le savoir.</span></h1>
