@@ -971,6 +971,95 @@ em,i:not([class]){font-style:normal}
 .bk-ready button:focus-visible{outline:2px solid #C9C9FF;outline-offset:2px}
 @keyframes bkReadyIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (prefers-reduced-motion:reduce){.bk-ready{animation:none}}
+/* Réseaux sociaux : « Poster sur », badge « Publiée sur », panneau de publication, Performances */
+.soc-row,.soc-pubd{display:flex;flex-wrap:wrap;align-items:center;gap:8px;position:relative}
+.soc-lbl{font-size:12px;color:var(--os-mut)}
+.soc-ics{display:inline-flex;flex-wrap:wrap;gap:4px}
+.soc-i{position:relative;display:inline-grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:8px;background:none;color:#A9A8B8;cursor:pointer;flex:none}
+.soc-i svg{width:18px;height:18px;display:block}
+.soc-i:hover,.soc-i:focus-visible{background:var(--os-bg)}
+.soc-i:focus-visible{outline:2px solid var(--os-blue);outline-offset:1px}
+.soc-i.on.youtube,.soc-b.youtube{color:#FF0000}.soc-i.on.instagram,.soc-b.instagram{color:#E1306C}.soc-i.on.tiktok,.soc-b.tiktok{color:#111}.soc-i.on.linkedin,.soc-b.linkedin{color:#0A66C2}.soc-i.on.facebook,.soc-b.facebook{color:#1877F2}
+.soc-i .ok,.soc-i .re{position:absolute;right:0;bottom:0;width:13px;height:13px;border-radius:50%;font-size:9px;font-style:normal;font-weight:800;line-height:13px;text-align:center;color:#fff;background:#2E9E6A;box-shadow:0 0 0 2px #fff}
+.soc-i .re{background:#D9822B}
+.soc-i[data-tip]:hover::after,.soc-i[data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);white-space:nowrap;background:var(--os-navy);color:#fff;font-size:12px;line-height:1;padding:6px 8px;border-radius:6px;z-index:5;pointer-events:none}
+.soc-tip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--os-navy);background:var(--os-tint);border-radius:999px;padding:4px 6px 4px 10px}
+.soc-tip button{border:0;background:none;cursor:pointer;font-size:15px;line-height:1;color:var(--os-mut);padding:0 2px}
+.soc-b{position:relative;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;text-decoration:none}
+.soc-b svg{width:16px;height:16px}
+.soc-b .st{position:absolute;right:-2px;bottom:-2px;min-width:12px;height:12px;border-radius:6px;font-size:8px;font-weight:800;line-height:12px;text-align:center;color:#fff;background:#8A8998;box-shadow:0 0 0 2px #fff}
+.soc-b.published .st{background:#2E9E6A}.soc-b.failed .st{background:#C24A3A}.soc-b.scheduled .st{background:var(--os-blue)}
+.soc-b.in_progress,.soc-b.pending{opacity:.7}
+.soc-perf{font-size:12px;margin-left:auto}
+.soc-fail{margin:0;font-size:12px;color:#A34232}
+.soc-foot{display:flex;align-items:center;gap:6px;flex:none}
+.soc-pubbtn{font:inherit;font-size:12px;font-weight:600;color:var(--os-navy);background:#fff;border:1px solid var(--os-line2);border-radius:999px;padding:6px 12px;cursor:pointer}
+.soc-pubbtn:hover{border-color:var(--os-navy)}
+/* Panneau latéral */
+.overlay.soc-ov{place-items:stretch end;padding:0}
+.modal.soc-dw{max-width:520px;width:100%;height:100vh;max-height:100vh;border-radius:20px 0 0 20px;display:flex;flex-direction:column}
+.modal.soc-dw .modal-b{flex:1}
+.soc-drawer{display:flex;flex-direction:column;gap:18px}
+.soc-prev{display:block;width:auto;max-width:100%;max-height:300px;margin:0 auto;border-radius:10px;background:#000;aspect-ratio:9/16}
+.soc-prev.r169{aspect-ratio:16/9;width:100%}.soc-prev.r11{aspect-ratio:1/1}
+.soc-vt{display:flex;flex-direction:column;gap:2px}
+.soc-small{font-size:12px}
+.soc-nets,.soc-when{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.soc-nets legend,.soc-when legend{font-size:13px;font-weight:600;margin-bottom:8px;padding:0}
+.soc-chk,.soc-when label{display:inline-flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
+.soc-chk .soc-i{width:22px;height:22px;cursor:inherit}
+.soc-chk .soc-i svg{width:16px;height:16px}
+.soc-addnet{font-size:13px;align-self:flex-start}
+.soc-more{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:13px}
+.soc-tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--os-line)}
+.soc-tabs button{font:inherit;font-size:13px;display:inline-flex;align-items:center;gap:6px;background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px;cursor:pointer;color:var(--os-mut)}
+.soc-tabs button[aria-selected="true"]{color:var(--os-navy);border-bottom-color:var(--os-blue);font-weight:600}
+.soc-tabs .soc-i{width:18px;height:18px}.soc-tabs .soc-i svg{width:14px;height:14px}
+.soc-edit{display:flex;flex-direction:column;gap:8px}
+.soc-fl{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:600}
+.soc-count{font-weight:400;color:var(--os-mut);font-variant-numeric:tabular-nums}
+.soc-count.over{color:#C24A3A;font-weight:600}
+.soc-regen{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.soc-regen .os-link{font-size:13px}.soc-regen .os-link[disabled]{color:var(--os-mut);cursor:default;text-decoration:none}
+.soc-load{display:flex;align-items:center;gap:10px;padding:18px;border-radius:12px;background:var(--os-bg);font-size:14px}
+.soc-at{display:flex;flex-direction:column;gap:4px;flex-basis:100%}
+.soc-at .input{max-width:260px}
+.soc-err{margin:0;font-size:14px;color:#A34232;background:#FCEFEC;border-radius:10px;padding:10px 12px}
+.soc-tuto{display:flex;flex-direction:column;gap:12px;font-size:15px;line-height:1.55}
+.soc-tuto ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.soc-pages{display:flex;flex-direction:column;gap:8px}
+.soc-page{font:inherit;display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--os-line);border-radius:12px;background:#fff;cursor:pointer;text-align:left}
+.soc-page:hover{border-color:var(--os-blue)}.soc-page img{width:32px;height:32px;border-radius:50%}
+/* Performances */
+.soc-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.soc-flt{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--os-mut)}
+.soc-flt .select{min-width:150px}
+.soc-upd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;font-size:13px}
+.soc-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.soc-kpi{background:#fff;border:1px solid var(--os-line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:4px}
+.soc-kpi span{font-size:13px;color:var(--os-mut)}
+.soc-kpi b{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:26px;color:var(--os-navy)}
+.soc-plist{display:flex;flex-direction:column;gap:14px}
+.soc-pv{background:#fff;border:1px solid var(--os-line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.soc-pvh{display:flex;gap:12px;align-items:center}
+.soc-pvh>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.soc-th{flex:none;width:44px;height:44px;border-radius:10px;background:var(--os-tint);color:var(--os-blue);display:grid;place-items:center;font-weight:800}
+.soc-tbl{display:flex;flex-direction:column}
+.soc-tr{display:grid;grid-template-columns:minmax(120px,1.4fr) repeat(4,minmax(60px,1fr)) minmax(100px,auto);gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--os-line);font-size:14px;font-variant-numeric:tabular-nums}
+.soc-thd{border-top:0;font-size:12px;color:var(--os-mut);padding-top:0}
+.soc-nw{display:inline-flex;align-items:center;gap:8px}
+.soc-nw .soc-i{width:22px;height:22px;cursor:default}.soc-nw .soc-i svg{width:16px;height:16px}
+.soc-emptyp b{color:var(--os-navy);font-size:16px}
+@media (max-width:760px){
+  .soc-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .soc-thd{display:none}
+  .soc-tr{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:4px}
+  .soc-tr .soc-nw{grid-column:1/-1;font-weight:600}
+  .soc-tr [data-l]::before{content:attr(data-l) " : ";color:var(--os-mut);font-size:12px}
+  .modal.soc-dw{max-width:none;border-radius:0}
+  .soc-prev{max-height:200px}
+  .soc-perf{margin-left:0}
+}
 /* fenêtres : grand titre, bouton rond de fermeture, sans barres */
 .modal{border-radius:20px;max-width:600px}
 .modal-h{border-bottom:0;padding:32px 32px 0;align-items:flex-start}
@@ -2269,7 +2358,7 @@ function osClips() {
       if (!f) { setTimeout(() => bkLoadFiles(o.id), 0); return; }
       if (!Array.isArray(f)) return;
       const fmt = osFmtOf(o); const kd = osKindOf(o);
-      f.filter(x => x.kind === 'video').forEach((x, i) => out.push({ o, kd, fmt, title: kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`, meta: `${osFmtName(fmt)} · ${(o.options && o.options.videoTitle) || ''}`, dur: osMMSS(x.durationMs), url: x.previewUrl, dl: x.downloadUrl, name: x.fileName, date: o.createdAt }));
+      f.filter(x => x.kind === 'video').forEach((x, i) => out.push({ o, kd, fmt, title: kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`, meta: `${osFmtName(fmt)} · ${(o.options && o.options.videoTitle) || ''}`, dur: osMMSS(x.durationMs), url: x.previewUrl, dl: x.downloadUrl, name: x.fileName, date: o.createdAt, id: x.id }));
     }
   });
   return out;
@@ -2277,7 +2366,7 @@ function osClips() {
 const osPrep = () => osOrders().filter(o => BK_BUSY.includes(o.status));
 function osClipCard(x) {
   return `<article class="os-clip"><div class="box ${osFmtCls(x.fmt)}">${x.dur ? `<span class="dur">${x.dur}</span>` : ''}<video src="${esc(x.url)}" controls playsinline preload="metadata"></video></div>
-    <div class="foot"><div style="min-width:0"><b>${esc(x.title)}</b><small>${esc(x.meta)}</small></div><a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}">${DL_SVG}</a></div></article>`;
+    <div class="foot"><div style="min-width:0"><b>${esc(x.title)}</b><small>${esc(x.meta)}</small></div><div class="soc-foot">${x.id && socEnabled() ? `<button type="button" class="soc-pubbtn" data-a="soc-open" data-arg="${esc(x.id)}">Publier</button>` : ''}<a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}">${DL_SVG}</a></div></div></article>`;
 }
 function osPrepCard(o) {
   return `<article class="os-clip"><div class="prep"><span class="mono">EN PRÉPARATION</span><span>Une pastille vous prévient quand c’est prêt</span></div><div class="foot"><div><b>${esc(osTypeLabel(o))}</b><small><button class="os-link" style="font-size:12px" data-a="order-track" data-arg="${o.id}">Suivre</button></small></div></div></article>`;
@@ -2286,10 +2375,280 @@ function osDevisCard(side) {
   return side ? `<div class="os-devis"><b>Un montage sur mesure ?</b><span>Nos monteurs prennent la main sur votre rush.</span><button data-a="devis-open">Demander un devis ↗</button></div>`
     : `<div class="os-tint"><h2>Envie d'un montage sur mesure ?</h2><p>Un monteur de l'équipe s'occupe de votre rush de A à Z.</p><button data-a="devis-open">Demander un devis ↗</button></div>`;
 }
+/* =====================================================================================
+   RÉSEAUX SOCIAUX : « Poster sur », panneau de publication, page « Performances »
+   Tout passe par le serveur OpenStudio (Upload-Post et Claude) : aucune clé dans le site.
+   ===================================================================================== */
+const SOC_NETS = ['youtube', 'instagram', 'tiktok', 'linkedin', 'facebook'];
+const SOC_LABEL = { youtube: 'YouTube', instagram: 'Instagram', tiktok: 'TikTok', linkedin: 'LinkedIn', facebook: 'Facebook' };
+const SOC_ICON = {
+  youtube: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4" fill="currentColor"/><path d="M10 9v6l5-3z" fill="#fff"/></svg>',
+  instagram: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+  tiktok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 3h3c.2 1.9 1.6 3.4 3.5 3.6v3.1c-1.3 0-2.5-.4-3.5-1v6.1A5.8 5.8 0 1 1 11.2 9v3.2a2.7 2.7 0 1 0 2.8 2.7V3z"/></svg>',
+  linkedin: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor"/><path fill="#fff" d="M6.5 10h2.6v7.5H6.5zM7.8 6.2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM10.8 10h2.5v1.1c.4-.7 1.3-1.3 2.6-1.3 2.6 0 3.1 1.7 3.1 3.9v3.8h-2.6v-3.4c0-.9 0-2-1.3-2s-1.6 1-1.6 2v3.4h-2.7z"/></svg>',
+  facebook: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path fill="#fff" d="M13.2 21.9v-7h2.3l.4-2.8h-2.7v-1.8c0-.8.3-1.4 1.4-1.4H16V6.4c-.3 0-1.1-.1-2-.1-2 0-3.4 1.2-3.4 3.5v2.3H8.3v2.8h2.3v7z"/></svg>',
+};
+const SOC = {
+  acc: null, accLoading: false, accErr: '',
+  pubs: {}, pubsLoading: {},
+  d: null,                       // panneau de publication ouvert
+  pending: null,                 // connexion en cours { platform, videoId, win }
+  perf: null, perfLoading: false, perfErr: '', perfF: { period: '30', platform: '', kind: '', programme: '' }, refreshing: false,
+  tip: false,
+};
+const socOn = () => osLive() && !!(OpenStudio.social);
+const socEnabled = () => socOn() && SOC.acc && SOC.acc.enabled !== false;
+const socAcc = p => (SOC.acc && SOC.acc.platforms && SOC.acc.platforms[p]) || { connected: false, reauthRequired: false };
+const socOk = p => socAcc(p).connected && !socAcc(p).reauthRequired;
+function socRerender() { S.keepScroll = true; render(); }
+
+async function socLoadAccounts(force) {
+  if (!socOn() || SOC.accLoading || (SOC.acc && !force)) return;
+  SOC.accLoading = true; SOC.accErr = '';
+  try { SOC.acc = await OpenStudio.social.accounts(); }
+  catch (e) { SOC.accErr = e.message; if (!SOC.acc) SOC.acc = { enabled: false, platforms: {} }; }
+  SOC.accLoading = false; socRerender();
+}
+async function socLoadPubs(videoId, force) {
+  if (!socOn() || SOC.pubsLoading[videoId] || (SOC.pubs[videoId] && !force)) return;
+  SOC.pubsLoading[videoId] = true;
+  try { SOC.pubs[videoId] = await OpenStudio.social.publications(videoId); } catch (e) { SOC.pubs[videoId] = SOC.pubs[videoId] || []; }
+  SOC.pubsLoading[videoId] = false; socRerender();
+  // Suivi automatique tant qu'une publication est en cours
+  if ((SOC.pubs[videoId] || []).some(p => ['submitting', 'in_progress'].includes(p.status) || (p.status === 'scheduled' && new Date(p.scheduledAt) < new Date()))) {
+    clearTimeout(SOC['t_' + videoId]); SOC['t_' + videoId] = setTimeout(() => socLoadPubs(videoId, true), 15000);
+  }
+}
+
+/* Aide contextuelle affichée une seule fois (la première fois qu'une vidéo prête est affichée) */
+const SOC_TIP_KEY = 'om-soc-tip-v1';
+function socTipNow() {
+  if (SOC.tip) return true;
+  let seen = false; try { seen = localStorage.getItem(SOC_TIP_KEY) === '1'; } catch (e) { seen = true; }
+  if (seen) return false;
+  try { localStorage.setItem(SOC_TIP_KEY, '1'); } catch (e) {}
+  SOC.tip = true; return true;
+}
+
+/* Ligne discrète « Poster sur » + icônes, sous le bouton Télécharger d'une vidéo prête */
+function socRow(videoId, withTip) {
+  if (!socOn()) return '';
+  if (!SOC.acc) { setTimeout(socLoadAccounts, 0); return ''; }
+  if (!socEnabled()) return '';
+  if (!SOC.pubs[videoId]) setTimeout(() => socLoadPubs(videoId), 0);
+  const tip = withTip && socTipNow();
+  const ic = SOC_NETS.map(p => {
+    const a = socAcc(p); const st = a.reauthRequired ? 'reauth' : a.connected ? 'on' : 'off';
+    const tipTxt = st === 'reauth' ? `Reconnectez votre compte ${SOC_LABEL[p]}` : st === 'on' ? `Publier sur ${SOC_LABEL[p]}` : 'Connecter';
+    return `<button type="button" class="soc-i ${p} ${st}" data-a="soc-net" data-arg="${p}|${esc(videoId)}" data-tip="${esc(tipTxt)}" aria-label="${esc(SOC_LABEL[p] + ' : ' + tipTxt)}">${SOC_ICON[p]}${st === 'on' ? '<i class="ok" aria-hidden="true">✓</i>' : st === 'reauth' ? '<i class="re" aria-hidden="true">!</i>' : ''}</button>`;
+  }).join('');
+  return `<div class="soc-row"><span class="soc-lbl">Poster sur</span><span class="soc-ics">${ic}</span>${tip ? `<span class="soc-tip" role="status">Nouveau : publiez directement sur vos réseaux<button type="button" data-a="soc-tip-x" aria-label="Fermer">×</button></span>` : ''}</div>${socBadge(videoId)}`;
+}
+
+/* Badge « Publiée sur » : dernier statut par réseau, lien du post, raison d'un échec */
+function socBadge(videoId) {
+  const pubs = SOC.pubs[videoId] || []; if (!pubs.length) return '';
+  const last = {};
+  pubs.slice().reverse().forEach(p => p.targets.forEach(t => { last[t.platform] = { ...t, scheduledAt: p.scheduledAt, pubErr: p.error }; }));
+  const items = SOC_NETS.filter(p => last[p]).map(p => {
+    const t = last[p];
+    const label = t.status === 'published' ? 'publiée' : t.status === 'failed' ? `échec : ${t.error || t.pubErr || 'raison inconnue'}` : t.status === 'scheduled' ? `programmée le ${new Date(t.scheduledAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}` : 'en cours';
+    const inner = `${SOC_ICON[p]}<span class="st">${t.status === 'published' ? '✓' : t.status === 'failed' ? '!' : t.status === 'scheduled' ? '⏱' : '…'}</span>`;
+    return t.status === 'published' && t.url ? `<a class="soc-b ${p} ${t.status}" href="${esc(t.url)}" target="_blank" rel="noopener" title="${esc(SOC_LABEL[p] + ' : ' + label + ' — voir le post')}" aria-label="${esc(SOC_LABEL[p] + ' : ' + label + ', voir le post')}">${inner}</a>`
+      : `<span class="soc-b ${p} ${t.status}" title="${esc(SOC_LABEL[p] + ' : ' + label)}" aria-label="${esc(SOC_LABEL[p] + ' : ' + label)}">${inner}</span>`;
+  }).join('');
+  const failed = SOC_NETS.filter(p => last[p] && last[p].status === 'failed').map(p => `${SOC_LABEL[p]} : ${last[p].error || last[p].pubErr || 'raison inconnue'}`);
+  return `<div class="soc-pubd"><span class="soc-lbl">Publiée sur</span><span class="soc-ics">${items}</span><button type="button" class="os-link soc-perf" data-a="nav" data-arg="performances">Voir les performances</button></div>${failed.length ? `<p class="soc-fail">${esc(failed.join(' · '))}</p>` : ''}`;
+}
+
+/* ---------- Connexion d'un réseau : fenêtre pop-up officielle, ouverte depuis nos icônes ---------- */
+async function socConnect(platform, videoId) {
+  // La fenêtre est ouverte tout de suite (au clic) pour ne pas être bloquée par le navigateur
+  const win = window.open('', 'openstudio-social', 'width=560,height=760,menubar=no,toolbar=no');
+  if (win) { try { win.document.write('<p style="font-family:system-ui,sans-serif;padding:24px">Ouverture de ' + SOC_LABEL[platform] + '…</p>'); } catch (e) {} }
+  SOC.pending = { platform, videoId, win };
+  try {
+    const { authorizeUrl } = await OpenStudio.social.connect(platform);
+    if (win && !win.closed) win.location.href = authorizeUrl;
+    else location.href = authorizeUrl; // fenêtres pop-up bloquées : redirection complète, retour sur le site
+  } catch (e) {
+    if (win && !win.closed) win.close();
+    SOC.pending = null; toast(e.message);
+  }
+}
+async function socConnected({ connect_status: st, platform, error_code: code }) {
+  const pend = SOC.pending && SOC.pending.platform === platform ? SOC.pending : null;
+  SOC.pending = null;
+  const name = SOC_LABEL[platform] || 'le réseau';
+  if (st === 'success') {
+    await socLoadAccounts(true);
+    if (platform === 'facebook') {
+      let pages = null; try { pages = await OpenStudio.social.facebookPages(); } catch (e) {}
+      if (pages && !pages.pages.length) { S.modal = { type: 'soc-tuto', platform: 'facebook' }; render(); return; }
+      if (pages && pages.pages.length > 1 && !pages.selectedId) { S.modal = { type: 'soc-fbpage', pages: pages.pages, videoId: pend && pend.videoId }; render(); return; }
+      await socLoadAccounts(true);
+    }
+    toast(`${name} est connecté.`);
+    if (pend && pend.videoId) socOpenDrawer(pend.videoId, platform);
+    return;
+  }
+  if (platform === 'instagram' && st === 'error') { S.modal = { type: 'soc-tuto', platform: 'instagram' }; render(); return; }
+  const msg = {
+    ACCESS_DENIED: `Connexion à ${name} annulée. Vous pouvez réessayer quand vous voulez.`,
+    INVALID_STATE: `La demande de connexion à ${name} a expiré. Cliquez à nouveau sur l’icône.`,
+    PROVIDER_ERROR: `${name} n’a pas pu valider la connexion. Réessayez dans quelques minutes.`,
+    CONNECTION_FAILED: `La connexion à ${name} n’a pas abouti. Réessayez dans quelques minutes.`,
+  }[code] || (st === 'cancelled' ? `Connexion à ${name} annulée.` : `La connexion à ${name} n’a pas abouti. Réessayez.`);
+  toast(msg);
+}
+window.addEventListener('message', e => {
+  if (!socOn() || !e.data || e.data.type !== 'openstudio-social-connect') return;
+  try { if (e.origin !== OpenStudio.social.origin()) return; } catch (err) { return; } // seul notre serveur est écouté
+  socConnected(e.data);
+});
+// Retour après une redirection complète (fenêtre pop-up bloquée)
+(function () {
+  try {
+    const q = new URLSearchParams(location.search); const st = q.get('social_connect');
+    if (!st) return;
+    const data = { connect_status: st, platform: q.get('platform') || '', error_code: q.get('error_code') || '' };
+    ['social_connect', 'platform', 'error_code'].forEach(k => q.delete(k));
+    history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
+    setTimeout(() => { if (socOn()) socConnected(data); }, 600);
+  } catch (e) {}
+})();
+
+/* Mini-tutos (pas d'erreur technique) */
+function socTutoHtml(platform) {
+  if (platform === 'instagram') return `<div class="soc-tuto"><p>Instagram ne permet de publier que depuis un <b>compte professionnel</b> (Créateur ou Entreprise), en mode public. Si votre compte est personnel, passez-le en compte professionnel :</p>
+    <ol><li>Ouvrez Instagram, puis votre profil.</li><li>Menu ☰ → <b>Paramètres</b> → <b>Type de compte et outils</b>.</li><li><b>Passer à un compte professionnel</b>, puis choisissez Créateur ou Entreprise.</li><li>Vérifiez que le compte est <b>public</b>.</li></ol>
+    <p class="mut">C’est gratuit et vos publications restent en place. Revenez ensuite ici et cliquez à nouveau sur l’icône Instagram.</p></div>`;
+  return `<div class="soc-tuto"><p>Facebook ne permet de publier que sur une <b>Page</b> (la page de votre entreprise), pas sur un profil personnel. Aucune Page n’a été trouvée sur ce compte.</p>
+    <ol><li>Créez la Page de votre entreprise sur Facebook (Menu → <b>Pages</b> → <b>Créer une Page</b>), ou demandez à son administrateur de vous ajouter avec un accès complet.</li><li>Revenez ici et cliquez à nouveau sur l’icône Facebook.</li><li>Pendant la connexion, cochez bien la Page de votre entreprise quand Facebook vous la propose.</li></ol></div>`;
+}
+function socFbPageHtml(m) {
+  return `<p style="margin:0 0 14px">Votre compte gère plusieurs Pages. Sur laquelle OpenStudio doit-il publier ?</p><div class="soc-pages">${m.pages.map(p => `<button type="button" class="soc-page" data-a="soc-fbpick" data-arg="${esc(p.id)}">${p.picture ? `<img src="${esc(p.picture)}" alt="">` : ''}<span>${esc(p.name)}</span></button>`).join('')}</div>`;
+}
+
+/* ---------- Panneau de publication ---------- */
+function socVideoInfo(videoId) {
+  for (const o of osOrders()) {
+    const f = BKO.files[o.id]; if (!Array.isArray(f)) continue;
+    const vids = f.filter(x => x.kind === 'video'); const i = vids.findIndex(x => x.id === videoId);
+    if (i >= 0) { const kd = osKindOf(o); return { o, x: vids[i], fmt: osFmtOf(o), title: kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}` }; }
+  }
+  return null;
+}
+async function socOpenDrawer(videoId, platform) {
+  if (!SOC.acc) await socLoadAccounts();
+  const info = socVideoInfo(videoId);
+  const checked = SOC_NETS.filter(p => socOk(p) && (!platform || p === platform));
+  SOC.d = { videoId, info, checked: checked.length ? checked : SOC_NETS.filter(socOk).slice(0, 1), tab: platform && socOk(platform) ? platform : null, texts: null, meta: null, loading: true, regen: false, when: 'now', at: '', submitting: false, err: '', more: false };
+  S.modal = { type: 'soc-pub' }; render();
+  try { const r = await OpenStudio.social.captions(videoId); socApplyCaptions(r); }
+  catch (e) { if (SOC.d) { SOC.d.err = e.message; SOC.d.loading = false; } }
+  if (S.modal && S.modal.type === 'soc-pub') socRerender();
+}
+function socApplyCaptions(r) {
+  const d = SOC.d; if (!d) return;
+  d.texts = JSON.parse(JSON.stringify(r.captions)); d.meta = r; d.loading = false; d.regen = false;
+}
+function socLimit(p, f) { const d = SOC.d; return d && d.meta && d.meta.limits && d.meta.limits[p] ? d.meta.limits[p][f] : 2200; }
+function socCount(p, f) { const n = ((SOC.d.texts && SOC.d.texts[p] && SOC.d.texts[p][f]) || '').length; const lim = socLimit(p, f); return `<span class="soc-count ${n > lim ? 'over' : ''}" data-cnt="${p}|${f}">${n} / ${lim}</span>`; }
+function socDrawerHtml() {
+  const d = SOC.d; if (!d) return '';
+  const tab = d.checked.includes(d.tab) ? d.tab : d.checked[0];
+  const conn = SOC_NETS.filter(socOk); const others = SOC_NETS.filter(p => !socOk(p));
+  const prev = d.info ? `<video class="soc-prev ${osFmtCls(d.info.fmt)}" src="${esc(d.info.x.previewUrl)}" controls playsinline preload="metadata"></video>` : '';
+  const nets = `<fieldset class="soc-nets"><legend>Réseaux</legend>${conn.map(p => `<label class="soc-chk"><input type="checkbox" data-in="soc-chk" data-arg="${p}" ${d.checked.includes(p) ? 'checked' : ''}><span class="soc-i ${p} on">${SOC_ICON[p]}</span>${SOC_LABEL[p]}</label>`).join('')}</fieldset>
+    ${others.length ? (d.more ? `<div class="soc-more"><span class="mut">Connecter :</span>${others.map(p => `<button type="button" class="soc-i ${p} ${socAcc(p).reauthRequired ? 'reauth' : 'off'}" data-a="soc-net" data-arg="${p}|${esc(d.videoId)}" data-tip="${socAcc(p).reauthRequired ? 'Reconnecter' : 'Connecter'}" aria-label="Connecter ${SOC_LABEL[p]}">${SOC_ICON[p]}</button>`).join('')}</div>` : `<button type="button" class="os-link soc-addnet" data-a="soc-more">Connecter un autre réseau</button>`) : ''}
+    ${d.checked.includes('facebook') && SOC.acc.facebookPage ? `<p class="mut soc-small">Facebook : Page « ${esc(SOC.acc.facebookPage.name || 'sélectionnée')} »</p>` : ''}`;
+  let edit = '';
+  if (!d.checked.length) edit = `<p class="mut">Cochez au moins un réseau.</p>`;
+  else if (d.loading) edit = `<div class="soc-load" aria-live="polite"><span class="bk-spin" aria-hidden="true"></span>${d.regen ? 'Nouvelle rédaction des textes…' : 'Rédaction des textes adaptés à chaque réseau…'}</div>`;
+  else if (d.texts) {
+    const t = d.texts[tab] || {};
+    edit = `<div class="soc-tabs" role="tablist">${d.checked.map(p => `<button type="button" role="tab" aria-selected="${p === tab}" data-a="soc-tab" data-arg="${p}"><span class="soc-i ${p} on">${SOC_ICON[p]}</span>${SOC_LABEL[p]}</button>`).join('')}</div>
+      <div class="soc-edit" role="tabpanel">${tab === 'youtube'
+        ? `<label class="soc-fl" for="soc-yt-t">Titre YouTube ${socCount('youtube', 'title')}</label><input class="input" id="soc-yt-t" data-in="soc-txt" data-arg="youtube|title" value="${esc(t.title || '')}">
+           <label class="soc-fl" for="soc-yt-d">Description ${socCount('youtube', 'description')}</label><textarea class="textarea" id="soc-yt-d" rows="6" data-in="soc-txt" data-arg="youtube|description">${esc(t.description || '')}</textarea>`
+        : `<label class="soc-fl" for="soc-tx">Texte de publication ${socCount(tab, 'caption')}</label><textarea class="textarea" id="soc-tx" rows="8" data-in="soc-txt" data-arg="${tab}|caption">${esc(t.caption || '')}</textarea>`}
+        <div class="soc-regen"><span class="mut soc-small">${d.meta && d.meta.source === 'fallback' ? 'Textes simples (la rédaction automatique n’a pas abouti) : modifiez-les librement.' : 'Textes rédigés automatiquement à partir de la vidéo : relisez-les et modifiez-les librement.'}</span>
+        <button type="button" class="os-link" data-a="soc-regen" ${d.meta && d.meta.regenerationsLeft > 0 ? '' : 'disabled'}>Régénérer${d.meta ? ` (${d.meta.regenerationsLeft} restante${d.meta.regenerationsLeft > 1 ? 's' : ''})` : ''}</button></div></div>`;
+  }
+  const minAt = socLocal(new Date(Date.now() + 10 * 60000)); const maxAt = socLocal(new Date(Date.now() + 7 * 86400000));
+  const when = `<fieldset class="soc-when"><legend>Quand ?</legend><label><input type="radio" name="soc-when" data-in="soc-when" value="now" ${d.when === 'now' ? 'checked' : ''}> Publier maintenant</label><label><input type="radio" name="soc-when" data-in="soc-when" value="later" ${d.when === 'later' ? 'checked' : ''}> Programmer</label>
+    ${d.when === 'later' ? `<div class="soc-at"><input type="datetime-local" class="input" data-in="soc-at" min="${minAt}" max="${maxAt}" value="${esc(d.at || '')}" aria-label="Date et heure de publication"><span class="mut soc-small">Heure de Paris · jusqu’à 7 jours à l’avance</span></div>` : ''}</fieldset>`;
+  return `<div class="soc-drawer">${prev}<div class="soc-vt"><b>${esc(d.info ? d.info.title : 'Vidéo')}</b>${d.info ? `<span class="mut soc-small">${esc((d.info.o.options && d.info.o.options.videoTitle) || '')}</span>` : ''}</div>${nets}${edit}${when}${d.err ? `<p class="soc-err" role="alert">${esc(d.err)}</p>` : ''}</div>`;
+}
+const socLocal = dt => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(dt).replace(' ', 'T');
+function socDrawerFoot() {
+  const d = SOC.d; if (!d) return '';
+  const n = d.checked.length;
+  const label = d.submitting ? 'Envoi en cours…' : d.when === 'later' ? `Programmer sur ${n} réseau${n > 1 ? 'x' : ''}` : `Publier sur ${n} réseau${n > 1 ? 'x' : ''}`;
+  const ok = n && d.texts && !d.loading && !d.submitting && (d.when === 'now' || d.at);
+  return `<button class="os-pillbtn s" style="height:48px;padding:0 20px" data-a="close">Annuler</button><button class="os-cta" data-a="soc-send" ${ok ? '' : 'disabled'}>${label}</button>`;
+}
+async function socSend() {
+  const d = SOC.d; if (!d || d.submitting) return;
+  d.err = '';
+  for (const p of d.checked) { // limites vérifiées avant l'envoi (le serveur vérifie aussi)
+    for (const f of p === 'youtube' ? ['title', 'description'] : ['caption']) {
+      const v = (d.texts[p] && d.texts[p][f]) || '';
+      if (v.length > socLimit(p, f)) { d.err = `${SOC_LABEL[p]} : texte trop long (${v.length} / ${socLimit(p, f)}).`; d.tab = p; socRerender(); return; }
+    }
+  }
+  d.submitting = true; socRerender();
+  try {
+    const texts = {}; d.checked.forEach(p => { texts[p] = d.texts[p]; });
+    const pub = await OpenStudio.social.publish({ videoId: d.videoId, platforms: d.checked, texts, scheduledAt: d.when === 'later' ? d.at : null });
+    SOC.pubs[d.videoId] = [pub, ...(SOC.pubs[d.videoId] || [])];
+    const vid = d.videoId; SOC.d = null; S.modal = null; render();
+    toast(pub.status === 'scheduled' ? 'Publication programmée.' : 'Publication envoyée : elle apparaît en ligne d’ici quelques minutes.');
+    setTimeout(() => socLoadPubs(vid, true), 8000);
+  } catch (e) {
+    d.submitting = false; d.err = e.message;
+    if (e.status === 400 && /Reconnectez|Connectez/.test(e.message)) socLoadAccounts(true);
+    socRerender();
+  }
+}
+
+/* ---------- Page « Performances » ---------- */
+async function socLoadPerf() {
+  if (!socOn() || SOC.perfLoading) return;
+  SOC.perfLoading = true; SOC.perfErr = '';
+  try { SOC.perf = await OpenStudio.social.performance(SOC.perfF); } catch (e) { SOC.perfErr = e.message; }
+  SOC.perfLoading = false; socRerender();
+}
+const socN = v => v == null ? '—' : Number(v).toLocaleString('fr-FR').replace(/ /g, ' ');
+function osPerformances() {
+  const head = `<header class="os-head"><div style="display:flex;flex-direction:column;gap:6px"><span class="kick">Vidéos publiées depuis OpenStudio</span><h1>Performances</h1></div></header>`;
+  if (!socOn()) return head + `<div class="os-empty">Ouvrez le lien d’accès à votre espace envoyé par l’équipe OpenMedias.</div>`;
+  if (!SOC.perf && !SOC.perfLoading && !SOC.perfErr) setTimeout(socLoadPerf, 0);
+  const F = SOC.perfF; const P = SOC.perf;
+  const sel = (k, label, opts) => `<label class="soc-flt"><span>${label}</span><select class="select" data-in="soc-flt" data-arg="${k}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${F[k] === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
+  const filters = `<div class="soc-filters"><div class="os-seg" role="group" aria-label="Période">${[['7', '7 j'], ['30', '30 j'], ['90', '90 j'], ['', 'Tout']].map(([v, l]) => `<button type="button" data-a="soc-period" data-arg="${v}" aria-pressed="${F.period === v}">${l}</button>`).join('')}</div>
+    ${sel('platform', 'Réseau', [['', 'Tous'], ...SOC_NETS.map(p => [p, SOC_LABEL[p]])])}${sel('kind', 'Type', [['', 'Tous'], ['capsules', 'Capsules'], ['teaser', 'Teasers'], ['subtitles', 'Sous-titrées']])}
+    ${sel('programme', 'Émission', [['', 'Toutes'], ...((P && P.programmes) || []).map(p => [p.id, p.title])])}</div>`;
+  if (SOC.perfErr && !P) return head + filters + `<div class="os-empty">${esc(SOC.perfErr)} <button class="os-link" data-a="soc-perf-reload">Réessayer</button></div>`;
+  if (!P) return head + filters + `<div class="os-empty"><span class="bk-spin" aria-hidden="true"></span> Chargement des statistiques…</div>`;
+  const avail = P.manualRefreshAvailableAt ? new Date(P.manualRefreshAvailableAt) : null; const canRefresh = !avail || avail <= new Date();
+  const upd = `<div class="soc-upd"><span class="mut">${P.lastUpdate ? `Dernière mise à jour : ${new Date(P.lastUpdate).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}` : 'Statistiques pas encore disponibles'}</span><button type="button" class="os-pillbtn s" data-a="soc-refresh" ${canRefresh && !SOC.refreshing ? '' : 'disabled'} title="${canRefresh ? '' : `Disponible à ${avail.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}">${SOC.refreshing ? 'Actualisation…' : 'Actualiser'}</button></div>`;
+  const filtered = F.platform || F.kind || F.programme || F.period !== '';
+  if (!P.videos.length) return head + (filtered ? filters + upd : '') + `<div class="os-empty soc-emptyp"><b>${filtered ? 'Aucune publication sur cette période ou pour ces filtres.' : 'Vos vidéos publiées depuis OpenStudio apparaîtront ici'}</b>${filtered ? `<button class="os-link" data-a="soc-period" data-arg="">Voir toute la période</button>` : ''}<button class="os-cta" data-a="nav" data-arg="medias">Voir mes vidéos</button></div>`;
+  const T = P.totals;
+  const kpi = `<div class="soc-kpis">${[['Publications', T.publications], ['Vues', T.views], ['Likes', T.likes], ['Commentaires', T.comments], ['Partages', T.shares]].map(([l, v]) => `<div class="soc-kpi"><span>${l}</span><b>${socN(v)}</b></div>`).join('')}</div>`;
+  const KIND = { capsules: 'Capsule', teaser: 'Teaser', subtitles: 'Interview sous-titrée' };
+  const list = `<div class="soc-plist">${P.videos.map(v => `<article class="soc-pv"><div class="soc-pvh"><span class="soc-th" aria-hidden="true">${esc((KIND[v.kind] || 'Vidéo').slice(0, 1))}</span><div><b>${esc(v.title || 'Vidéo')}</b><span class="mut soc-small">${esc([KIND[v.kind], v.programme, `publiée le ${new Date(v.publishedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`].filter(Boolean).join(' · '))}</span></div></div>
+    <div class="soc-tbl" role="table" aria-label="Statistiques par réseau"><div class="soc-tr soc-thd" role="row"><span role="columnheader">Réseau</span><span role="columnheader">Vues</span><span role="columnheader">Likes</span><span role="columnheader">Commentaires</span><span role="columnheader">Partages</span><span role="columnheader"><span class="visually-hidden">Lien</span></span></div>
+    ${v.networks.map(n => `<div class="soc-tr" role="row"><span role="cell" class="soc-nw"><span class="soc-i ${n.platform} on">${SOC_ICON[n.platform]}</span>${SOC_LABEL[n.platform]}</span><span role="cell" data-l="Vues">${socN(n.views)}</span><span role="cell" data-l="Likes">${socN(n.likes)}</span><span role="cell" data-l="Commentaires">${socN(n.comments)}</span><span role="cell" data-l="Partages">${socN(n.shares)}</span><span role="cell">${n.url ? `<a class="os-link" href="${esc(n.url)}" target="_blank" rel="noopener">Voir le post ↗</a>` : ''}</span></div>`).join('')}</div></article>`).join('')}</div>`;
+  return head + filters + upd + (SOC.perfErr ? `<p class="soc-err">${esc(SOC.perfErr)}</p>` : '') + kpi + list;
+}
+
 /* ---------- barre latérale (maquette A) ---------- */
 function osSideShell(c, active, main) {
   const nVid = osClips().length;
-  const items = [['emissions', 'Mes émissions', osLive() ? String(osPkgVideos().length) : ''], ['medias', 'Mes créations', nVid ? String(nVid) : ''], ['factures', 'Factures', ''], ['offres', 'Nos offres', ''], ['access', 'Mon accès', '']];
+  const items = [['emissions', 'Mes émissions', osLive() ? String(osPkgVideos().length) : ''], ['medias', 'Mes créations', nVid ? String(nVid) : ''], ['performances', 'Performances', ''], ['factures', 'Factures', ''], ['offres', 'Nos offres', ''], ['access', 'Mon accès', '']];
   return `<div class="os os-side">
   <nav aria-label="Navigation principale">
     <button class="os-brand" data-a="nav" data-arg="dashboard" aria-label="Accueil OpenStudio"><b>OPENSTUDIO</b><span>par OpenMedias</span></button>
@@ -2302,7 +2661,7 @@ function osSideShell(c, active, main) {
 }
 /* ---------- en-tête blanc à onglets ---------- */
 function osTopShell(c, tab, body) {
-  const tabs = [['capsules', 'Créer'], ['emissions', 'Mes émissions'], ['medias', 'Mes créations']];
+  const tabs = [['capsules', 'Créer'], ['emissions', 'Mes émissions'], ['medias', 'Mes créations'], ['performances', 'Performances']];
   return `<div class="os os-page"><header class="os-top"><div><div class="l"><button class="brand" data-a="nav" data-arg="dashboard">OPENSTUDIO</button>
     <nav class="os-tabs" aria-label="Navigation principale">${tabs.map(([k, l]) => `<a href="#" data-a="nav" data-arg="${k}" class="${tab === k ? 'on' : ''}" ${tab === k ? 'aria-current="page"' : ''}>${l}</a>`).join('')}</nav></div>
     <button class="os-acc" data-a="nav" data-arg="access"><span>${esc(c.name)}</span><b aria-hidden="true">${esc(osInitials(c.contact || c.name))}</b></button></div></header>
@@ -2312,6 +2671,7 @@ function viewClient() {
   const c = client();
   const imp = S.asAdmin ? `<div class="impersonate">Vous consultez l'espace de ${esc(c.name)} en tant qu'équipe OpenMedias. <button data-a="back-admin">Revenir à l'administration</button></div>` : '';
   if (bkOn() && OpenStudio.clientSession() && !BKO.list && !BKO.loading) setTimeout(bkLoadOrders, 0);
+  if (socOn() && !SOC.acc && !SOC.accLoading) setTimeout(socLoadAccounts, 0); // réseaux connectés (boutons « Publier »)
   let out;
   switch (S.page) {
     case 'dashboard': out = osHome(c); break;
@@ -2321,6 +2681,7 @@ function viewClient() {
     case 'medias': out = osSideShell(c, 'medias', osCreations(c, 'videos')); break;
     case 'commandes': out = osSideShell(c, 'medias', osCreations(c, 'commandes')); break;
     case 'factures': out = osSideShell(c, 'factures', osFactures(c)); break;
+    case 'performances': out = osSideShell(c, 'performances', osPerformances()); break;
     default: {
       // Outils sans maquette : mêmes fonctions qu'avant, dans la barre latérale A
       let page = '';
@@ -2412,7 +2773,7 @@ function osVideos(c) {
   clips.filter(keep).forEach(x => { (groups[x.o.id] = groups[x.o.id] || { o: x.o, list: [] }).list.push(x); });
   const titles = [...new Set(clips.map(x => x.o.options && x.o.options.videoTitle).filter(Boolean))];
   const card = x => `<article class="os-vcard"><div class="stage ${osFmtCls(x.fmt)}"><video src="${esc(x.url)}" controls playsinline preload="metadata"></video></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">${esc(x.title)}</span><span class="mut" style="font-size:13px">${esc(osFmtName(x.fmt))}${x.dur ? ' · ' + x.dur : ''}</span></div><a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}">${DL_SVG}</a></div></article>`;
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">${esc(x.title)}</span><span class="mut" style="font-size:13px">${esc(osFmtName(x.fmt))}${x.dur ? ' · ' + x.dur : ''}</span></div><div class="soc-foot">${x.id && socEnabled() ? `<button type="button" class="soc-pubbtn" data-a="soc-open" data-arg="${esc(x.id)}">Publier</button>` : ''}<a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}">${DL_SVG}</a></div></div></article>`;
   const prepCards = (f === 'all' || f === 'prep') ? prep.map(o => `<article class="os-vcard"><div class="stage" style="border:1.5px dashed #A9A8B8;background:transparent;flex-direction:column;gap:8px;text-align:center;padding:16px;box-sizing:border-box"><span class="mono mut" style="font-size:12px">EN PRÉPARATION</span><span class="mut" style="font-size:13px;line-height:1.4">Une pastille vous prévient dès qu’elles sont prêtes</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(osTypeLabel(o))}</span><button class="os-link" style="font-size:13px;align-self:flex-start" data-a="order-track" data-arg="${o.id}">Suivre la commande</button></div></article>`) : [];
   const secs = Object.values(groups).map(g => `<section style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 class="os-h2">${esc(osTypeLabel(g.o))} · ${esc((g.o.options && g.o.options.videoTitle) || '')} · ${osDate(g.o.createdAt)}</h2>${g.list.length > 1 ? `<a href="${esc(OpenStudio.zipUrl(g.o.id))}" style="font-size:13px">Tout télécharger (.zip)</a>` : ''}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${g.list.map(card).join('')}</div></section>`);
@@ -2477,7 +2838,7 @@ function osLivraison(c, id) {
   const n = vids.length; const what = kd === 'subtitles' ? 'Votre interview sous-titrée est prête' : kd === 'teaser' ? 'Votre teaser est prêt' : `Vos ${n || ''} capsules sont prêtes`.replace('  ', ' ');
   const card = (x, i) => `<article class="os-vcard" style="padding:14px;gap:12px;border-radius:14px"><div class="stage ${osFmtCls(fmt)}" style="height:auto;background:#000"><video src="${esc(x.previewUrl)}" controls playsinline preload="metadata" style="width:100%;max-height:none;border-radius:6px;object-fit:cover;aspect-ratio:${fmt === '16:9' ? '16/9' : fmt === '1:1' ? '1/1' : '9/16'}"></video></div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`}</span><span class="mut" style="font-size:13px">${[osMMSS(x.durationMs), fmt, 'MP4'].filter(Boolean).join(' · ')}</span></div>
-      <a class="os-pillbtn s" style="height:44px" href="${esc(x.downloadUrl)}" download="${esc(x.fileName || '')}">${DL_SVG}Télécharger</a></div></article>`;
+      <a class="os-pillbtn s" style="height:44px" href="${esc(x.downloadUrl)}" download="${esc(x.fileName || '')}">${DL_SVG}Télécharger</a></div>${socRow(x.id, i === 0)}</article>`;
   return `<main class="os-wrap" style="gap:28px">
     <nav aria-label="Fil d'Ariane" class="mut" style="font-size:14px"><a href="#" data-a="nav" data-arg="medias" style="text-decoration:none">Mes créations</a> / Commande du ${new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</nav>
     <div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:flex-end"><div style="display:flex;flex-direction:column;gap:10px">
@@ -4402,6 +4763,18 @@ function modalHtml() {
     title = flowKind() === 'subtitles' ? 'Modifier les sous-titres' : 'Modifier le format';
     h = `<p class="muted" style="margin:0 0 20px">Vos choix sont repris dans le récapitulatif.</p>` + flowModHtml();
     foot = `<button class="os-pillbtn s" style="height:48px;padding:0 22px" data-a="close">Annuler</button><button class="os-cta" data-a="close">Enregistrer</button>`;
+  } else if (m.type === 'soc-pub') {
+    title = 'Publier sur vos réseaux';
+    h = socDrawerHtml();
+    foot = socDrawerFoot();
+  } else if (m.type === 'soc-tuto') {
+    title = m.platform === 'instagram' ? 'Instagram : un compte professionnel est nécessaire' : 'Facebook : une Page est nécessaire';
+    h = socTutoHtml(m.platform);
+    foot = `<button class="os-pillbtn s" style="height:44px;padding:0 20px" data-a="close">Fermer</button><button class="os-cta" data-a="soc-net" data-arg="${m.platform}|">Réessayer la connexion</button>`;
+  } else if (m.type === 'soc-fbpage') {
+    title = 'Choisissez votre Page Facebook';
+    h = socFbPageHtml(m);
+    foot = `<button class="os-pillbtn s" style="height:44px;padding:0 20px" data-a="close">Plus tard</button>`;
   } else if (m.type === 'pay') {
     title = 'Paiement';
     h = payModalHtml(m);
@@ -4422,7 +4795,7 @@ function modalHtml() {
     <div class="panel-flat" style="margin-top:16px;background:var(--surface-2)"><span class="small muted">Code d'accès</span><div class="code-pill num" style="font-size:24px;display:inline-block;margin-top:6px;background:var(--surface)">${c.code}</div><p class="small muted" style="margin-top:10px">Lien de connexion : openmedias.fr/studio</p></div>`;
     foot = `<button class="btn btn-quiet" data-a="copy" data-arg="${c.code}">${I('copy')}Copier le code</button><button class="btn btn-ghost" data-a="av-open" data-arg="${c.id}">${I('plus')}Ajouter des contenus</button><button class="btn btn-ghost" data-a="a-mail" data-arg="${c.id}">${I('mail')}Envoyer l'email d'accès</button><button class="btn btn-primary" data-a="close-open" data-arg="${c.id}">Ouvrir la fiche client</button>`;
   }
-  return `<div class="overlay" data-a="overlay"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="modal-h"><h3 id="mt">${title}</h3><button class="btn btn-quiet btn-sm" data-a="close" aria-label="Fermer">${I('x')}</button></div><div class="modal-b">${h}</div><div class="modal-f">${foot}</div></div></div>`;
+  return `<div class="overlay${m.type === 'soc-pub' ? ' soc-ov' : ''}" data-a="overlay"><div class="modal${m.type === 'soc-pub' ? ' soc-dw' : ''}" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="modal-h"><h3 id="mt">${title}</h3><button class="btn btn-quiet btn-sm" data-a="close" aria-label="Fermer">${I('x')}</button></div><div class="modal-b">${h}</div><div class="modal-f">${foot}</div></div></div>`;
 }
 
 /* ================= Après rendu ================= */
@@ -4696,6 +5069,18 @@ const A = {
     // Réglages annoncés sur la carte de l'accueil (« 30 s · vertical », « 15 s · vertical ») : pas de reste d'une création précédente
     if (kind !== 'subtitles') { S.cap.fmt = '9:16'; if (kind === 'capsules') S.cap.dur = 30; } if (v && v.bkId) S.cap.bkVideoId = v.bkId; if (!bkOn()) { S.cap.kind = kind === 'teaser' ? 'teaser' : 'capsule'; go('client', kind === 'subtitles' ? 'sous-titres' : 'capsules'); return; } S.cap.bkOrderId = null; S.cap.bkStep = S.cap.bkVideoId ? +step : 1; go('client', 'capsules'); },
   'flow-mod': () => { S.modal = { type: 'flow-mod' }; render(); },
+  /* Réseaux sociaux */
+  'soc-net': a => { const [p, vid] = String(a).split('|'); if (socOk(p) && vid) { socOpenDrawer(vid, p); return; } S.modal = null; socConnect(p, vid || (SOC.d && SOC.d.videoId) || null); },
+  'soc-open': a => socOpenDrawer(a),
+  'soc-tip-x': () => { SOC.tip = false; socRerender(); },
+  'soc-more': () => { if (SOC.d) { SOC.d.more = true; socRerender(); } },
+  'soc-tab': a => { if (SOC.d) { SOC.d.tab = a; socRerender(); } },
+  'soc-regen': async () => { const d = SOC.d; if (!d || d.loading) return; d.loading = true; d.regen = true; d.err = ''; socRerender(); try { socApplyCaptions(await OpenStudio.social.regenerateCaptions(d.videoId)); } catch (e) { d.loading = false; d.regen = false; d.err = e.message; } socRerender(); },
+  'soc-send': () => socSend(),
+  'soc-fbpick': async a => { const vid = S.modal && S.modal.videoId; try { await OpenStudio.social.selectFacebookPage(a); await socLoadAccounts(true); S.modal = null; toast('Page Facebook enregistrée.'); if (vid) socOpenDrawer(vid, 'facebook'); else render(); } catch (e) { toast(e.message); } },
+  'soc-period': a => { SOC.perfF.period = a; SOC.perf = null; socLoadPerf(); socRerender(); },
+  'soc-perf-reload': () => { SOC.perf = null; SOC.perfErr = ''; socRerender(); },
+  'soc-refresh': async () => { if (SOC.refreshing) return; SOC.refreshing = true; socRerender(); try { await OpenStudio.social.refreshPerformance(); toast('Statistiques actualisées.'); } catch (e) { toast(e.message); } SOC.refreshing = false; SOC.perf = null; socLoadPerf(); },
   'pay-open': () => { S.modal = { type: 'pay', mode: 'cb' }; render(); },
   'pay-mode': a => { if (S.modal) S.modal.mode = a; S.keepScroll = true; render(); },
   'home-filter': a => { S.hf = a; S.keepScroll = true; render(); },
@@ -4811,6 +5196,7 @@ document.addEventListener('input', e => {
   else if (k === 'post-edit') { const a = el.dataset.arg; const net = a.replace(/\d+$/, ''), i = +a.match(/\d+$/)[0]; S.pub.results[net][i].override = el.value; const cnt = document.querySelector(`[data-count="${a}"]`); cnt.textContent = `${nf(el.value.length)} / ${nf(NETS[net].limit)}`; cnt.classList.toggle('over', el.value.length > NETS[net].limit); }
   else if (k === 'm-f') { const m = mediaById(S.admin.arg); m[el.dataset.arg] = el.value; clearTimeout(window.__ms); window.__ms = setTimeout(saveMedias, 600); if (el.type === 'color') { const hx = document.querySelector(`[data-in="m-hex"][data-arg="${el.dataset.arg}"]`); if (hx) hx.value = el.value; } refreshMediaPreview(); }
   else if (k === 'm-hex') { if (/^#[0-9a-fA-F]{6}$/.test(el.value)) { const m = mediaById(S.admin.arg); m[el.dataset.arg] = el.value; saveMedias(); const cp = document.getElementById('mc-' + el.dataset.arg); if (cp) cp.value = el.value; refreshMediaPreview(); } }
+  else if (k === 'soc-txt' && SOC.d && SOC.d.texts) { const [p, f] = el.dataset.arg.split('|'); SOC.d.texts[p] = SOC.d.texts[p] || {}; SOC.d.texts[p][f] = el.value; const c = document.querySelector(`[data-cnt="${p}|${f}"]`); if (c) { const lim = socLimit(p, f); c.textContent = `${el.value.length} / ${lim}`; c.classList.toggle('over', el.value.length > lim); } }
   else if (k === 't-ctx') { T.context = el.value; }
   else if (k === 'ord') { if (S.modal) S.modal[el.dataset.arg] = el.value; }
   else if (k === 'dv') { if (S.modal) S.modal[el.dataset.arg] = el.value; }
@@ -4833,6 +5219,10 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const el = e.target; const k = el.dataset && el.dataset.in; if (!k) return;
   if (k === 'nf-files') { saveNf(); addFiles([...el.files]); }
+  if (k === 'soc-chk' && SOC.d) { const p = el.dataset.arg; SOC.d.checked = el.checked ? [...new Set([...SOC.d.checked, p])].sort((a, b) => SOC_NETS.indexOf(a) - SOC_NETS.indexOf(b)) : SOC.d.checked.filter(x => x !== p); if (el.checked) SOC.d.tab = p; socRerender(); }
+  if (k === 'soc-when' && SOC.d) { SOC.d.when = el.value; socRerender(); }
+  if (k === 'soc-at' && SOC.d) { SOC.d.at = el.value; socRerender(); }
+  if (k === 'soc-flt') { SOC.perfF[el.dataset.arg] = el.value; SOC.perf = null; socLoadPerf(); socRerender(); }
   if (k === 'bk-upload') { const f = el.files && el.files[0]; el.value = ''; bkUploadVideo(f); return; }
   if (k === 'sp-video') { const f = el.files && el.files[0]; if (!f) return; if (SUB.url && !VIDEOS.some(x => x.url === SUB.url)) URL.revokeObjectURL(SUB.url); SUB.url = URL.createObjectURL(f); SUB.file = f; SUB.name = f.name; SUB.duration = 0; SUB.err = ''; S.keepScroll = true; render(); }
   if (k === 'sp-srt') { const f = el.files && el.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const cues = parseSubs(decodeText(rd.result)); if (!cues.length) { toast("Aucun sous-titre horodaté trouvé dans ce fichier"); return; } SUB.raw = cues; SUB.cues = SUB.split ? splitLong(cues, 84) : cues.map(c => ({ ...c })); SUB.tr = {}; SUB.lang = SUB.srcLang; SUB.srtName = f.name; spLast = -2; fixSubTiming(); S.keepScroll = true; render(); }; rd.readAsArrayBuffer(f); }

@@ -118,6 +118,47 @@ obligatoire, vidéo de `OPUSCLIP_LIVE_MAX_MINUTES` minutes au plus (10 par défa
 `OPUSCLIP_CREDIT_BUDGET`. `/health` indique `liveTestClients` (nombre de clients concernés).
 Vider `OPUSCLIP_LIVE_CLIENTS` en production.
 
+## Publication sur les réseaux sociaux (Upload-Post) et Performances
+
+Le client publie une vidéo prête sur YouTube, Instagram, TikTok, LinkedIn et Facebook depuis
+OpenStudio, puis suit ses statistiques dans « Performances ». Tout passe par le serveur : la clé
+Upload-Post et la clé Claude ne sont jamais envoyées au navigateur.
+
+- **Profil** : un profil Upload-Post par client, créé automatiquement au premier clic sur un réseau
+  (nom du profil = identifiant interne du client).
+- **Connexion** : Connect API (`POST /api/uploadposts/oauth/{platform}/start`, appelée par le serveur
+  avec la clé API) → fenêtre officielle du réseau → retour sur `GET /api/social/connected`, qui
+  transmet `connect_status` à la page OpenStudio puis se ferme. Instagram (compte professionnel requis)
+  et Facebook (Page requise) affichent un mini-tuto en cas de problème. Connexion expirée : icône
+  « Reconnectez votre compte X ».
+- **Légendes** : générées une fois par vidéo par l'API Claude (`ANTHROPIC_API_KEY`, modèle
+  `CAPTIONS_MODEL`, défaut `claude-opus-5-5`) à partir de la transcription du clip, enregistrée à la
+  livraison. Règles par réseau : `openstudio-backend/config/caption-rules.json`. 5 régénérations par
+  vidéo. Échec de l'IA → textes simples (titre + émission), la publication n'est pas bloquée.
+- **Publication** : un seul `POST /api/upload` avec un texte par réseau, la vidéo passée par URL signée
+  (7 jours), `external_id` = identifiant de la publication. Programmation : heure de Paris, 7 jours
+  maximum. Statut : notification `upload_completed` signée (`POST /api/webhooks/upload-post`) et,
+  en secours, interrogation de `GET /api/uploadposts/status` toutes les 2 minutes.
+- **Performances** : `GET /api/uploadposts/post-analytics/{request_id}`, mis en cache en base.
+  Actualisation automatique au-delà de 24 h (à l'ouverture de la page et par le worker quand le
+  service est éveillé) et bouton « Actualiser » limité à une fois par 15 minutes.
+
+### Configuration
+1. Render → openstudio-backend → Environment : `UPLOAD_POST_API_KEY`, `UPLOAD_POST_WEBHOOK_SECRET`,
+   `ANTHROPIC_API_KEY`, et `PUBLIC_BASE_URL` = `https://openstudio-backend.onrender.com`.
+2. Secret des notifications : `POST https://api.upload-post.com/api/uploadposts/users/webhook-secret`
+   (en-tête `Authorization: Apikey <clé>`) → copier `webhook_secret` (`whsec_…`) dans Render.
+3. URL des notifications (tableau de bord Upload-Post → Settings → Webhooks, ou API) :
+   `https://openstudio-backend.onrender.com/api/webhooks/upload-post`, événements `upload_completed`
+   et `social_account_reauth_required`.
+4. Secteur d'activité d'un client (utilisé par les légendes) :
+   `POST /api/admin/clients/<id>` avec `{"sector": "Recyclage industriel"}`.
+
+### Tests
+`TEST_DATABASE_URL=postgres://…/base_de_test npm test` : tests sur une vraie base PostgreSQL
+(remise à zéro à chaque exécution), Upload-Post et Claude simulés. Sans `TEST_DATABASE_URL`, ces
+tests sont ignorés.
+
 ## API
 
 | Méthode | Route | Rôle |
@@ -125,6 +166,17 @@ Vider `OPUSCLIP_LIVE_CLIENTS` en production.
 | GET | `/api/catalog` | Options configurées |
 | GET | `/api/me` | Client + vidéos de son package |
 | GET | `/api/me/orders` | Commandes du client |
+| GET | `/api/social/accounts` | Réseaux connectés / à reconnecter, Page Facebook |
+| POST | `/api/social/connect/:platform` | Démarre la connexion (URL de la fenêtre officielle) |
+| GET | `/api/social/connected` | Retour de la fenêtre de connexion |
+| GET / POST | `/api/social/facebook/pages` · `/api/social/facebook/page` | Pages Facebook, choix de la Page |
+| GET | `/api/social/videos/:id/captions` | Légendes par réseau (générées une fois) |
+| POST | `/api/social/videos/:id/captions/regenerate` | Régénérer (5 fois max) |
+| POST | `/api/social/publications` | Publier ou programmer |
+| GET | `/api/social/publications?video=` | Statut par réseau |
+| GET | `/api/social/performance` | Indicateurs et liste (période, réseau, type, émission) |
+| POST | `/api/social/performance/refresh` | Actualiser (1 fois / 15 min) |
+| POST | `/api/webhooks/upload-post` | Notifications Upload-Post (signées) |
 | POST | `/api/uploads` | URL signée d'envoi (vidéo, transcription .srt/.vtt, logo) |
 | POST | `/api/orders` | Créer une commande → `accessToken` |
 | POST | `/api/orders/:id/validate` | Valider (contrôle des options) |
