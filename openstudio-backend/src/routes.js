@@ -18,6 +18,7 @@ const { verifyOpusWebhook } = require('./opusclip/webhook');
 const { validateSubtitleFile } = require('./media/subtitles');
 const { MockPaymentProvider } = require('./payment');
 const loginCodes = require('./loginCodes');
+const diffusions = require('./diffusions');
 
 const router = express.Router();
 const json = express.json({ limit: '200kb' });
@@ -379,6 +380,19 @@ router.get('/admin/clients/:id/code', wrap(async (req, res) => {
   const code = clients.revealCode(c);
   if (!code) return res.status(409).json({ error: 'Code déjà envoyé au client ou non lisible : générez-en un nouveau.' });
   res.json({ loginCode: code });
+}));
+
+/** Diffusions vidéo lues dans le planning (base de la future page « Diffusions »). */
+router.get('/admin/diffusions', wrap(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.json({ diffusions: await diffusions.list({ from: req.query.from }), lastSync: diffusions.lastSync() });
+}));
+
+/** Relit le planning tout de suite (sans attendre le passage automatique). */
+router.post('/admin/planning/sync', wrap(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const r = await diffusions.runSync();
+  res.status(r.ok ? 200 : 503).json(r);
 }));
 
 /** Nouveau code pour un client (code perdu) : l'ancien cesse aussitôt de fonctionner. */

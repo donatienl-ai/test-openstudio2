@@ -10,10 +10,20 @@ const pipeline = require('./pipeline');
 const storage = require('./storage');
 const db = require('./db');
 const social = require('./social/service');
+const diffusions = require('./diffusions');
 
 let busy = false;
 let timer = null;
 let tick = 0;
+let lastPlanningSync = 0;
+
+/** Planning de diffusion : relu toutes les PLANNING_SYNC_MIN minutes (quand le service est éveillé). */
+async function planningStep() {
+  if (!config.planning.exportUrl || !config.planning.exportKey) return;
+  if (Date.now() - lastPlanningSync < config.planning.syncMinutes * 60 * 1000) return;
+  lastPlanningSync = Date.now();
+  await diffusions.runSync();
+}
 
 async function step() {
   // 1. Commandes payées → soumission à OpusClip
@@ -91,6 +101,7 @@ async function loop() {
   try {
     if (tick++ % 30 === 0) await housekeeping();
     if (tick % 6 === 0) await socialStep();
+    await planningStep();
     // Traite tout ce qui est prêt, une commande à la fois (limite mémoire/CPU sur Render)
     for (let i = 0; i < 20; i++) {
       if (!(await step())) break;

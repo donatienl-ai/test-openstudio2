@@ -55,6 +55,13 @@ const config = {
 
   workerIntervalSec: num(process.env.WORKER_INTERVAL_SEC, 10),
 
+  // Planning de diffusion (dashboard) : route d'export en lecture seule + clé partagée (OPENSTUDIO_EXPORT_KEY côté dashboard)
+  planning: {
+    exportUrl: (process.env.PLANNING_EXPORT_URL || '').trim(),
+    exportKey: (process.env.PLANNING_EXPORT_KEY || '').trim(),
+    syncMinutes: num(process.env.PLANNING_SYNC_MIN, 60),
+  },
+
   // Codes de connexion des espaces clients (src/loginCodes.js). Secret propre aux codes : le changer rend
   // tous les codes existants invalides. Essais ratés limités par adresse IP.
   loginCodes: {

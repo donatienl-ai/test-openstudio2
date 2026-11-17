@@ -206,6 +206,37 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
 CREATE UNIQUE INDEX IF NOT EXISTS clients_login_code_hash ON clients (login_code_hash);
 `;
 
+// Diffusions vidéo lues dans le planning (src/planningSync.js) : une ligne par diffusion, reliée au client
+const DIFFUSIONS_SCHEMA = `
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS company_key TEXT;            -- entreprise normalisée (regroupement)
+CREATE INDEX IF NOT EXISTS clients_company_key ON clients (company_key);
+CREATE TABLE IF NOT EXISTS diffusions (
+  id                  UUID PRIMARY KEY,
+  planning_id         INTEGER NOT NULL UNIQUE,     -- identifiant de la ligne dans le planning
+  client_id           UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  sf_opportunity_id   TEXT,
+  entreprise          TEXT NOT NULL,
+  media               TEXT,
+  sous_media          TEXT,
+  format              TEXT,
+  date_diffusion      DATE,
+  planning_statut     TEXT,                        -- statut brut du planning (confirme, a_programmer, annule…)
+  state               TEXT NOT NULL,               -- active | date_pending | cancelled
+  contact_name        TEXT,                        -- signataire du BDC (planning)
+  contact_email       TEXT,
+  email_override      TEXT,                        -- « autre destinataire » saisi par l'équipe
+  video_id            UUID REFERENCES client_videos(id) ON DELETE SET NULL,
+  drive_folder_id     TEXT,
+  mail_sent_at        TIMESTAMPTZ,
+  planning_updated_at TEXT,
+  synced_at           TIMESTAMPTZ,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS diffusions_client ON diffusions (client_id);
+CREATE INDEX IF NOT EXISTS diffusions_date ON diffusions (date_diffusion);
+`;
+
 async function migrate() {
   await pool.query(SCHEMA);
   await pool.query(LOGIN_SCHEMA);
@@ -213,6 +244,7 @@ async function migrate() {
   await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS finalize_restarts INTEGER NOT NULL DEFAULT 0');
   await pool.query(SOCIAL_SCHEMA);
   await pool.query(MONTAGE_SCHEMA);
+  await pool.query(DIFFUSIONS_SCHEMA);
   // L'émission « immersion » est devenue « capital »
   await pool.query("UPDATE client_videos SET programme_id = 'capital' WHERE programme_id = 'immersion'");
 }

@@ -81,6 +81,28 @@ curl -X POST $API/api/admin/clients/<CLIENT_ID>/code -H "$AUTH"
 
 La création d'un client (`POST /api/admin/clients`) renvoie aussi son code dans `loginCode`.
 
+## Synchronisation avec le planning de diffusion
+
+OpenStudio relit le planning du dashboard toutes les `PLANNING_SYNC_MIN` minutes (60 par défaut) via sa route
+d'export en lecture seule (`PLANNING_EXPORT_URL` + `PLANNING_EXPORT_KEY`, même clé que `OPENSTUDIO_EXPORT_KEY`
+côté dashboard).
+
+| Statut dans le planning | Effet dans OpenStudio |
+|---|---|
+| BDC envoyé, pas signé (`bdc_attente`) | Rien |
+| Confirmée | Ligne `diffusions` active ; client créé s'il n'existe pas (avec son code), e-mail du signataire du BDC |
+| À programmer | Ligne en attente de date (`date_pending`) |
+| Date modifiée | Date mise à jour (report) |
+| Annulée | Ligne `cancelled` (aucun mail) ; réactivée si la diffusion revient |
+
+Un client = un espace : les diffusions d'une même entreprise (nom normalisé : sans accents, ponctuation ni
+forme juridique) sont rattachées au même client. L'e-mail du client est complété s'il manquait, jamais écrasé.
+
+```bash
+curl $API/api/admin/diffusions -H "$AUTH"                  # diffusions + compte rendu de la dernière lecture
+curl -X POST $API/api/admin/planning/sync -H "$AUTH"       # relire le planning tout de suite
+```
+
 ## Mode test : dépôt de vidéo par le client
 
 Deux variables, à retirer en production (voir `render.yaml`) :
