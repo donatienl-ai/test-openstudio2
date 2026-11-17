@@ -54,6 +54,26 @@ const config = {
   testClientName: (process.env.TEST_CLIENT_NAME || '').trim(),
 
   workerIntervalSec: num(process.env.WORKER_INTERVAL_SEC, 10),
+
+  // Publication sur les réseaux sociaux (Upload-Post). La clé ne quitte jamais le serveur.
+  social: {
+    apiKey: (process.env.UPLOAD_POST_API_KEY || '').trim(),
+    webhookSecret: (process.env.UPLOAD_POST_WEBHOOK_SECRET || '').trim(),
+    baseUrl: 'https://api.upload-post.com/api',
+    platforms: ['youtube', 'instagram', 'tiktok', 'linkedin', 'facebook'],
+    scheduleMaxDays: num(process.env.SOCIAL_SCHEDULE_MAX_DAYS, 7), // = durée max d'une URL signée du stockage
+    videoUrlTtlSec: 7 * 24 * 3600,
+    statsMaxAgeHours: 24, // statistiques actualisées à l'ouverture de « Performances » au-delà
+    manualRefreshMinutes: 15, // bouton « Actualiser » : une fois par quart d'heure et par client
+    statusPollSec: 120, // secours si la notification upload_completed n'arrive pas
+  },
+
+  // Légendes générées par Claude (clé côté serveur uniquement)
+  anthropic: {
+    apiKey: (process.env.ANTHROPIC_API_KEY || '').trim(),
+    model: (process.env.CAPTIONS_MODEL || 'claude-opus-5-5').trim(),
+    regenerateMax: 5,
+  },
 };
 
 module.exports = config;

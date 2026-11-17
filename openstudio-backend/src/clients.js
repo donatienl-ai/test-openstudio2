@@ -42,7 +42,7 @@ async function findByName(name) {
 }
 
 async function update(id, fields) {
-  const allowed = { name: 'name', company: 'company', email: 'email', logoKey: 'logo_key' };
+  const allowed = { name: 'name', company: 'company', email: 'email', logoKey: 'logo_key', sector: 'sector' };
   const sets = [];
   const params = [id];
   for (const [k, col] of Object.entries(allowed)) {

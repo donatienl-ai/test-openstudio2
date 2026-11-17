@@ -71,3 +71,12 @@ services:
         value: "Client test OpenStudio"
       - key: ADMIN_TOKEN
         generateValue: true
+      # Publication sur les réseaux sociaux (Upload-Post) : clé API et secret des notifications (webhook).
+      # À saisir dans Render ; ne jamais les mettre dans le dépôt ni dans le site.
+      - key: UPLOAD_POST_API_KEY
+        sync: false
+      - key: UPLOAD_POST_WEBHOOK_SECRET
+        sync: false
+      # Légendes automatiques par réseau (API Claude) : clé côté serveur uniquement.
+      - key: ANTHROPIC_API_KEY
+        sync: false

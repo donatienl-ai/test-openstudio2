@@ -14,6 +14,7 @@
     "opus:templates": "node scripts/list-templates.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@aws-sdk/client-s3": "^3.600.0",
     "@aws-sdk/s3-request-presigner": "^3.600.0",
     "archiver": "^7.0.1",

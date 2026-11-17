@@ -95,10 +95,86 @@ CREATE TABLE IF NOT EXISTS credit_ledger (
 );
 `;
 
+// Publication sur les réseaux (Upload-Post), légendes et statistiques
+const SOCIAL_SCHEMA = `
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS sector TEXT;              -- secteur d'activité (légendes IA)
+ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS transcript TEXT;     -- texte du clip, enregistré à la livraison
+
+-- Un profil Upload-Post par client (créé au premier clic sur un réseau). username = id interne du client.
+CREATE TABLE IF NOT EXISTS social_profiles (
+  client_id          UUID PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE,
+  username           TEXT NOT NULL UNIQUE,
+  facebook_page_id   TEXT,
+  facebook_page_name TEXT,
+  stats_refresh_at   TIMESTAMPTZ,                 -- dernier « Actualiser » manuel (limite 1 / 15 min)
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Légendes par réseau, générées une fois par vidéo
+CREATE TABLE IF NOT EXISTS video_captions (
+  deliverable_id UUID PRIMARY KEY REFERENCES deliverables(id) ON DELETE CASCADE,
+  captions       JSONB NOT NULL,
+  source         TEXT NOT NULL,                   -- ai | fallback
+  model          TEXT,
+  regen_count    INTEGER NOT NULL DEFAULT 0,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS publications (
+  id             UUID PRIMARY KEY,
+  client_id      UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  deliverable_id UUID REFERENCES deliverables(id) ON DELETE SET NULL,
+  order_id       UUID,
+  video_title    TEXT,
+  video_kind     TEXT,                            -- capsules | teaser | subtitles
+  programme_id   TEXT,
+  platforms      TEXT[] NOT NULL,
+  texts          JSONB NOT NULL,                  -- { youtube: {title, description}, instagram: {caption}, ... }
+  scheduled_at   TIMESTAMPTZ,
+  timezone       TEXT,
+  request_id     TEXT,
+  job_id         TEXT,
+  status         TEXT NOT NULL,                   -- submitting | scheduled | in_progress | published | partial | failed
+  error          TEXT,
+  last_polled_at TIMESTAMPTZ,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS publications_client ON publications (client_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS publications_request ON publications (request_id);
+CREATE INDEX IF NOT EXISTS publications_job ON publications (job_id);
+
+-- Une ligne par réseau : statut, lien du post, dernières statistiques connues (NULL = non fournie)
+CREATE TABLE IF NOT EXISTS publication_targets (
+  publication_id   UUID NOT NULL REFERENCES publications(id) ON DELETE CASCADE,
+  platform         TEXT NOT NULL,
+  status           TEXT NOT NULL,                 -- pending | scheduled | published | failed
+  post_url         TEXT,
+  platform_post_id TEXT,
+  error            TEXT,
+  published_at     TIMESTAMPTZ,
+  views            BIGINT,
+  likes            BIGINT,
+  comments         BIGINT,
+  shares           BIGINT,
+  stats_error      TEXT,
+  stats_at         TIMESTAMPTZ,
+  PRIMARY KEY (publication_id, platform)
+);
+
+-- Notifications Upload-Post déjà traitées (X-Upload-Post-Delivery)
+CREATE TABLE IF NOT EXISTS social_deliveries (
+  id          TEXT PRIMARY KEY,
+  received_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+`;
+
 async function migrate() {
   await pool.query(SCHEMA);
   await pool.query('ALTER TABLE client_videos ADD COLUMN IF NOT EXISTS duration_sec REAL');
   await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS finalize_restarts INTEGER NOT NULL DEFAULT 0');
+  await pool.query(SOCIAL_SCHEMA);
   // L'émission « immersion » est devenue « capital »
   await pool.query("UPDATE client_videos SET programme_id = 'capital' WHERE programme_id = 'immersion'");
 }

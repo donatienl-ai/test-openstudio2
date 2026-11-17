@@ -1,0 +1,64 @@
+{
+  "_comment": "Règles des légendes générées pour chaque réseau. Modifiables sans toucher au code : redémarrer le service après modification. maxLength = limite de caractères affichée dans le compteur (et appliquée côté serveur).",
+  "common": [
+    "Écris en français, sans aucune faute d'orthographe ni de grammaire.",
+    "N'invente jamais de chiffres, de noms, de citations ou d'affirmations absents de la transcription.",
+    "Mentionne l'émission (par exemple « vu sur BFM Business ») quand c'est pertinent.",
+    "Écris à la première personne du pluriel (« nous ») : c'est l'entreprise cliente qui publie.",
+    "Adapte le ton au secteur d'activité de l'entreprise."
+  ],
+  "platforms": {
+    "youtube": {
+      "label": "YouTube Shorts",
+      "fields": {
+        "title": { "maxLength": 100 },
+        "description": { "maxLength": 5000 }
+      },
+      "rules": [
+        "Titre accrocheur de moins de 70 caractères, contenant le mot-clé principal.",
+        "Description de 2 à 3 phrases.",
+        "3 à 5 hashtags à la fin de la description, dont #Shorts."
+      ]
+    },
+    "instagram": {
+      "label": "Instagram Reels",
+      "fields": { "caption": { "maxLength": 2200 } },
+      "rules": [
+        "Première ligne = accroche forte (c'est la seule visible avant « plus »).",
+        "Texte court et rythmé.",
+        "Emojis avec parcimonie.",
+        "Un appel à l'action : commenter, partager ou enregistrer.",
+        "3 à 5 hashtags pertinents en fin de texte."
+      ]
+    },
+    "tiktok": {
+      "label": "TikTok",
+      "fields": { "caption": { "maxLength": 2200 } },
+      "rules": [
+        "Très court : 1 à 2 lignes.",
+        "Ton direct et naturel, avec une accroche ou une question.",
+        "3 à 5 hashtags, dont 1 ou 2 larges et les autres de niche."
+      ]
+    },
+    "linkedin": {
+      "label": "LinkedIn",
+      "fields": { "caption": { "maxLength": 3000 } },
+      "rules": [
+        "Ton professionnel.",
+        "Accroche sur la première ligne.",
+        "3 à 5 lignes aérées qui racontent l'enjeu business et ce que le passage TV apporte.",
+        "Une question ou un appel à l'action en fin de texte.",
+        "3 hashtags au maximum ; peu ou pas d'emojis."
+      ]
+    },
+    "facebook": {
+      "label": "Facebook (Page)",
+      "fields": { "caption": { "maxLength": 5000 } },
+      "rules": [
+        "Ton accessible, 2 à 4 phrases.",
+        "Un appel à l'action clair.",
+        "0 à 2 hashtags."
+      ]
+    }
+  }
+}

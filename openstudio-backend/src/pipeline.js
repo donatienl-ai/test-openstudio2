@@ -21,6 +21,7 @@ const opus = require('./opusclip/client');
 const { buildProjectPayload, interpretProjectStatus, estimateCredits, shortId, capsuleDelivery } = require('./opusclip/payload');
 const { isLiveOrder, liveTestGuard } = require('./opusclip/mode');
 const { probeDurationSec, renderFinal, buildForceStyle } = require('./media/ffmpeg');
+const { clipTranscript } = require('./social/transcript');
 const { mp4DurationSec } = require('./media/mp4duration');
 const subs = require('./media/subtitles');
 
@@ -242,6 +243,8 @@ async function finalizeCapsules(order, tmp) {
       sizeBytes: size,
       opusClipId: clipId,
       expiresAt: expiry(),
+      // Texte prononcé dans la partie livrée : sert aux légendes des réseaux sociaux
+      transcript: clipTranscript(clip, target) || null,
     });
     fs.rmSync(input, { force: true });
     fs.rmSync(output, { force: true });
@@ -321,6 +324,7 @@ async function finalizeSubtitles(order, tmp) {
   await orders.addDeliverable({
     orderId: order.id, storageKey: key, fileName, title: 'Vidéo sous-titrée',
     durationMs: null, sizeBytes: size, opusClipId: 'video', expiresAt: expiry(),
+    transcript: cues.map((c) => c.text || c.t || '').join(' ').replace(/\s+/g, ' ').trim().slice(0, 20000) || null,
   });
 }
 

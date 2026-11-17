@@ -141,6 +141,24 @@
   /** Mode test : ajoute à l'espace client une vidéo déjà envoyée avec uploadFile(file, 'video'). */
   const addMyVideo = ({ title, sourceKey, programmeId, broadcastDate, durationSec }) =>
     call('POST', '/api/me/videos', { body: { title, sourceKey, programmeId, broadcastDate, durationSec } }).then((d) => d.video);
+  // --- Réseaux sociaux (Upload-Post, via le serveur OpenStudio : aucune clé dans le navigateur) ---
+  const social = {
+    accounts: () => call('GET', '/api/social/accounts'),
+    /** URL de la fenêtre officielle du réseau (à ouvrir dans une fenêtre pop-up). */
+    connect: (platform) => call('POST', `/api/social/connect/${encodeURIComponent(platform)}`),
+    facebookPages: () => call('GET', '/api/social/facebook/pages'),
+    selectFacebookPage: (pageId) => call('POST', '/api/social/facebook/page', { body: { pageId } }),
+    captions: (videoId) => call('GET', `/api/social/videos/${encodeURIComponent(videoId)}/captions`),
+    regenerateCaptions: (videoId) => call('POST', `/api/social/videos/${encodeURIComponent(videoId)}/captions/regenerate`),
+    /** { videoId, platforms: [...], texts: { youtube: {title, description}, instagram: {caption}, ... }, scheduledAt?: 'AAAA-MM-JJTHH:MM' (heure de Paris) } */
+    publish: (pub) => call('POST', '/api/social/publications', { body: pub }).then((d) => d.publication),
+    publications: (videoId) => call('GET', `/api/social/publications${videoId ? `?video=${encodeURIComponent(videoId)}` : ''}`).then((d) => d.publications),
+    performance: (filters = {}) => call('GET', `/api/social/performance?${new URLSearchParams(Object.entries(filters).filter(([, v]) => v))}`),
+    refreshPerformance: () => call('POST', '/api/social/performance/refresh'),
+    /** Origine du serveur (pour vérifier le message envoyé par la fenêtre de connexion). */
+    origin: () => new URL(API()).origin,
+  };
+
   /** Commandes de l'espace client. */
   const getMyOrders = () => call('GET', '/api/me/orders').then((d) => d.orders);
 
@@ -172,6 +190,7 @@
     getCatalog,
     getMyVideos,
     addMyVideo,
+    social,
     getMyOrders,
     clientSession,
     watchOrder,
