@@ -170,11 +170,38 @@ CREATE TABLE IF NOT EXISTS social_deliveries (
 );
 `;
 
+// Demandes de montage par nos monteurs (formulaire client + paiement Stripe)
+const MONTAGE_SCHEMA = `
+CREATE TABLE IF NOT EXISTS montage_requests (
+  id                 UUID PRIMARY KEY,
+  client_id          UUID REFERENCES clients(id) ON DELETE SET NULL,
+  offer_id           TEXT NOT NULL,
+  offer_title        TEXT NOT NULL,
+  amount_ht_cents    INTEGER,                    -- NULL : prix à définir (pas de paiement en ligne)
+  amount_ttc_cents   INTEGER,
+  contact            JSONB NOT NULL,             -- { company, name, email, phone }
+  brief              JSONB NOT NULL,             -- { description, programme, formats, deadline }
+  status             TEXT NOT NULL,              -- awaiting_payment | paid | to_quote | cancelled
+  return_base        TEXT,                       -- site où renvoyer le client après le paiement
+  stripe_session_id  TEXT UNIQUE,
+  stripe_payment_intent TEXT,
+  paid_at            TIMESTAMPTZ,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS montage_requests_client ON montage_requests (client_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS stripe_events (
+  id          TEXT PRIMARY KEY,
+  received_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+`;
+
 async function migrate() {
   await pool.query(SCHEMA);
   await pool.query('ALTER TABLE client_videos ADD COLUMN IF NOT EXISTS duration_sec REAL');
   await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS finalize_restarts INTEGER NOT NULL DEFAULT 0');
   await pool.query(SOCIAL_SCHEMA);
+  await pool.query(MONTAGE_SCHEMA);
   // L'émission « immersion » est devenue « capital »
   await pool.query("UPDATE client_videos SET programme_id = 'capital' WHERE programme_id = 'immersion'");
 }

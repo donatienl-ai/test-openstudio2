@@ -155,9 +155,33 @@ Upload-Post et la clé Claude ne sont jamais envoyées au navigateur.
    `POST /api/admin/clients/<id>` avec `{"sector": "Recyclage industriel"}`.
 
 ### Tests
-`TEST_DATABASE_URL=postgres://…/base_de_test npm test` : tests sur une vraie base PostgreSQL
+`TEST_DATABASE_URL=postgres://…/base_de_test npm test` : tests sur une vraie base PostgreSQL (fichiers exécutés l'un après l'autre)
 (remise à zéro à chaque exécution), Upload-Post et Claude simulés. Sans `TEST_DATABASE_URL`, ces
 tests sont ignorés.
+
+## Confier ma vidéo à un monteur (paiement Stripe)
+
+Le bloc « Et si un monteur s'en occupait ? » ouvre un formulaire en deux étapes :
+1. **Votre demande** : coordonnées (préremplies), prestation, émission, description, formats, date.
+2. **Paiement sécurisé** : redirection vers Stripe Checkout (carte, 3-D Secure), puis retour sur le site.
+
+- Prestations et prix HT : `openstudio-backend/src/montage/offers.js` (tarifs de la plaquette, sans drone,
+  traduction d'article ni pack communication). Le prix payé est toujours celui du serveur ; le client paie
+  le TTC (TVA `VAT_RATE`, 20 % par défaut). Le media training (prix à définir) part sans paiement.
+- Paiement confirmé par la notification Stripe signée `checkout.session.completed`
+  (`POST /api/webhooks/stripe`), traitée une seule fois.
+- Sans `STRIPE_SECRET_KEY` : page de paiement simulée (tests), aucun prélèvement.
+- Demandes reçues : `GET /api/admin/montage-requests` (`Authorization: Bearer <ADMIN_TOKEN>`), en attendant
+  le back-office (e-mail à l'équipe et facture automatique : étape P1).
+
+### Brancher Stripe
+1. Stripe → Développeurs → Clés API : copier la clé secrète (`sk_test_…` pour commencer) dans
+   `STRIPE_SECRET_KEY` sur Render.
+2. Stripe → Développeurs → Webhooks → Ajouter un endpoint :
+   `https://openstudio-backend.onrender.com/api/webhooks/stripe`, événements `checkout.session.completed`,
+   `checkout.session.async_payment_succeeded` et `checkout.session.expired`. Copier le secret de signature
+   (`whsec_…`) dans `STRIPE_WEBHOOK_SECRET`.
+3. Tester avec la carte de test Stripe `4242 4242 4242 4242`, puis passer aux clés live.
 
 ## API
 
@@ -177,6 +201,10 @@ tests sont ignorés.
 | GET | `/api/social/performance` | Indicateurs et liste (période, réseau, type, émission) |
 | POST | `/api/social/performance/refresh` | Actualiser (1 fois / 15 min) |
 | POST | `/api/webhooks/upload-post` | Notifications Upload-Post (signées) |
+| GET | `/api/montage/offers` | Prestations de nos monteurs et prix (HT, TTC) |
+| POST | `/api/montage/requests` | Demande de montage → adresse de paiement Stripe |
+| GET | `/api/montage/requests/:id` | Statut au retour du paiement |
+| POST | `/api/webhooks/stripe` | Notifications Stripe (signées) |
 | POST | `/api/uploads` | URL signée d'envoi (vidéo, transcription .srt/.vtt, logo) |
 | POST | `/api/orders` | Créer une commande → `accessToken` |
 | POST | `/api/orders/:id/validate` | Valider (contrôle des options) |

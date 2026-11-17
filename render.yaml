@@ -80,3 +80,9 @@ services:
       # Légendes automatiques par réseau (API Claude) : clé côté serveur uniquement.
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Paiement par carte (Stripe Checkout) : « Confier ma vidéo à un monteur ».
+      # Sans STRIPE_SECRET_KEY, le paiement est simulé (tests). À saisir dans Render, jamais dans le dépôt.
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false

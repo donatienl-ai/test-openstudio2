@@ -159,6 +159,14 @@
     origin: () => new URL(API()).origin,
   };
 
+  // --- Confier ma vidéo à un monteur : prestations, demande, retour du paiement ---
+  const montage = {
+    offers: () => call('GET', '/api/montage/offers'),
+    /** Renvoie { id, status, checkoutUrl } : rediriger vers checkoutUrl (paiement Stripe). */
+    request: (body) => call('POST', '/api/montage/requests', { body }),
+    status: (id) => call('GET', `/api/montage/requests/${encodeURIComponent(id)}`),
+  };
+
   /** Commandes de l'espace client. */
   const getMyOrders = () => call('GET', '/api/me/orders').then((d) => d.orders);
 
@@ -191,6 +199,7 @@
     getMyVideos,
     addMyVideo,
     social,
+    montage,
     getMyOrders,
     clientSession,
     watchOrder,

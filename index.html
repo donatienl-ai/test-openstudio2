@@ -971,6 +971,34 @@ em,i:not([class]){font-style:normal}
 .bk-ready button:focus-visible{outline:2px solid #C9C9FF;outline-offset:2px}
 @keyframes bkReadyIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (prefers-reduced-motion:reduce){.bk-ready{animation:none}}
+/* Confier ma vidéo à un monteur : formulaire en 2 étapes (demande, puis paiement Stripe) */
+.mt-steps{list-style:none;margin:0 0 16px;padding:0;display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--os-mut)}
+.mt-steps li{display:flex;align-items:center;gap:8px}
+.mt-steps b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--os-line2);font-size:12px;font-weight:600}
+.mt-steps li.on{color:var(--os-navy);font-weight:600}.mt-steps li.on b{background:var(--os-blue);border-color:var(--os-blue);color:#fff}
+.mt-form{display:flex;flex-direction:column;gap:22px}
+.mt-sec{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:16px}
+.mt-sec legend{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:16px;color:var(--os-navy);padding:0;margin-bottom:12px}
+.mt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.mt-offers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mt-offer{font:inherit;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:4px;padding:14px;border-radius:12px;border:1px solid var(--os-line2);background:#fff;color:var(--os-navy)}
+.mt-offer:hover{border-color:var(--os-navy)}
+.mt-offer[aria-checked="true"]{border:2px solid var(--os-blue);background:var(--os-tint);padding:13px}
+.mt-offer .t{font-weight:600;font-size:14px}
+.mt-offer .d{font-size:13px;line-height:1.4;color:var(--os-mut)}
+.mt-offer .p{margin-top:auto;padding-top:6px;font-weight:600;font-size:14px}
+.mt-offer .p small{font-weight:400;color:var(--os-mut);font-size:12px;margin-left:4px}
+.mt-offer:focus-visible{outline:2px solid var(--os-blue);outline-offset:2px}
+.mt-load{display:flex;align-items:center;gap:10px;padding:14px;border-radius:12px;background:var(--os-bg);font-size:14px}
+.mt-err{margin:0;font-size:14px;color:#A34232;background:#FCEFEC;border-radius:10px;padding:10px 12px}
+.mt-foot{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;width:100%}
+.mt-foot>span{flex:1 1 220px}
+.mt-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.mt-done{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:12px 0}
+.mt-done p{margin:0;max-width:44ch;line-height:1.5}
+.mt-ok{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:#EAF7F0;color:#1E6B45;font-size:26px;font-weight:800;margin-bottom:6px}
+.mt-ok.wait{background:var(--os-tint);color:var(--os-blue)}
+@media (max-width:640px){.mt-grid,.mt-offers{grid-template-columns:1fr}.mt-btns{width:100%;flex-direction:column-reverse}.mt-btns>*{width:100%;justify-content:center}.mt-btns .os-cta{white-space:normal;text-align:center;line-height:1.3;min-height:52px;height:auto;padding:12px 18px}}
 /* Réseaux sociaux : « Poster sur », badge « Publiée sur », panneau de publication, Performances */
 .soc-row,.soc-pubd{display:flex;flex-wrap:wrap;align-items:center;gap:8px;position:relative}
 .soc-lbl{font-size:12px;color:var(--os-mut)}
@@ -1886,7 +1914,7 @@ function flowSettingsHtml(v) {
   const k = S.cap; const kd = flowKind();
   if (kd === 'subtitles') return `<section class="flow-card"><h2>Vos sous-titres</h2>
       <div class="rows"><div class="r"><span class="k">Langue</span><span class="v">Français (langue parlée dans la vidéo)</span></div><div class="r"><span class="k">Transcription</span><span class="v">Automatique, à partir du son de la vidéo</span></div><div class="r"><span class="k">Format</span><span class="v">Celui de la vidéo d’origine</span></div></div>
-      <p class="small muted">La traduction dans une autre langue arrive bientôt. En attendant, votre chargée de projet peut vous la proposer sur devis.</p></section>`;
+      <p class="small muted">La traduction dans une autre langue arrive bientôt. En attendant, nos monteurs peuvent sous-titrer votre vidéo dans la langue de votre choix.</p></section>`;
   const durs = CAP_OPTIONS.kinds[0].durs; const m = bkMedia(v);
   return `<section class="flow-card" aria-labelledby="q-fmt"><div><h2 id="q-fmt">Où allez-vous ${kd === 'teaser' ? 'le' : 'les'} publier ?</h2><p class="small muted" style="margin-top:4px">Le format est choisi selon le réseau.</p></div>
       <div class="opt-grid" role="group" aria-label="Format">${CAP_OPTIONS.fmts.map(([f, l, u, w, h]) => flowOpt(k.fmt === f, 'cap-fmt', f, `<i style="width:${w * 2.4}px;height:${h * 2.4}px"></i>`, f, l, u)).join('')}</div></section>
@@ -1919,7 +1947,7 @@ function bkCapsulesPage(c) {
     const ill = { capsules: '<i style="width:38px;height:68px"></i><i style="width:38px;height:68px;background:#48406E"></i><i style="width:38px;height:68px;background:#384868"></i>', teaser: '<i style="width:46px;height:82px"></i>', subtitles: '<i style="width:150px;height:84px"></i>' };
     main = `<section class="os-card" aria-labelledby="q-type"><div><h2 id="q-type">Que voulez-vous en faire ?</h2><div class="sub">Le logo de l'émission et le vôtre sont ajoutés dans tous les cas.</div></div>
       <div class="os-opts" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${Object.entries(FLOW_KINDS).map(([id, x]) => `<button type="button" class="os-opt" data-a="bk-kind" data-arg="${id}" aria-pressed="${kd === id}" style="gap:14px"><span class="ill" aria-hidden="true">${ill[id]}</span><span class="mono">${esc(x.tag)}</span><b style="font-size:16px">${esc(x.label)}</b><span class="d" style="font-size:14px;line-height:1.45">${esc(x.desc)}</span></button>`).join('')}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:16px 18px;border-radius:12px;background:var(--os-bg)"><span style="font-size:14px;line-height:1.5"><b style="font-weight:600">Autre chose en tête ?</b> Un monteur de l'équipe peut réaliser un montage sur mesure.</span><button class="os-link" style="font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-decoration:none;text-transform:uppercase" data-a="devis-open">Demander un devis ↗</button></div></section>`;
+      <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:16px 18px;border-radius:12px;background:var(--os-bg)"><span style="font-size:14px;line-height:1.5"><b style="font-weight:600">Envie d'un montage fait main ?</b> Nos monteurs réalisent votre vidéo de A à Z.</span><button class="os-link" style="font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-decoration:none;text-transform:uppercase" data-a="mt-open">Confier ma vidéo à un monteur ↗</button></div></section>`;
   } else if (n === 3) {
     if (kd === 'subtitles') main = `<section class="os-card"><h2>Vos sous-titres</h2><div>${[['Langue', 'Français, la langue parlée dans la vidéo'], ['Transcription', 'Automatique, à partir du son de la vidéo'], ['Format', 'Celui de la vidéo d’origine']].map(([a1, b1]) => `<div class="os-row"><span class="k">${a1}</span><span class="v">${b1}</span></div>`).join('')}</div><p class="mut" style="margin:0;font-size:14px">La traduction dans une autre langue arrive bientôt.</p></section>`;
     else {
@@ -2325,7 +2353,6 @@ const CNAV_MORE = [
   ['offres', 'Nos offres', 'bag'],
   ['access', 'Mon accès', 'clock']
 ];
-const DEVIS_OFFER = 'montage';
 
 /* ================= Espace client : écrans du canevas « OpenStudio — 3 directions d'interface » =================
    Accueil (C), Mes émissions (A), Mes vidéos, Commandes, Factures, parcours de création (étapes 1 à 4),
@@ -2372,8 +2399,8 @@ function osPrepCard(o) {
   return `<article class="os-clip"><div class="prep"><span class="mono">EN PRÉPARATION</span><span>Une pastille vous prévient quand c’est prêt</span></div><div class="foot"><div><b>${esc(osTypeLabel(o))}</b><small><button class="os-link" style="font-size:12px" data-a="order-track" data-arg="${o.id}">Suivre</button></small></div></div></article>`;
 }
 function osDevisCard(side) {
-  return side ? `<div class="os-devis"><b>Un montage sur mesure ?</b><span>Nos monteurs prennent la main sur votre rush.</span><button data-a="devis-open">Demander un devis ↗</button></div>`
-    : `<div class="os-tint"><h2>Envie d'un montage sur mesure ?</h2><p>Un monteur de l'équipe s'occupe de votre rush de A à Z.</p><button data-a="devis-open">Demander un devis ↗</button></div>`;
+  return side ? `<div class="os-devis"><b>Vos vidéos montées à la main</b><span>Nos monteurs choisissent les meilleurs moments et soignent chaque coupe : le rendu d'un vrai montage professionnel.</span><button data-a="mt-open">Confier ma vidéo à un monteur ↗</button></div>`
+    : `<div class="os-tint"><h2>Et si un monteur s'en occupait ?</h2><p>Capsules, teaser, sous-titres, rushes : nos monteurs réalisent vos vidéos à la main, du choix des meilleurs moments au rendu final. Le regard d'un professionnel, au-delà de l'automatique.</p><button data-a="mt-open">Confier ma vidéo à un monteur ↗</button></div>`;
 }
 /* =====================================================================================
    RÉSEAUX SOCIAUX : « Poster sur », panneau de publication, page « Performances »
@@ -2854,20 +2881,98 @@ function osLivraison(c, id) {
           ${kd !== 'teaser' ? `<button class="os-opt" style="padding:14px 16px;border-width:1px;background:var(--os-bg)" data-a="em-go" data-arg="teaser|${esc(o.options && o.options.videoId || '')}"><b>Faire un teaser de 15 s</b><span class="d">À partir de la même interview</span></button>` : ''}
           ${kd !== 'subtitles' ? `<button class="os-opt" style="padding:14px 16px;border-width:1px;background:var(--os-bg)" data-a="em-go" data-arg="subtitles|${esc(o.options && o.options.videoId || '')}"><b>Sous-titrer l'interview entière</b><span class="d">Format d'origine</span></button>` : `<button class="os-opt" style="padding:14px 16px;border-width:1px;background:var(--os-bg)" data-a="em-go" data-arg="capsules|${esc(o.options && o.options.videoId || '')}"><b>Faire des capsules</b><span class="d">Les meilleurs moments, au format des réseaux</span></button>`}
         </div>
-        <div class="os-tint"><h2>Une retouche à faire ?</h2><p>Nos monteurs peuvent reprendre une vidéo à la main.</p><button data-a="devis-open">Demander un devis ↗</button></div>
+        <div class="os-tint"><h2>Envie d'un montage fait main ?</h2><p>Nos monteurs peuvent reprendre vos vidéos à la main, avec le soin d'un montage professionnel.</p><button data-a="mt-open">Confier ma vidéo à un monteur ↗</button></div>
       </aside></div></main>`;
 }
-/* ---------- Demander un devis (fenêtre) ---------- */
-function osDevisHtml(m) {
-  const vids = osPkgVideos();
-  return `<p class="mut" style="margin:0 0 20px">Un monteur de l'équipe réalise votre vidéo sur mesure. On revient vers vous avec une proposition chiffrée.</p>
-  <div style="display:flex;flex-direction:column;gap:18px">
-    <div class="os-field"><label for="dv-em">À partir de quelle émission ?</label><select id="dv-em" class="os-in" data-in="dv" data-arg="em">${(vids.length ? vids.map(v => [v.media, v.title].filter(Boolean).join(' — ')) : []).concat(['Plusieurs émissions', 'Autre (à préciser)']).map(t => `<option ${m.em === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
-    <div class="os-field"><label for="dv-txt">Que souhaitez-vous ?</label><textarea id="dv-txt" class="os-in" rows="4" data-in="dv" data-arg="txt" placeholder="Ex. : un portrait de 2 minutes pour notre site, avec des images de nos ateliers.">${esc(m.txt || '')}</textarea></div>
-    <div class="os-field"><span>Formats souhaités</span><div class="os-chipsel" role="group" aria-label="Formats souhaités">${['Vertical', 'Carré', 'Horizontal', 'Je ne sais pas encore'].map(l => `<button type="button" data-a="dv-fmt" data-arg="${l}" aria-pressed="${(m.fmts || []).includes(l)}">${l}</button>`).join('')}</div></div>
-    <div class="os-field"><label for="dv-date">Pour quand ?</label><input id="dv-date" type="date" class="os-in" style="max-width:240px" data-in="dv" data-arg="date" value="${esc(m.date || '')}"></div>
+/* ---------- Confier ma vidéo à un monteur (fenêtre : 1. demande, 2. paiement Stripe) ---------- */
+const MT = { offers: null, mode: null };
+const MT_KEY = 'om-montage-form-v1';
+const MT_FORMATS = ['Vertical', 'Carré', 'Horizontal', 'Je ne sais pas encore'];
+const mtEur = n => `${Number(n).toLocaleString('fr-FR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }).replace(/\u202f/g, '\u00a0')}\u00a0€`;
+function mtStart(prev) {
+  if (!bkOn()) { toast('Cette demande nécessite la connexion à OpenStudio.'); return; }
+  const c = client() || {}; const v = osPkgVideos()[0];
+  const f = prev || { offerId: '', company: c.name || '', name: c.contact || '', email: c.email || '', phone: '', programme: v ? [v.media, v.title].filter(Boolean).join(' — ') : '', description: '', formats: [], deadline: '' };
+  S.modal = { type: 'montage', f, err: '', sending: false };
+  render();
+  if (!MT.offers) mtLoadOffers();
+}
+async function mtLoadOffers() {
+  try { const r = await OpenStudio.montage.offers(); MT.offers = r.offers; MT.mode = r.paymentMode; }
+  catch (e) { if (S.modal && S.modal.type === 'montage') S.modal.err = 'Les prestations n’ont pas pu être chargées. Fermez la fenêtre et réessayez dans un instant.'; }
+  if (S.modal && S.modal.type === 'montage') { S.keepScroll = true; render(); }
+}
+const mtOffer = m => (MT.offers || []).find(o => o.id === m.f.offerId) || null;
+function mtHtml(m) {
+  const f = m.f; const vids = osPkgVideos();
+  const progs = (vids.length ? vids.map(v => [v.media, v.title].filter(Boolean).join(' — ')) : []).concat(['Plusieurs émissions', 'Autre (à préciser)']);
+  const offers = !MT.offers ? `<div class="mt-load"><span class="bk-spin" aria-hidden="true"></span>Chargement des prestations…</div>`
+    : `<div class="mt-offers" role="radiogroup" aria-label="Prestation">${MT.offers.map(o => `<button type="button" role="radio" class="mt-offer" data-a="mt-offer" data-arg="${esc(o.id)}" aria-checked="${f.offerId === o.id}"><span class="t">${esc(o.title)}</span><span class="d">${esc(o.desc)}</span><span class="p">${o.priceHT == null ? 'Prix à définir avec vous' : `${mtEur(o.priceHT)} HT <small>soit ${mtEur(o.priceTTC)} TTC</small>`}</span></button>`).join('')}</div>`;
+  return `<ol class="mt-steps" aria-label="Étapes"><li class="on" aria-current="step"><b>1</b>Votre demande</li><li><b>2</b>Paiement sécurisé</li></ol>
+  <p class="mut" style="margin:0 0 20px">Un monteur de l'équipe OpenMedias réalise votre vidéo à la main. Décrivez-nous votre projet : vous réglez ensuite en ligne et nous lançons le montage.</p>
+  <div class="mt-form">
+    <fieldset class="mt-sec"><legend>Vos coordonnées</legend>
+      <div class="mt-grid">
+        <div class="os-field"><label for="mt-co">Entreprise</label><input id="mt-co" class="os-in" autocomplete="organization" data-in="mt" data-arg="company" value="${esc(f.company)}"></div>
+        <div class="os-field"><label for="mt-na">Nom et prénom</label><input id="mt-na" class="os-in" autocomplete="name" data-in="mt" data-arg="name" value="${esc(f.name)}"></div>
+        <div class="os-field"><label for="mt-em">E-mail</label><input id="mt-em" type="email" class="os-in" autocomplete="email" data-in="mt" data-arg="email" value="${esc(f.email)}"></div>
+        <div class="os-field"><label for="mt-ph">Téléphone <span class="mut" style="font-weight:400">(facultatif)</span></label><input id="mt-ph" type="tel" class="os-in" autocomplete="tel" data-in="mt" data-arg="phone" value="${esc(f.phone)}"></div>
+      </div></fieldset>
+    <fieldset class="mt-sec"><legend>Votre vidéo</legend>
+      <div class="os-field"><span>Prestation</span>${offers}</div>
+      <div class="os-field"><label for="mt-pr">À partir de quelle émission ?</label><select id="mt-pr" class="os-in" data-in="mt" data-arg="programme">${progs.map(t => `<option ${f.programme === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
+      <div class="os-field"><label for="mt-de">Décrivez la vidéo souhaitée</label><textarea id="mt-de" class="os-in" rows="5" data-in="mt" data-arg="description" placeholder="Ex. : trois capsules de 30 secondes pour LinkedIn, centrées sur notre nouvelle usine, avec le passage où nous parlons de recrutement.">${esc(f.description)}</textarea></div>
+      <div class="os-field"><span>Formats souhaités</span><div class="os-chipsel" role="group" aria-label="Formats souhaités">${MT_FORMATS.map(l => `<button type="button" data-a="mt-fmt" data-arg="${l}" aria-pressed="${f.formats.includes(l)}">${l}</button>`).join('')}</div></div>
+      <div class="os-field"><label for="mt-dl">Pour quand ? <span class="mut" style="font-weight:400">(facultatif)</span></label><input id="mt-dl" type="date" class="os-in" style="max-width:240px" min="${new Date().toISOString().slice(0, 10)}" data-in="mt" data-arg="deadline" value="${esc(f.deadline)}"></div>
+    </fieldset>
+    ${m.err ? `<p class="mt-err" role="alert">${esc(m.err)}</p>` : ''}
   </div>`;
 }
+function mtFoot(m) {
+  const o = mtOffer(m);
+  const label = m.sending ? 'Préparation du paiement…' : !o ? 'Choisissez une prestation' : o.priceHT == null ? 'Envoyer ma demande' : `Continuer vers le paiement · ${mtEur(o.priceTTC)} TTC`;
+  return `<div class="mt-foot"><span class="small muted">${o && o.priceHT == null ? 'Sans paiement : notre équipe vous recontacte pour fixer le prix ensemble.' : `Paiement sécurisé par carte avec Stripe${MT.mode === 'simulation' ? ' (mode test : paiement simulé)' : ''}.`}</span><div class="mt-btns"><button class="os-pillbtn s" style="height:48px;padding:0 20px" data-a="close">Annuler</button><button class="os-cta" data-a="mt-send" ${o && !m.sending ? '' : 'disabled'}>${label}${o && o.priceHT != null && !m.sending ? ' ↗' : ''}</button></div></div>`;
+}
+async function mtSend() {
+  const m = S.modal; if (!m || m.type !== 'montage' || m.sending) return;
+  const f = m.f; const o = mtOffer(m);
+  const miss = !o ? 'Choisissez la prestation souhaitée.' : !f.company.trim() ? 'Indiquez le nom de votre entreprise.' : !f.name.trim() ? 'Indiquez vos nom et prénom.'
+    : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim()) ? 'Indiquez une adresse e-mail valide.' : f.description.trim().length < 10 ? 'Décrivez en quelques mots la vidéo souhaitée.' : '';
+  if (miss) { m.err = miss; S.keepScroll = true; render(); return; }
+  m.err = ''; m.sending = true; S.keepScroll = true; render();
+  try {
+    const r = await OpenStudio.montage.request({ offerId: f.offerId, contact: { company: f.company, name: f.name, email: f.email, phone: f.phone }, brief: { description: f.description, programme: f.programme, formats: f.formats, deadline: f.deadline } });
+    try { sessionStorage.setItem(MT_KEY, JSON.stringify(f)); } catch (e) {}
+    if (r.checkoutUrl) { location.href = r.checkoutUrl; return; } // étape 2 : paiement Stripe
+    try { sessionStorage.removeItem(MT_KEY); } catch (e) {}
+    S.modal = { type: 'mt-done', status: 'to_quote', title: o.title }; render();
+  } catch (e) { m.sending = false; m.err = e.message || 'La demande n’a pas pu être envoyée. Réessayez dans un instant.'; S.keepScroll = true; render(); }
+}
+function mtDoneHtml(m) {
+  if (m.status === 'paid') return `<div class="mt-done"><span class="mt-ok" aria-hidden="true">✓</span><p><b>Merci, votre paiement est confirmé.</b></p><p class="mut">${esc(m.title || 'Votre demande')} : un monteur de l'équipe prend en charge votre vidéo. Nous vous contactons rapidement pour lancer le montage.</p></div>`;
+  if (m.status === 'awaiting_payment') return `<div class="mt-done"><span class="mt-ok wait" aria-hidden="true">…</span><p><b>Paiement en cours de confirmation.</b></p><p class="mut">La confirmation de votre banque peut prendre quelques instants. Votre demande est bien enregistrée.</p></div>`;
+  return `<div class="mt-done"><span class="mt-ok" aria-hidden="true">✓</span><p><b>Votre demande est envoyée.</b></p><p class="mut">${esc(m.title || 'Votre demande')} : notre équipe vous recontacte pour définir le prix et lancer le projet ensemble.</p></div>`;
+}
+// Retour de la page de paiement Stripe : ?montage=paid|cancelled&request=…
+(function () {
+  let q; try { q = new URLSearchParams(location.search); } catch (e) { return; }
+  const st = q.get('montage'); const id = q.get('request');
+  if (!st) return;
+  ['montage', 'request'].forEach(k => q.delete(k));
+  try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (e) {}
+  setTimeout(async () => {
+    if (!window.OpenStudio || !OpenStudio.montage) return;
+    if (st === 'cancelled') {
+      let prev = null; try { prev = JSON.parse(sessionStorage.getItem(MT_KEY) || 'null'); } catch (e) {}
+      toast('Paiement annulé : aucun montant n’a été prélevé. Vous pouvez reprendre votre demande.');
+      if (prev) mtStart(prev);
+      return;
+    }
+    let s = null; try { s = await OpenStudio.montage.status(id); } catch (e) {}
+    try { sessionStorage.removeItem(MT_KEY); } catch (e) {}
+    S.modal = { type: 'mt-done', status: (s && s.status) || 'awaiting_payment', title: s && s.offerTitle }; render();
+  }, 500);
+})();
 function ring(left, total, size = 132) {
   const r = 54, C = 2 * Math.PI * r, p = Math.max(0, Math.min(1, left / total));
   return `<div class="ring" style="width:${size}px;height:${size}px" role="img" aria-label="${left} jours restants sur ${total}"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="${r}" fill="none" stroke="currentColor" stroke-opacity=".18" stroke-width="9"/><circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--onair)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - p)}"/></svg><div class="lbl"><b class="num">${left}</b><span>jours restants</span></div></div>`;
@@ -4779,10 +4884,14 @@ function modalHtml() {
     title = 'Paiement';
     h = payModalHtml(m);
     foot = `<div style="display:flex;flex-direction:column;gap:10px;width:100%"><button class="os-cta big" style="width:100%" data-a="bk-submit" ${BK.submitting || bkNoSession() ? 'disabled' : ''}>${BK.submitting ? 'Validation en cours…' : flowPrice() == null ? 'Valider et lancer ↗' : `Payer ${flowPriceTxt()} et lancer ↗`}</button><span class="small muted" style="text-align:center">${flowPrice() == null ? 'Votre facture sera disponible dans l’onglet Factures.' : 'Paiement sécurisé. Votre facture sera disponible dans l’onglet Factures.'}</span></div>`;
-  } else if (m.type === 'devis') {
-    title = 'Demander un devis';
-    h = osDevisHtml(m);
-    foot = `<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;width:100%"><span class="small muted">${esc((client() || {}).manager || 'Votre chargée de projet')} vous répond rapidement.</span><button class="os-cta" data-a="devis-send">Envoyer ma demande</button></div>`;
+  } else if (m.type === 'montage') {
+    title = 'Confier ma vidéo à un monteur';
+    h = mtHtml(m);
+    foot = mtFoot(m);
+  } else if (m.type === 'mt-done') {
+    title = 'Confier ma vidéo à un monteur';
+    h = mtDoneHtml(m);
+    foot = `<button class="os-cta" data-a="close">Fermer</button>`;
   } else if (m.type === 'opus-more') { /* OpusClip */
     title = "Proposer d'autres extraits";
     h = `<p>Vous avez vu toutes les propositions de cette analyse. Vous pouvez les revoir, ou lancer une nouvelle analyse de la vidéo : elle prend plusieurs minutes.</p>`;
@@ -5091,14 +5200,11 @@ const A = {
   'bk-ready-open': a => { bkHideReadyPill(); S.modal = null; go('client', 'commande', a); },
   'bk-ready-close': () => { bkHideReadyPill(); },
   'em-go': a => { const [kind, vid] = String(a).split('|'); S.cap.flowKind = kind; if (vid) S.cap.bkVideoId = vid; S.cap.bkOrderId = null; S.cap.checked = false; S.cap.bkStep = S.cap.bkVideoId ? 3 : 1; S.modal = null; go('client', 'capsules'); },
-  'devis-open': () => { const v = osPkgVideos()[0]; S.modal = { type: 'devis', em: v ? [v.media, v.title].filter(Boolean).join(' — ') : 'Plusieurs émissions', txt: '', fmts: [], date: '' }; render(); },
-  'dv-fmt': a => { const m = S.modal; if (!m) return; m.fmts = m.fmts.includes(a) ? m.fmts.filter(x => x !== a) : [...m.fmts, a]; S.keepScroll = true; render(); },
-  'devis-send': () => {
-    const m = S.modal; if (!m) return;
-    if (!String(m.txt || '').trim()) { toast('Décrivez en quelques mots la vidéo souhaitée.'); document.getElementById('dv-txt')?.focus(); return; }
-    const note = [`Émission : ${m.em}`, m.fmts.length ? `Formats : ${m.fmts.join(', ')}` : '', m.date ? `Pour le : ${new Date(m.date + 'T12:00').toLocaleDateString('fr-FR')}` : '', String(m.txt).trim()].filter(Boolean).join('\n');
-    S.modal = { type: 'order', offer: DEVIS_OFFER, opt: '', note }; A['order-confirm']();
-  },
+  /* Confier ma vidéo à un monteur */
+  'mt-open': () => mtStart(),
+  'mt-offer': a => { const m = S.modal; if (!m || m.type !== 'montage') return; m.f.offerId = a; m.err = ''; S.keepScroll = true; render(); },
+  'mt-fmt': a => { const m = S.modal; if (!m || m.type !== 'montage') return; m.f.formats = m.f.formats.includes(a) ? m.f.formats.filter(x => x !== a) : [...m.f.formats, a]; S.keepScroll = true; render(); },
+  'mt-send': () => mtSend(),
   'bk-files': a => bkLoadFiles(a),
   'bk-orders-reload': () => { bkLoadOrders(true); },
   'bk-reload': () => { BK.videos = null; BK.err = ''; render(); bkLoadVideos(true); },
@@ -5199,7 +5305,7 @@ document.addEventListener('input', e => {
   else if (k === 'soc-txt' && SOC.d && SOC.d.texts) { const [p, f] = el.dataset.arg.split('|'); SOC.d.texts[p] = SOC.d.texts[p] || {}; SOC.d.texts[p][f] = el.value; const c = document.querySelector(`[data-cnt="${p}|${f}"]`); if (c) { const lim = socLimit(p, f); c.textContent = `${el.value.length} / ${lim}`; c.classList.toggle('over', el.value.length > lim); } }
   else if (k === 't-ctx') { T.context = el.value; }
   else if (k === 'ord') { if (S.modal) S.modal[el.dataset.arg] = el.value; }
-  else if (k === 'dv') { if (S.modal) S.modal[el.dataset.arg] = el.value; }
+  else if (k === 'mt') { if (S.modal && S.modal.type === 'montage') S.modal.f[el.dataset.arg] = el.value; }
   else if (k === 'flow-check') { S.cap.checked = el.checked; S.keepScroll = true; render(); }
   else if (k === 'vf-em') { S.vfe = el.value; S.keepScroll = true; render(); }
   else if (k === 'vf-fmt') { S.vff = el.value; S.keepScroll = true; render(); }
