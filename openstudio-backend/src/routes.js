@@ -17,6 +17,7 @@ const { normalizeOptions, extractProjectId, ValidationError, VIDEO_TYPES } = req
 const { verifyOpusWebhook } = require('./opusclip/webhook');
 const { validateSubtitleFile } = require('./media/subtitles');
 const { MockPaymentProvider } = require('./payment');
+const loginCodes = require('./loginCodes');
 
 const router = express.Router();
 const json = express.json({ limit: '200kb' });
@@ -118,6 +119,42 @@ router.get('/catalog', (req, res) => {
     },
   });
 });
+
+// ---------------------------------------------------------------------------
+// Connexion par code (écran de connexion du site)
+// ---------------------------------------------------------------------------
+const loginLimiter = loginCodes.createRateLimiter({
+  max: config.loginCodes.maxFails,
+  windowMs: config.loginCodes.windowMin * 60 * 1000,
+});
+
+/**
+ * POST /api/login { code } → identifiant + jeton de l'espace client, utilisés ensuite comme le lien d'accès
+ * (en-têtes X-Client-Id / X-Client-Token). Essais ratés limités par adresse IP.
+ */
+router.post('/login', json, wrap(async (req, res) => {
+  if (!config.loginCodes.secret) return res.status(503).json({ error: 'Connexion par code indisponible pour le moment.' });
+  const ip = req.ip || 'inconnue';
+  const st = loginLimiter.check(ip);
+  if (st.blocked) {
+    res.set('Retry-After', String(st.retryAfterSec));
+    const min = Math.ceil(st.retryAfterSec / 60);
+    return res.status(429).json({ error: `Trop d'essais. Réessayez dans ${min} minute${min > 1 ? 's' : ''}.` });
+  }
+  const client = await clients.findByCode((req.body || {}).code);
+  if (!client) {
+    loginLimiter.fail(ip);
+    return res.status(401).json({ error: 'Ce code ne correspond à aucun espace. Vérifiez la saisie (format OM-0000-XX) ou contactez votre chargé de projet.' });
+  }
+  loginLimiter.reset(ip);
+  const login = await clients.markLogin(client.id);
+  res.json({
+    client: { id: client.id, name: client.name, company: client.company, email: client.email, sector: client.sector || null },
+    clientToken: client.access_token,
+    firstLogin: Boolean(login && login.firstLogin),
+    activatedAt: login && login.activatedAt,
+  });
+}));
 
 // ---------------------------------------------------------------------------
 // Espace client
@@ -331,7 +368,25 @@ router.post('/admin/clients', json, wrap(async (req, res) => {
   const { name, company, email, logoKey } = req.body || {};
   if (!name) return res.status(400).json({ error: 'Nom du client requis' });
   const c = await clients.create({ name, company, email, logoKey });
-  res.status(201).json({ client: { id: c.id, name: c.name, company: c.company }, clientToken: c.access_token });
+  res.status(201).json({ client: { id: c.id, name: c.name, company: c.company }, clientToken: c.access_token, loginCode: c.loginCode });
+}));
+
+/** Code de connexion d'un client, tant qu'il n'a pas été envoyé (la copie lisible est effacée après le mail du jour J). */
+router.get('/admin/clients/:id/code', wrap(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const c = await clients.get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Client introuvable' });
+  const code = clients.revealCode(c);
+  if (!code) return res.status(409).json({ error: 'Code déjà envoyé au client ou non lisible : générez-en un nouveau.' });
+  res.json({ loginCode: code });
+}));
+
+/** Nouveau code pour un client (code perdu) : l'ancien cesse aussitôt de fonctionner. */
+router.post('/admin/clients/:id/code', wrap(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const code = await clients.setNewCode(req.params.id);
+  if (!code) return res.status(404).json({ error: 'Client introuvable' });
+  res.json({ loginCode: code });
 }));
 
 router.get('/admin/clients', wrap(async (req, res) => {

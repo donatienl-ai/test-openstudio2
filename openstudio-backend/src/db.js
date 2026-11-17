@@ -196,8 +196,19 @@ CREATE TABLE IF NOT EXISTS stripe_events (
 );
 `;
 
+// Codes de connexion (src/loginCodes.js) : empreinte pour la connexion, copie chiffrée jusqu'au mail du jour J
+const LOGIN_SCHEMA = `
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS login_code_hash TEXT;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS login_code_enc TEXT;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS login_code_created_at TIMESTAMPTZ;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS activated_at TIMESTAMPTZ;      -- première connexion par code
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+CREATE UNIQUE INDEX IF NOT EXISTS clients_login_code_hash ON clients (login_code_hash);
+`;
+
 async function migrate() {
   await pool.query(SCHEMA);
+  await pool.query(LOGIN_SCHEMA);
   await pool.query('ALTER TABLE client_videos ADD COLUMN IF NOT EXISTS duration_sec REAL');
   await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS finalize_restarts INTEGER NOT NULL DEFAULT 0');
   await pool.query(SOCIAL_SCHEMA);

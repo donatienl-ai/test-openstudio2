@@ -71,6 +71,10 @@ services:
         value: "Client test OpenStudio"
       - key: ADMIN_TOKEN
         generateValue: true
+      # Codes de connexion des espaces clients (empreinte + copie chiffrée). Généré une fois par Render :
+      # ne jamais le changer ensuite, sinon tous les codes déjà donnés aux clients cessent de fonctionner.
+      - key: LOGIN_CODE_SECRET
+        generateValue: true
       # Publication sur les réseaux sociaux (Upload-Post) : clé API et secret des notifications (webhook).
       # À saisir dans Render ; ne jamais les mettre dans le dépôt ni dans le site.
       - key: UPLOAD_POST_API_KEY

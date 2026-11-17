@@ -59,6 +59,28 @@ Programmes disponibles (logos, langue) : `programmes` dans `src/opusclip.config.
 (BFM Business, BFM, Capital — à compléter). Les logos sont des PNG blancs sur fond transparent
 déposés dans le stockage ; leur clé est indiquée dans `logoKey`.
 
+## Codes de connexion
+
+Chaque client reçoit un code aléatoire au format `OM-XXXX-XX` (celui de l'écran de connexion) dès sa création.
+Le client le saisit sur la page d'accueil : le serveur le vérifie (`POST /api/login`) et ouvre son espace.
+
+- Variable `LOGIN_CODE_SECRET` obligatoire (générée par Render, voir `render.yaml`) ; **ne jamais la changer**,
+  sinon tous les codes déjà donnés cessent de fonctionner. Sans elle, la connexion par code est désactivée.
+- En base : une empreinte du code (pour la connexion) et une copie chiffrée, lisible par l'équipe jusqu'à l'envoi
+  du mail du jour J.
+- Essais ratés limités à `LOGIN_MAX_FAILS` (10) par adresse IP sur `LOGIN_FAIL_WINDOW_MIN` (15) minutes.
+- Les codes de démonstration de `index.html` restent valables pour l'équipe ; ils sont vérifiés en premier.
+- Au démarrage, les clients créés avant l'arrivée des codes en reçoivent un automatiquement.
+
+```bash
+# Code d'un client (tant qu'il n'a pas été envoyé)
+curl $API/api/admin/clients/<CLIENT_ID>/code -H "$AUTH"
+# Nouveau code (code perdu) : l'ancien cesse aussitôt de fonctionner
+curl -X POST $API/api/admin/clients/<CLIENT_ID>/code -H "$AUTH"
+```
+
+La création d'un client (`POST /api/admin/clients`) renvoie aussi son code dans `loginCode`.
+
 ## Mode test : dépôt de vidéo par le client
 
 Deux variables, à retirer en production (voir `render.yaml`) :

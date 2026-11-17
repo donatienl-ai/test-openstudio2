@@ -55,6 +55,14 @@ const config = {
 
   workerIntervalSec: num(process.env.WORKER_INTERVAL_SEC, 10),
 
+  // Codes de connexion des espaces clients (src/loginCodes.js). Secret propre aux codes : le changer rend
+  // tous les codes existants invalides. Essais ratés limités par adresse IP.
+  loginCodes: {
+    secret: (process.env.LOGIN_CODE_SECRET || '').trim(),
+    maxFails: num(process.env.LOGIN_MAX_FAILS, 10),
+    windowMin: num(process.env.LOGIN_FAIL_WINDOW_MIN, 15),
+  },
+
   // Publication sur les réseaux sociaux (Upload-Post). La clé ne quitte jamais le serveur.
   social: {
     apiKey: (process.env.UPLOAD_POST_API_KEY || '').trim(),

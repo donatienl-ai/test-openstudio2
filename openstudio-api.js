@@ -30,6 +30,18 @@
     }
   }
 
+  // --- Connexion par code (écran de connexion) : le serveur vérifie le code et renvoie l'identifiant + le jeton
+  // de l'espace, mémorisés comme ceux d'un lien d'accès.
+  async function loginWithCode(code) {
+    const data = await call('POST', '/login', { body: { code } });
+    try {
+      localStorage.setItem(CLIENT_KEY, JSON.stringify({ id: data.client.id, token: data.clientToken }));
+    } catch {
+      /* stockage indisponible : la session ne survivra pas au rechargement */
+    }
+    return data;
+  }
+
   // --- Mémorisation locale des commandes (id + jeton d'accès) -----------------
   function savedOrders() {
     try {
@@ -202,6 +214,7 @@
     montage,
     getMyOrders,
     clientSession,
+    loginWithCode,
     watchOrder,
     savedOrders,
     orderLink,

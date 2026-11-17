@@ -52,12 +52,20 @@ async function main() {
     process.exit(1);
   }
   await db.migrate();
+  if (config.loginCodes.secret) {
+    const n = await clients.ensureCodes();
+    if (n) console.log(`[codes] ${n} client(s) existant(s) ont reçu un code de connexion.`);
+  } else {
+    console.error('[codes] LOGIN_CODE_SECRET manquant : la connexion par code (POST /api/login) est désactivée.');
+  }
   if (config.testClientName) {
     // Tests uniquement : espace client prêt à l'emploi, sans passer par les routes admin.
     const c = (await clients.findByName(config.testClientName))
       || (await clients.create({ name: config.testClientName, company: config.testClientName }));
     const site = config.frontendOrigins[0] || 'https://VOTRE-SITE';
     console.log(`[test] Lien de l'espace client « ${c.name} » : ${site}/?client=${c.id}&clientToken=${c.access_token}`);
+    const code = config.loginCodes.secret ? clients.revealCode(await clients.get(c.id)) : null;
+    if (code) console.log(`[test] Code de connexion de « ${c.name} » : ${code}`);
   }
   if (config.clientUploadsEnabled) console.log('[test] Dépôt de vidéos par le client ACTIVÉ (CLIENT_UPLOADS_ENABLED) : à désactiver en production.');
   app.listen(config.port, () => {
