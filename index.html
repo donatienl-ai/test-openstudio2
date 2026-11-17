@@ -971,15 +971,60 @@ em,i:not([class]){font-style:normal}
 .bk-ready button:focus-visible{outline:2px solid #C9C9FF;outline-offset:2px}
 @keyframes bkReadyIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (prefers-reduced-motion:reduce){.bk-ready{animation:none}}
+/* ---------- Cartes vidéo : actions ---------- */
+.os-clip .foot,.vc-foot{display:flex;flex-direction:column;align-items:stretch;gap:8px}
+.soc-foot{display:flex;align-items:center;gap:6px}
+.soc-foot .os-iconbtn{width:36px;height:36px}
+.soc-pubbtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;font:inherit;font-size:13px;font-weight:600;color:var(--os-blue);background:var(--os-tint);border:1px solid transparent;border-radius:999px;padding:0 12px;cursor:pointer}
+.soc-pubbtn:hover{border-color:var(--os-blue)}
+.os-logout-m{display:none}
+/* ---------- Mobile : navigation compacte et tableaux en cartes ---------- */
+@media (max-width:760px){
+  .os-side>nav{flex:1 1 100%;position:sticky;top:0;z-index:30;padding:12px 16px 0;gap:10px;border-right:0;border-bottom:1px solid var(--os-line);display:grid;grid-template-columns:1fr auto auto;align-items:center}
+  .os-side>nav .os-brand span{display:none}.os-side>nav .os-brand b{font-size:17px}
+  .os-side-cta{width:auto!important;height:38px;padding:0 14px;font-size:12px}
+  .os-logout-m{grid-row:1;grid-column:3;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;border:1px solid var(--os-line2);background:#fff;color:var(--os-mut);cursor:pointer}
+  .os-side-nav{grid-row:2;grid-column:1/-1;flex-direction:row!important;gap:4px!important;margin:0 -16px!important;padding:0 16px 10px;overflow-x:auto;scrollbar-width:none;scroll-behavior:smooth}
+  .os-side-nav::-webkit-scrollbar,.os-tabs::-webkit-scrollbar{display:none}
+  .os-side-nav a{flex:none;white-space:nowrap;padding:8px 14px;border-radius:999px;font-size:14px;gap:6px}
+  .os-side>nav .os-devis,.os-side>nav .os-nav.more{display:none}
+  .os-main{gap:24px}
+  .os-top>div{padding:12px 16px 0;gap:8px}
+  .os-top .l{gap:8px;width:100%;flex-wrap:nowrap;flex-direction:column;align-items:flex-start}
+  .os-tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;width:calc(100% + 32px);margin:0 -16px;padding:0 16px 10px;box-sizing:border-box}
+  .os-tabs a{flex:none;white-space:nowrap;border-radius:999px;padding:8px 14px}
+  .os-top>div{position:relative}.os-acc{position:absolute;top:10px;right:16px}.os-acc span{display:none}
+  .os-tbl{overflow:visible;background:none;border:0;border-radius:0}
+  .os-tbl>div{min-width:0!important;gap:10px}
+  .os-tbl .os-tr.h{display:none!important}
+  .os-tbl .os-tr{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px 12px;background:#fff;border:1px solid var(--os-line);border-radius:14px;padding:14px 16px}
+  .os-tbl .os-tr>*{font-size:13px}
+  .os-tbl.cmd .os-tr>:nth-child(3),.os-tbl.fact .os-tr>:nth-child(3),.os-tbl.em .os-tr>:nth-child(2){order:-1;flex-basis:100%;font-size:15px}
+  .os-tbl.cmd .os-tr>:nth-child(2),.os-tbl.fact .os-tr>:nth-child(1){color:var(--os-mut)}
+  .os-tbl.cmd .os-tr>:nth-child(4),.os-tbl.fact .os-tr>:nth-child(5),.os-tbl.em .os-tr>:nth-child(4){margin-left:auto}
+  .os-tbl.cmd .os-tr>:nth-child(6),.os-tbl.em .os-tr>:nth-child(5){flex-basis:100%;justify-content:stretch!important}
+  .os-tbl.cmd .os-tr>:nth-child(6):empty{display:none}
+  .os-tbl.cmd .os-tr>:nth-child(6)>*,.os-tbl.em .os-tr>:nth-child(5)>*{flex:1;justify-content:center}
+  .os-tbl.cmd .os-tr>:nth-child(5){font-weight:600}
+}
 /* Réseaux sociaux — zone « partage » de la carte vidéo et panneau de publication (version 2) */
-.soc-share{position:relative;display:flex;flex-direction:column;gap:8px;padding-top:12px;margin-top:2px;border-top:1px solid var(--os-line)}
-.soc-share-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.vc-act{display:flex;flex-wrap:wrap;gap:8px}
+.vc-dl,.vc-pub{flex:1 1 112px;min-width:0;height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;font:inherit;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,transform .1s}
+.vc-dl{background:var(--os-navy);color:#fff!important;border:1px solid var(--os-navy)}
+.vc-dl:hover{background:#2C2C48}
+.vc-pub{background:var(--os-tint);color:var(--os-blue);border:1px solid transparent}
+.vc-pub:hover{border-color:var(--os-blue)}
+.vc-dl:active,.vc-pub:active{transform:scale(.98)}
+.vc-dl:focus-visible,.vc-pub:focus-visible{outline:2px solid var(--os-blue);outline-offset:2px}
+.soc-share{position:relative;display:flex;flex-direction:column;gap:8px}
+.soc-hint{font-size:12.5px;color:var(--os-mut)}
+.soc-share-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .soc-dock{display:flex;align-items:center;padding-left:6px}
 .soc-dock .soc-i{margin-left:-6px;box-shadow:0 0 0 2px #fff}
 .soc-dock .soc-i:nth-child(1){z-index:5}.soc-dock .soc-i:nth-child(2){z-index:4}.soc-dock .soc-i:nth-child(3){z-index:3}.soc-dock .soc-i:nth-child(4){z-index:2}.soc-dock .soc-i:nth-child(5){z-index:1}
 .soc-dock .soc-i:hover,.soc-dock .soc-i:focus-visible{z-index:6}
-.soc-share .soc-i{width:32px;height:32px;border-radius:50%;background:#F1F0EC;color:#A3A2AF;transition:transform .15s ease,background .15s ease,box-shadow .15s ease}
-.soc-share .soc-i svg{width:17px;height:17px}
+.soc-share .soc-i{width:30px;height:30px;border-radius:50%;background:#F1F0EC;color:#A3A2AF;transition:transform .15s ease,background .15s ease,box-shadow .15s ease}
+.soc-share .soc-i svg{width:15px;height:15px}
 .soc-share .soc-i:hover{transform:translateY(-3px);box-shadow:0 0 0 2px #fff,0 6px 12px rgba(26,26,46,.14)}
 .soc-share .soc-i.off:hover{background:#E8E7E1;color:var(--os-mut)}
 .soc-share .soc-i.on.youtube{background:#FFEDED}.soc-share .soc-i.on.instagram{background:#FDECF3}.soc-share .soc-i.on.tiktok{background:#EDEDF0}.soc-share .soc-i.on.linkedin{background:#E7F0FB}.soc-share .soc-i.on.facebook{background:#E8F1FF}
@@ -989,8 +1034,6 @@ em,i:not([class]){font-style:normal}
 .soc-i .dot.add{background:#fff;color:#8A8998;box-shadow:0 0 0 1px #D8D6CE;opacity:0;transition:opacity .15s}
 .soc-share .soc-i:hover .dot.add,.soc-share .soc-i:focus-visible .dot.add{opacity:1}
 @keyframes socPulse{50%{opacity:.35}}
-.soc-cta{font:inherit;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 13px;border-radius:999px;border:1px solid var(--os-navy);background:var(--os-navy);color:#fff;cursor:pointer;flex:none;transition:background .15s}
-.soc-cta:hover{background:#2C2C48}.soc-cta:focus-visible{outline:2px solid var(--os-blue);outline-offset:2px}
 .soc-status{margin:0;font-size:12.5px;line-height:1.5;color:var(--os-mut)}
 .soc-status a{color:var(--os-navy);font-weight:600;text-decoration:none}.soc-status a:hover{text-decoration:underline}
 .soc-status .ko{color:#B5402F}
@@ -1089,9 +1132,6 @@ em,i:not([class]){font-style:normal}
 .soc-b.in_progress,.soc-b.pending{opacity:.7}
 .soc-perf{font-size:12px;margin-left:auto}
 .soc-fail{margin:0;font-size:12px;color:#A34232}
-.soc-foot{display:flex;align-items:center;gap:6px;flex:none}
-.soc-pubbtn{font:inherit;font-size:12px;font-weight:600;color:var(--os-navy);background:#fff;border:1px solid var(--os-line2);border-radius:999px;padding:6px 12px;cursor:pointer}
-.soc-pubbtn:hover{border-color:var(--os-navy)}
 /* Panneau latéral */
 .overlay.soc-ov{place-items:stretch end;padding:0}
 .modal.soc-dw{max-width:520px;width:100%;height:100vh;max-height:100vh;border-radius:20px 0 0 20px;display:flex;flex-direction:column}
@@ -2462,7 +2502,7 @@ function osClips() {
 const osPrep = () => osOrders().filter(o => BK_BUSY.includes(o.status));
 function osClipCard(x) {
   return `<article class="os-clip"><div class="box ${osFmtCls(x.fmt)}">${x.dur ? `<span class="dur">${x.dur}</span>` : ''}<video src="${esc(x.url)}" controls playsinline preload="metadata"></video></div>
-    <div class="foot"><div style="min-width:0"><b>${esc(x.title)}</b><small>${esc(x.meta)}</small></div><div class="soc-foot">${x.id && socEnabled() ? `<button type="button" class="soc-pubbtn" data-a="soc-open" data-arg="${esc(x.id)}">Publier</button>` : ''}<a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}">${DL_SVG}</a></div></div></article>`;
+    <div class="foot"><div style="min-width:0"><b>${esc(x.title)}</b><small>${esc(x.meta)}</small></div><div class="soc-foot"><a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}" title="Télécharger">${DL_SVG}</a>${x.id && socEnabled() ? `<button type="button" class="soc-pubbtn" data-a="soc-open" data-arg="${esc(x.id)}">${SOC_PUB_SVG}Publier</button>` : ''}</div></div></article>`;
 }
 function osPrepCard(o) {
   return `<article class="os-clip"><div class="prep"><span class="mono">EN PRÉPARATION</span><span>Une pastille vous prévient quand c’est prêt</span></div><div class="foot"><div><b>${esc(osTypeLabel(o))}</b><small><button class="os-link" style="font-size:12px" data-a="order-track" data-arg="${o.id}">Suivre</button></small></div></div></article>`;
@@ -2535,10 +2575,12 @@ function socLast(videoId) {
 const socWhen = d => new Date(d).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
 /* Zone « partage » sous le bouton Télécharger : un dock d'icônes (connecté / à connecter / état de la
    dernière publication), un bouton Publier et une phrase de statut. Pas de pop-up automatique. */
-function socRow(videoId, withTip) {
-  if (!socOn()) return '';
-  if (!SOC.acc) { setTimeout(socLoadAccounts, 0); return ''; }
-  if (!socEnabled()) return '';
+const SOC_PUB_SVG = '<svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10V2M4.5 5.5 8 2l3.5 3.5M3 9v4h10V9"/></svg>';
+function socRow(videoId, withTip, dl = '') {
+  const only = dl ? `<div class="vc-act">${dl}</div>` : '';
+  if (!socOn()) return only;
+  if (!SOC.acc) { setTimeout(socLoadAccounts, 0); return only; }
+  if (!socEnabled()) return only;
   if (!SOC.pubs[videoId]) setTimeout(() => socLoadPubs(videoId), 0);
   const tip = withTip && socTipNow();
   const last = socLast(videoId);
@@ -2558,7 +2600,10 @@ function socRow(videoId, withTip) {
   });
   const pub = SOC_NETS.filter(p => last[p] && last[p].status === 'published').length;
   const status = parts.length ? `<p class="soc-status">${pub ? 'Publiée sur ' : ''}${parts.join(' · ')}${pub ? ` <button type="button" class="soc-stats" data-a="nav" data-arg="performances">Statistiques →</button>` : ''}</p>` : '';
-  return `<div class="soc-share"><div class="soc-share-top"><span class="soc-dock" role="group" aria-label="Vos réseaux">${dock}</span><button type="button" class="soc-cta" data-a="soc-open" data-arg="${esc(videoId)}"><svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10V2M4.5 5.5 8 2l3.5 3.5M3 9v4h10V9"/></svg>Publier</button></div>${status}${tip ? `<div class="soc-tip" role="status"><span>Nouveau : publiez directement sur vos réseaux</span><button type="button" data-a="soc-tip-x" aria-label="Fermer">×</button></div>` : ''}</div>`;
+  const nOn = SOC_NETS.filter(p => socAcc(p).connected && !socAcc(p).reauthRequired).length;
+  const hint = parts.length ? '' : `<span class="soc-hint">${nOn ? `${nOn} réseau${nOn > 1 ? 'x' : ''} connecté${nOn > 1 ? 's' : ''}` : 'Connectez vos réseaux'}</span>`;
+  const cta = `<button type="button" class="vc-pub" data-a="soc-open" data-arg="${esc(videoId)}">${SOC_PUB_SVG}Publier</button>`;
+  return `<div class="vc-act">${dl}${cta}</div><div class="soc-share"><div class="soc-share-top"><span class="soc-dock" role="group" aria-label="Vos réseaux">${dock}</span>${hint}</div>${status}${tip ? `<div class="soc-tip" role="status"><span>Nouveau : publiez directement sur vos réseaux</span><button type="button" data-a="soc-tip-x" aria-label="Fermer">×</button></div>` : ''}</div>`;
 }
 function socBadge() { return ''; } // l'état des publications est intégré à la zone « partage »
 
@@ -2755,10 +2800,11 @@ function osSideShell(c, active, main) {
   return `<div class="os os-side">
   <nav aria-label="Navigation principale">
     <button class="os-brand" data-a="nav" data-arg="dashboard" aria-label="Accueil OpenStudio"><b>OPENSTUDIO</b><span>par OpenMedias</span></button>
-    <button class="os-cta" style="width:100%" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button>
-    <div class="os-nav" style="margin-top:-12px">${items.map(([k, l, n]) => `<a href="#" data-a="nav" data-arg="${k}" class="${active === k ? 'on' : ''}" ${active === k ? 'aria-current="page"' : ''}>${l}${n ? ` <span class="mono">${n}</span>` : ''}</a>`).join('')}</div>
+    <button class="os-cta os-side-cta" style="width:100%" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button>
+    <div class="os-nav os-side-nav" style="margin-top:-12px">${items.map(([k, l, n]) => `<a href="#" data-a="nav" data-arg="${k}" class="${active === k ? 'on' : ''}" ${active === k ? 'aria-current="page"' : ''}>${l}${n ? ` <span class="mono">${n}</span>` : ''}</a>`).join('')}</div>
     ${osDevisCard(true)}
     <div class="os-nav more" style="margin-top:auto"><a href="#" data-a="logout">Se déconnecter</a></div>
+    <button class="os-logout-m" data-a="logout" aria-label="Se déconnecter" title="Se déconnecter"><svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2H3v12h3M10.5 4.5 14 8l-3.5 3.5M14 8H6"/></svg></button>
   </nav>
   <main class="os-main" id="main">${main}</main></div>`;
 }
@@ -2859,7 +2905,7 @@ function osEmissions(c) {
     <section aria-labelledby="grille" style="display:flex;flex-direction:column;gap:14px">
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:baseline"><h2 id="grille" class="os-h2">Grille de vos émissions</h2><span class="mut" style="font-size:13px">${vids.length ? `${vids.length} émission${vids.length > 1 ? 's' : ''} dans votre package` : ''}</span></div>
       ${!osLive() ? `<div class="os-empty">Ouvrez le lien d'accès envoyé par l'équipe OpenMedias pour retrouver vos émissions.</div>` : BK.loading || !BK.videos ? `<div class="os-empty">Chargement de vos émissions…</div>` : BK.err ? `<div class="os-empty">${esc(BK.err)}</div>`
-        : vids.length ? `<div class="os-tbl"><div style="min-width:760px"><div class="os-tr h" style="${cols}"><span>Diffusion</span><span>Émission</span><span>Durée</span><span>État du rush</span><span></span></div>${rows}</div></div>`
+        : vids.length ? `<div class="os-tbl em"><div style="min-width:760px"><div class="os-tr h" style="${cols}"><span>Diffusion</span><span>Émission</span><span>Durée</span><span>État du rush</span><span></span></div>${rows}</div></div>`
         : `<div class="os-empty">${bkUploadBox()}Vos émissions apparaîtront ici dès que l'équipe OpenMedias les aura déposées.</div>`}
     </section>
     <section aria-labelledby="sorties" style="display:flex;flex-direction:column;gap:14px">
@@ -2876,7 +2922,7 @@ function osVideos(c) {
   clips.filter(keep).forEach(x => { (groups[x.o.id] = groups[x.o.id] || { o: x.o, list: [] }).list.push(x); });
   const titles = [...new Set(clips.map(x => x.o.options && x.o.options.videoTitle).filter(Boolean))];
   const card = x => `<article class="os-vcard"><div class="stage ${osFmtCls(x.fmt)}"><video src="${esc(x.url)}" controls playsinline preload="metadata"></video></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">${esc(x.title)}</span><span class="mut" style="font-size:13px">${esc(osFmtName(x.fmt))}${x.dur ? ' · ' + x.dur : ''}</span></div><div class="soc-foot">${x.id && socEnabled() ? `<button type="button" class="soc-pubbtn" data-a="soc-open" data-arg="${esc(x.id)}">Publier</button>` : ''}<a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}">${DL_SVG}</a></div></div></article>`;
+      <div class="vc-foot"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">${esc(x.title)}</span><span class="mut" style="font-size:13px">${esc(osFmtName(x.fmt))}${x.dur ? ' · ' + x.dur : ''}</span></div><div class="soc-foot"><a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}" title="Télécharger">${DL_SVG}</a>${x.id && socEnabled() ? `<button type="button" class="soc-pubbtn" data-a="soc-open" data-arg="${esc(x.id)}">${SOC_PUB_SVG}Publier</button>` : ''}</div></div></article>`;
   const prepCards = (f === 'all' || f === 'prep') ? prep.map(o => `<article class="os-vcard"><div class="stage" style="border:1.5px dashed #A9A8B8;background:transparent;flex-direction:column;gap:8px;text-align:center;padding:16px;box-sizing:border-box"><span class="mono mut" style="font-size:12px">EN PRÉPARATION</span><span class="mut" style="font-size:13px;line-height:1.4">Une pastille vous prévient dès qu’elles sont prêtes</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(osTypeLabel(o))}</span><button class="os-link" style="font-size:13px;align-self:flex-start" data-a="order-track" data-arg="${o.id}">Suivre la commande</button></div></article>`) : [];
   const secs = Object.values(groups).map(g => `<section style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 class="os-h2">${esc(osTypeLabel(g.o))} · ${esc((g.o.options && g.o.options.videoTitle) || '')} · ${osDate(g.o.createdAt)}</h2>${g.list.length > 1 ? `<a href="${esc(OpenStudio.zipUrl(g.o.id))}" style="font-size:13px">Tout télécharger (.zip)</a>` : ''}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${g.list.map(card).join('')}</div></section>`);
@@ -2911,7 +2957,7 @@ function osCommandes(c) {
   const act = r => r.kind !== 'bk' ? '' : r.ready ? `<button class="os-pillbtn s" data-a="nav-order" data-arg="${r.id}">Télécharger</button>` : `<button class="os-pillbtn ${r.st === 'prep' ? 'p' : 's'}" data-a="order-track" data-arg="${r.id}">${r.st === 'prep' ? 'Suivre' : 'Voir'}</button>`;
   const enCours = all.filter(r => r.st === 'prep').length;
   return `<div class="os-chips" role="group" aria-label="Filtrer les commandes">${[['all', 'Toutes'], ['cours', 'En cours'], ['livrees', 'Livrées'], ['devis', 'Devis']].map(([k, l]) => `<button type="button" data-a="cmd-filter" data-arg="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
-    ${osLive() && !BKO.list ? `<div class="os-empty">Chargement de vos commandes…</div>` : rows.length ? `<div class="os-tbl"><div style="min-width:900px"><div class="os-tr h" style="${cols}"><span>Date</span><span>N°</span><span>Contenu</span><span>Statut</span><span>Montant</span><span></span></div>
+    ${osLive() && !BKO.list ? `<div class="os-empty">Chargement de vos commandes…</div>` : rows.length ? `<div class="os-tbl cmd"><div style="min-width:900px"><div class="os-tr h" style="${cols}"><span>Date</span><span>N°</span><span>Contenu</span><span>Statut</span><span>Montant</span><span></span></div>
       ${rows.map(r => `<div class="os-tr" style="${cols}"><span class="mono" style="font-size:13px">${r.date.toLocaleDateString('fr-FR')}</span><span class="mono mut" style="font-size:13px">${esc(r.num)}</span><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">${esc(r.what)}</span><span class="mut" style="font-size:13px">${esc(r.sub)}</span></div><span class="os-dot ${r.st}"><i aria-hidden="true"></i>${r.stl}</span><span style="font-size:14px">${esc(r.amount)}</span><div style="display:flex;justify-content:flex-end">${act(r)}</div></div>`).join('')}</div></div>`
       : `<div class="os-empty"><b style="color:var(--os-navy)">Aucune commande ${f === 'all' ? 'pour le moment' : 'dans cette catégorie'}</b><span>Vos capsules, teasers et interviews sous-titrées apparaîtront ici.</span></div>`}
     <p class="mut" style="margin:0;font-size:14px">Les factures de chaque commande sont dans <a href="#" data-a="nav" data-arg="factures">Factures</a>.</p>`;
@@ -2922,7 +2968,7 @@ function osFactures(c) {
   const cols = 'grid-template-columns:130px 110px minmax(0,1fr) 120px 140px';
   return `<header class="os-head"><div style="display:flex;flex-direction:column;gap:6px"><span class="kick">${rows.length} ligne${rows.length > 1 ? 's' : ''}</span><h1>Factures</h1></div></header>
     <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
-      <div style="flex:999 1 560px;min-width:0">${rows.length ? `<div class="os-tbl"><div style="min-width:720px"><div class="os-tr h" style="${cols}"><span>Commande</span><span>Date</span><span>Contenu</span><span>Montant</span><span>Statut</span></div>
+      <div style="flex:999 1 560px;min-width:0">${rows.length ? `<div class="os-tbl fact"><div style="min-width:620px"><div class="os-tr h" style="${cols}"><span>Commande</span><span>Date</span><span>Contenu</span><span>Montant</span><span>Statut</span></div>
         ${rows.map(r => `<div class="os-tr" style="${cols}"><span class="mono" style="font-size:13px">${esc(r.num)}</span><span class="mono" style="font-size:13px">${r.date.toLocaleDateString('fr-FR')}</span><span style="font-size:14px">${esc(r.what)}${r.sub ? ` <span class="mut">· ${esc(r.sub)}</span>` : ''}</span><span style="font-size:14px">${esc(r.amount === 'Inclus' ? 'Inclus' : r.amount)}</span><span class="os-dot ${r.amount === 'Inclus' ? 'ok' : 'prep'}"><i aria-hidden="true"></i>${r.amount === 'Inclus' ? 'Rien à payer' : 'Envoyée par e-mail'}</span></div>`).join('')}</div></div>`
         : `<div class="os-empty"><b style="color:var(--os-navy)">Aucune facture pour le moment</b><span>Vos commandes apparaîtront ici avec leur facturation.</span></div>`}</div>
       <aside aria-labelledby="fact-info" style="flex:1 1 280px;min-width:0;background:#fff;border:1px solid var(--os-line);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:16px">
@@ -2940,8 +2986,8 @@ function osLivraison(c, id) {
   const others = Array.isArray(f) ? f.filter(x => x.kind !== 'video') : [];
   const n = vids.length; const what = kd === 'subtitles' ? 'Votre interview sous-titrée est prête' : kd === 'teaser' ? 'Votre teaser est prêt' : `Vos ${n || ''} capsules sont prêtes`.replace('  ', ' ');
   const card = (x, i) => `<article class="os-vcard" style="padding:14px;gap:12px;border-radius:14px"><div class="stage ${osFmtCls(fmt)}" style="height:auto;background:#000"><video src="${esc(x.previewUrl)}" controls playsinline preload="metadata" style="width:100%;max-height:none;border-radius:6px;object-fit:cover;aspect-ratio:${fmt === '16:9' ? '16/9' : fmt === '1:1' ? '1/1' : '9/16'}"></video></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`}</span><span class="mut" style="font-size:13px">${[osMMSS(x.durationMs), fmt, 'MP4'].filter(Boolean).join(' · ')}</span></div>
-      <a class="os-pillbtn s" style="height:44px" href="${esc(x.downloadUrl)}" download="${esc(x.fileName || '')}">${DL_SVG}Télécharger</a></div>${socRow(x.id, i === 0)}</article>`;
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`}</span><span class="mut" style="font-size:13px">${[osMMSS(x.durationMs), fmt, 'MP4'].filter(Boolean).join(' · ')}</span></div></div>
+      ${socRow(x.id, i === 0, `<a class="vc-dl" href="${esc(x.downloadUrl)}" download="${esc(x.fileName || '')}">${DL_SVG}Télécharger</a>`)}</article>`;
   return `<main class="os-wrap" style="gap:28px">
     <nav aria-label="Fil d'Ariane" class="mut" style="font-size:14px"><a href="#" data-a="nav" data-arg="medias" style="text-decoration:none">Mes créations</a> / Commande du ${new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</nav>
     <div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:flex-end"><div style="display:flex;flex-direction:column;gap:10px">
@@ -4985,6 +5031,8 @@ function modalHtml() {
 
 /* ================= Après rendu ================= */
 function after() {
+  const navOn = document.querySelector('.os-side .os-nav a.on, .os-tabs a.on');
+  if (navOn && innerWidth <= 760) { const bar = navOn.parentElement; bar.scrollLeft = navOn.offsetLeft - (bar.clientWidth - navOn.offsetWidth) / 2; }
   const form = document.getElementById('login-form');
   if (form) {
     const inp = document.getElementById('code');
