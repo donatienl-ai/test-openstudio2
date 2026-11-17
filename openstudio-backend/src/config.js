@@ -69,6 +69,16 @@ const config = {
   },
 
   // Légendes générées par Claude (clé côté serveur uniquement)
+  // Paiement par carte (Stripe Checkout). Sans clé : paiement simulé (tests).
+  stripe: {
+    secretKey: (process.env.STRIPE_SECRET_KEY || '').trim(),
+    webhookSecret: (process.env.STRIPE_WEBHOOK_SECRET || '').trim(),
+    vatRate: num(process.env.VAT_RATE, 0.2), // TVA appliquée aux prix HT
+    get mock() {
+      return !this.secretKey;
+    },
+  },
+
   anthropic: {
     apiKey: (process.env.ANTHROPIC_API_KEY || '').trim(),
     model: (process.env.CAPTIONS_MODEL || 'claude-opus-5-5').trim(),

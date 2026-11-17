@@ -5,6 +5,7 @@ const db = require('./db');
 const worker = require('./worker');
 const routes = require('./routes');
 const socialRoutes = require('./routes-social');
+const montageRoutes = require('./routes-montage');
 const storage = require('./storage');
 const clients = require('./clients');
 
@@ -26,8 +27,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/health', (req, res) => res.json({ ok: true, dryRun: config.opus.dryRun, social: Boolean(config.social.apiKey), captionsAi: Boolean(config.anthropic.apiKey), liveTestClients: config.opus.liveClients.length, storageCors: storage.storageStatus.cors, storageCorsError: storage.storageStatus.corsError }));
+app.get('/health', (req, res) => res.json({ ok: true, dryRun: config.opus.dryRun, social: Boolean(config.social.apiKey), payment: config.stripe.mock ? 'simulation' : 'stripe', captionsAi: Boolean(config.anthropic.apiKey), liveTestClients: config.opus.liveClients.length, storageCors: storage.storageStatus.cors, storageCorsError: storage.storageStatus.corsError }));
 app.use('/api', socialRoutes);
+app.use('/api', montageRoutes);
 app.use('/api', routes);
 
 app.use((req, res) => res.status(404).json({ error: 'Route inconnue' }));
