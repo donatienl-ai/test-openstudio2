@@ -11,7 +11,8 @@ const { syncDiffusions, fetchPlanning } = require('./planningSync');
 
 const SELECT = `SELECT id, planning_id, client_id, sf_opportunity_id, entreprise, media, sous_media, format,
   to_char(date_diffusion, 'YYYY-MM-DD') AS date_diffusion, planning_statut, state, contact_name, contact_email,
-  email_override, video_id, drive_folder_id, mail_sent_at, planning_updated_at, synced_at, created_at, updated_at
+  email_override, video_id, drive_folder_id, drive_folder_name, video_imported_at, video_import_error,
+  mail_sent_at, planning_updated_at, synced_at, created_at, updated_at
   FROM diffusions`;
 
 function fromRow(r) {
@@ -32,6 +33,9 @@ function fromRow(r) {
     emailOverride: r.email_override,
     videoId: r.video_id,
     driveFolderId: r.drive_folder_id,
+    driveFolderName: r.drive_folder_name || null,
+    videoImportedAt: r.video_imported_at || null,
+    videoImportError: r.video_import_error || null,
     mailSentAt: r.mail_sent_at,
     planningUpdatedAt: r.planning_updated_at,
     syncedAt: r.synced_at,
@@ -62,6 +66,12 @@ const store = {
        WHERE planning_id = $1`,
       [planningId, f.sfOpportunityId, f.entreprise, f.media, f.sousMedia, f.format, f.dateDiffusion, f.planningStatut,
         f.state, f.contactName, f.contactEmail, f.planningUpdatedAt]
+    );
+    // Vidéo déjà importée : elle suit la date (report) et l'état (invisible si annulée ou date à fixer)
+    await db.query(
+      `UPDATE client_videos SET broadcast_date = $2, active = $3
+       WHERE id = (SELECT video_id FROM diffusions WHERE planning_id = $1)`,
+      [planningId, f.state === 'active' ? f.dateDiffusion : null, f.state === 'active']
     );
   },
   async findClientByKey(key) {

@@ -13,6 +13,8 @@ const { newAccessToken, tokensMatch } = require('./auth');
 
 const isUuid = (v) => /^[0-9a-f-]{36}$/i.test(String(v));
 const UNIQUE_VIOLATION = '23505';
+// Une vidéo n'apparaît dans l'espace du client qu'à partir de son jour de diffusion (heure de Paris)
+const VISIBLE_FROM_BROADCAST = "(broadcast_date IS NULL OR broadcast_date <= (now() AT TIME ZONE 'Europe/Paris')::date)";
 
 /**
  * Donne un nouveau code de connexion au client (l'ancien cesse de fonctionner).
@@ -141,7 +143,8 @@ async function setVideoActive(clientId, videoId, active) {
 
 async function listVideos(clientId) {
   const { rows } = await db.query(
-    'SELECT * FROM client_videos WHERE client_id = $1 AND active = true ORDER BY broadcast_date DESC NULLS LAST, created_at DESC',
+    `SELECT * FROM client_videos WHERE client_id = $1 AND active = true AND ${VISIBLE_FROM_BROADCAST}
+     ORDER BY broadcast_date DESC NULLS LAST, created_at DESC`,
     [clientId]
   );
   return rows;
@@ -151,7 +154,7 @@ async function listVideos(clientId) {
 async function getVideo(clientId, videoId) {
   if (!isUuid(videoId) || !clientId) return null;
   const { rows } = await db.query(
-    'SELECT * FROM client_videos WHERE id = $1 AND client_id = $2 AND active = true',
+    `SELECT * FROM client_videos WHERE id = $1 AND client_id = $2 AND active = true AND ${VISIBLE_FROM_BROADCAST}`,
     [videoId, clientId]
   );
   return rows[0] || null;

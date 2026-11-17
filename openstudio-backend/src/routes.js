@@ -19,6 +19,7 @@ const { validateSubtitleFile } = require('./media/subtitles');
 const { MockPaymentProvider } = require('./payment');
 const loginCodes = require('./loginCodes');
 const diffusions = require('./diffusions');
+const driveSync = require('./driveSync');
 
 const router = express.Router();
 const json = express.json({ limit: '200kb' });
@@ -393,6 +394,13 @@ router.post('/admin/planning/sync', wrap(async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const r = await diffusions.runSync();
   res.status(r.ok ? 200 : 503).json(r);
+}));
+
+/** Crée les dossiers Drive et importe une vidéo déposée tout de suite (sans attendre le passage automatique). */
+router.post('/admin/drive/sync', wrap(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (!driveSync.enabled()) return res.status(503).json({ error: 'GOOGLE_SERVICE_ACCOUNT_JSON ou DRIVE_ROOT_FOLDER_ID non configurée' });
+  res.json(await driveSync.tick({ force: true }));
 }));
 
 /** Nouveau code pour un client (code perdu) : l'ancien cesse aussitôt de fonctionner. */

@@ -11,6 +11,7 @@ const storage = require('./storage');
 const db = require('./db');
 const social = require('./social/service');
 const diffusions = require('./diffusions');
+const driveSync = require('./driveSync');
 
 let busy = false;
 let timer = null;
@@ -102,6 +103,7 @@ async function loop() {
     if (tick++ % 30 === 0) await housekeeping();
     if (tick % 6 === 0) await socialStep();
     await planningStep();
+    driveSync.tick().catch((e) => console.error('[drive]', e.message)); // sans await : un import long ne bloque pas les commandes
     // Traite tout ce qui est prêt, une commande à la fois (limite mémoire/CPU sur Render)
     for (let i = 0; i < 20; i++) {
       if (!(await step())) break;

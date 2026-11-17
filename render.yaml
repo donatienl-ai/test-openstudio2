@@ -82,6 +82,12 @@ services:
         sync: false
       - key: PLANNING_EXPORT_KEY
         sync: false
+      # Google Drive (dossiers des diffusions + import des vidéos des monteurs) : contenu complet du fichier de clé
+      # JSON du compte de service, et identifiant du Drive partagé « OpenStudio – Vidéos clients ». Vides : désactivé.
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: DRIVE_ROOT_FOLDER_ID
+        sync: false
       # Publication sur les réseaux sociaux (Upload-Post) : clé API et secret des notifications (webhook).
       # À saisir dans Render ; ne jamais les mettre dans le dépôt ni dans le site.
       - key: UPLOAD_POST_API_KEY

@@ -62,6 +62,14 @@ const config = {
     syncMinutes: num(process.env.PLANNING_SYNC_MIN, 60),
   },
 
+  // Google Drive : dossiers des diffusions + import des vidéos (src/driveSync.js)
+  drive: {
+    credentialsJson: (process.env.GOOGLE_SERVICE_ACCOUNT_JSON || '').trim(),
+    rootFolderId: (process.env.DRIVE_ROOT_FOLDER_ID || '').trim(),
+    intervalMin: num(process.env.DRIVE_SYNC_MIN, 5),
+    settleMin: num(process.env.DRIVE_SETTLE_MIN, 2), // délai sans modification avant d'importer un fichier
+  },
+
   // Codes de connexion des espaces clients (src/loginCodes.js). Secret propre aux codes : le changer rend
   // tous les codes existants invalides. Essais ratés limités par adresse IP.
   loginCodes: {

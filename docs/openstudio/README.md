@@ -103,6 +103,26 @@ curl $API/api/admin/diffusions -H "$AUTH"                  # diffusions + compte
 curl -X POST $API/api/admin/planning/sync -H "$AUTH"       # relire le planning tout de suite
 ```
 
+## Google Drive : dossiers des diffusions et vidéos des monteurs
+
+Dans le Drive partagé `DRIVE_ROOT_FOLDER_ID`, OpenStudio crée automatiquement (toutes les `DRIVE_SYNC_MIN` minutes) :
+
+```
+<Entreprise>/
+  2026-12-03 – BFM Business 1&2 – Plateau TV/     ← le monteur dépose la vidéo ici
+  date à fixer – Capital – Immersion/
+Annulées/                                         ← dossiers des diffusions annulées (jamais supprimés)
+```
+
+- Les dossiers sont renommés en cas de report et rangés dans « Annulées » en cas d'annulation. Une étiquette
+  invisible relie chaque dossier à sa diffusion : renommer ou déplacer un dossier à la main ne casse pas le lien.
+- Une vidéo déposée est importée dès qu'elle n'a plus été modifiée depuis `DRIVE_SETTLE_MIN` minutes (envoi
+  terminé), copiée dans le stockage et rattachée au client. Si plusieurs vidéos sont présentes, la plus récente.
+- La vidéo n'apparaît dans l'espace du client **qu'à partir du jour de diffusion** (heure de Paris), et jamais
+  tant que la date est à fixer ou si la diffusion est annulée. Un report déplace aussi la date de la vidéo.
+- `POST /api/admin/drive/sync` lance un passage tout de suite.
+- Médias sans logo configuré (Le Figaro, TIME…) : à ajouter dans `programmes` de `src/opusclip.config.js`.
+
 ## Mode test : dépôt de vidéo par le client
 
 Deux variables, à retirer en production (voir `render.yaml`) :

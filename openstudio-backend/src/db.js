@@ -235,6 +235,13 @@ CREATE TABLE IF NOT EXISTS diffusions (
 );
 CREATE INDEX IF NOT EXISTS diffusions_client ON diffusions (client_id);
 CREATE INDEX IF NOT EXISTS diffusions_date ON diffusions (date_diffusion);
+-- Google Drive (src/driveSync.js) : dossiers et import des vidéos déposées par les monteurs
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS drive_folder_id TEXT;
+ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS drive_folder_name TEXT;
+ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS drive_folder_parent TEXT;   -- client | cancelled
+ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS video_file_id TEXT;         -- fichier Drive importé
+ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS video_imported_at TIMESTAMPTZ;
+ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS video_import_error TEXT;
 `;
 
 async function migrate() {
