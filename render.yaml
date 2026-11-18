@@ -71,6 +71,15 @@ services:
         value: "Client test OpenStudio"
       - key: ADMIN_TOKEN
         generateValue: true
+      # Back-office de l'équipe (dossier admin/, site statique séparé : voir admin/README.md)
+      - key: ADMIN_ORIGIN
+        sync: false
+      - key: ADMIN_ENCRYPTION_KEY
+        generateValue: true
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_NAME
+        sync: false
       # Publication sur les réseaux sociaux (Upload-Post) : clé API et secret des notifications (webhook).
       # À saisir dans Render ; ne jamais les mettre dans le dépôt ni dans le site.
       - key: UPLOAD_POST_API_KEY

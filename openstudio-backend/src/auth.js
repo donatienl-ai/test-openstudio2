@@ -23,7 +23,12 @@ function tokenFromRequest(req) {
   return req.get('x-order-token') || req.query.token || '';
 }
 
+/**
+ * Équipe OpenMedias : session du back-office (renseignée par src/admin/session.js) ou, pendant la
+ * transition, l'ancien jeton technique ADMIN_TOKEN.
+ */
 function isAdmin(req) {
+  if (req.adminUser || req.adminViaLegacyToken) return true;
   const adminToken = process.env.ADMIN_TOKEN;
   const provided = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
   return Boolean(adminToken) && tokensMatch(adminToken, provided);

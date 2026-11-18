@@ -1,0 +1,107 @@
+/* Back-office OpenStudio : sobre, dense, lisible. */
+:root {
+  --navy: #13213c;
+  --navy-2: #1d2f52;
+  --ink: #17202e;
+  --muted: #5d6778;
+  --line: #e2e6ed;
+  --bg: #f5f7fa;
+  --card: #ffffff;
+  --blue: #2457d6;
+  --blue-soft: #e8eefc;
+  --green: #18794e;
+  --green-soft: #e3f4ea;
+  --amber: #8a5a00;
+  --amber-soft: #fdf2d8;
+  --red: #b42318;
+  --red-soft: #fde8e6;
+  --radius: 8px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-size: 15px; line-height: 1.45; }
+h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 17px; margin: 0 0 12px; }
+p { margin: 0 0 12px; }
+a { color: var(--blue); }
+.muted { color: var(--muted); }
+.mt { margin-top: 12px; }
+.small { font-size: 13px; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+/* Écrans de connexion */
+.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--navy); }
+.auth-card { width: 100%; max-width: 420px; background: var(--card); border-radius: 12px; padding: 28px; }
+.brand { display: flex; align-items: baseline; gap: 8px; margin-bottom: 20px; }
+.brand b { font-size: 18px; }
+.brand span { color: var(--muted); font-size: 13px; }
+.steps { display: flex; gap: 6px; margin-bottom: 16px; }
+.steps i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
+.steps i.on { background: var(--blue); }
+
+/* Formulaires */
+form { display: grid; gap: 14px; }
+label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; }
+input, select { font: inherit; padding: 10px 12px; border: 1px solid #c9d0db; border-radius: var(--radius); background: #fff; color: var(--ink); }
+input:focus, select:focus { outline: 2px solid var(--blue); outline-offset: 1px; border-color: var(--blue); }
+input.code { font-size: 22px; letter-spacing: 0.3em; text-align: center; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.btn { font: inherit; font-weight: 600; border: 1px solid transparent; border-radius: var(--radius); padding: 10px 16px; cursor: pointer; background: var(--blue); color: #fff; }
+.btn:hover { filter: brightness(0.95); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.btn.secondary { background: #fff; color: var(--ink); border-color: #c9d0db; }
+.btn.danger { background: #fff; color: var(--red); border-color: #efb7b1; }
+.btn.small { padding: 6px 10px; font-size: 13px; }
+.error { background: var(--red-soft); color: var(--red); padding: 10px 12px; border-radius: var(--radius); font-size: 14px; }
+.note { background: var(--blue-soft); padding: 12px; border-radius: var(--radius); font-size: 14px; }
+.secret { display: block; font-size: 17px; letter-spacing: 0.08em; background: var(--bg); border: 1px dashed #c9d0db; padding: 12px; border-radius: var(--radius); word-break: break-all; text-align: center; }
+ol.howto { margin: 0 0 4px; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; }
+
+/* Application */
+.shell { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.side { background: var(--navy); color: #dfe6f3; padding: 20px 12px; display: flex; flex-direction: column; gap: 4px; }
+.side .brand { padding: 0 10px; margin-bottom: 16px; flex-direction: column; gap: 2px; }
+.side .brand b { color: #fff; }
+.side .brand span { color: #9fb0cc; }
+.side a { color: #dfe6f3; text-decoration: none; padding: 9px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+.side a:hover { background: var(--navy-2); }
+.side a.on { background: var(--navy-2); color: #fff; font-weight: 600; }
+.side a .soon { font-size: 11px; color: #9fb0cc; border: 1px solid #3a4c70; border-radius: 10px; padding: 1px 7px; }
+.side .sep { height: 1px; background: #2b3c5e; margin: 10px 4px; }
+.side .me { margin-top: auto; padding: 10px; font-size: 13px; color: #9fb0cc; display: grid; gap: 8px; }
+.side .me b { color: #fff; font-weight: 600; }
+.side .me button { justify-self: start; background: transparent; color: #dfe6f3; border: 1px solid #3a4c70; border-radius: 6px; padding: 5px 10px; font: inherit; cursor: pointer; }
+main { padding: 28px 32px; max-width: 1180px; width: 100%; }
+.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+.empty { padding: 32px; text-align: center; color: var(--muted); }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+td.actions { white-space: nowrap; text-align: right; }
+td.actions .btn + .btn { margin-left: 6px; }
+
+.tag { display: inline-block; white-space: nowrap; font-size: 12px; font-weight: 600; border-radius: 10px; padding: 2px 9px; }
+.tag.ok { background: var(--green-soft); color: var(--green); }
+.tag.wait { background: var(--amber-soft); color: var(--amber); }
+.tag.off { background: #eceff3; color: var(--muted); }
+.tag.super { background: var(--blue-soft); color: var(--blue); }
+
+.grid-form { display: grid; grid-template-columns: 1fr 1fr 180px auto; gap: 12px; align-items: end; }
+.linkbox { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+.linkbox input { flex: 1; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+
+#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: var(--radius); font-size: 14px; z-index: 10; }
+
+@media (max-width: 860px) {
+  .shell { grid-template-columns: 1fr; }
+  .side { flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .side .brand, .side .sep { display: none; }
+  .side .me { margin-top: 0; margin-left: auto; }
+  main { padding: 20px 16px; }
+  .grid-form { grid-template-columns: 1fr; }
+  td.actions { white-space: normal; }
+}

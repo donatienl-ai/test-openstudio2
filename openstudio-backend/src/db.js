@@ -1,6 +1,7 @@
 'use strict';
 const { Pool } = require('pg');
 const config = require('./config');
+const ADMIN_SCHEMA = require('./admin/schema');
 
 const pool = new Pool({
   connectionString: config.databaseUrl,
@@ -202,6 +203,7 @@ async function migrate() {
   await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS finalize_restarts INTEGER NOT NULL DEFAULT 0');
   await pool.query(SOCIAL_SCHEMA);
   await pool.query(MONTAGE_SCHEMA);
+  await pool.query(ADMIN_SCHEMA);
   // L'émission « immersion » est devenue « capital »
   await pool.query("UPDATE client_videos SET programme_id = 'capital' WHERE programme_id = 'immersion'");
 }

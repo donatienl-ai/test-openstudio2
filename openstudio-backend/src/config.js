@@ -15,6 +15,21 @@ const config = {
   publicBaseUrl: (process.env.PUBLIC_BASE_URL || 'http://localhost:3000').replace(/\/$/, ''),
   frontendOrigins: (process.env.FRONTEND_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean),
 
+  // Back-office de l'équipe (application séparée du site client)
+  admin: {
+    // Adresse du back-office, sans barre finale (ex. https://admin.openstudio.fr) : CORS et liens d'activation
+    origin: (process.env.ADMIN_ORIGIN || '').trim().replace(/\/$/, ''),
+    // Clé de chiffrement des secrets de double authentification (32 caractères minimum, ne jamais la changer)
+    encryptionKey: (process.env.ADMIN_ENCRYPTION_KEY || '').trim(),
+    // Premier démarrage : compte super admin créé automatiquement, lien d'activation écrit dans les logs
+    bootstrapEmail: (process.env.ADMIN_BOOTSTRAP_EMAIL || '').trim(),
+    bootstrapName: (process.env.ADMIN_BOOTSTRAP_NAME || '').trim(),
+    sessionHours: num(process.env.ADMIN_SESSION_HOURS, 12),
+    inviteHours: num(process.env.ADMIN_INVITE_HOURS, 72),
+    // Transition : ancien jeton technique, accepté tant qu'il est renseigné (à retirer avant la production)
+    legacyToken: (process.env.ADMIN_TOKEN || '').trim(),
+  },
+
   databaseUrl: process.env.DATABASE_URL,
   databaseSsl: bool(process.env.DATABASE_SSL, true),
 

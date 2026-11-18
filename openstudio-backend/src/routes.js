@@ -17,6 +17,7 @@ const { normalizeOptions, extractProjectId, ValidationError, VIDEO_TYPES } = req
 const { verifyOpusWebhook } = require('./opusclip/webhook');
 const { validateSubtitleFile } = require('./media/subtitles');
 const { MockPaymentProvider } = require('./payment');
+const audit = require('./admin/audit');
 
 const router = express.Router();
 const json = express.json({ limit: '200kb' });
@@ -331,6 +332,7 @@ router.post('/admin/clients', json, wrap(async (req, res) => {
   const { name, company, email, logoKey } = req.body || {};
   if (!name) return res.status(400).json({ error: 'Nom du client requis' });
   const c = await clients.create({ name, company, email, logoKey });
+  await audit.record(req, 'client_cree', { targetType: 'client', targetId: c.id, detail: { name: c.name, company: c.company } });
   res.status(201).json({ client: { id: c.id, name: c.name, company: c.company }, clientToken: c.access_token });
 }));
 
@@ -344,6 +346,7 @@ router.post('/admin/clients/:id', json, wrap(async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const c = await clients.update(req.params.id, req.body || {});
   if (!c) return res.status(404).json({ error: 'Client introuvable' });
+  await audit.record(req, 'client_modifie', { targetType: 'client', targetId: c.id, detail: { champs: Object.keys(req.body || {}) } });
   res.json({ client: { id: c.id, name: c.name, company: c.company, logoKey: c.logo_key } });
 }));
 
@@ -360,6 +363,7 @@ router.post('/admin/clients/:id/videos', json, wrap(async (req, res) => {
   const h = await storage.head(sourceKey);
   if (!h.exists) return res.status(400).json({ error: `Fichier introuvable dans le stockage : ${sourceKey}` });
   const v = await clients.addVideo(client.id, { programmeId, title, sourceKey, broadcastDate });
+  await audit.record(req, 'video_ajoutee', { targetType: 'client', targetId: client.id, detail: { videoId: v.id, title, programmeId } });
   res.status(201).json({ video: publicVideo(v) });
 }));
 
@@ -372,6 +376,7 @@ router.get('/admin/clients/:id/videos', wrap(async (req, res) => {
 router.post('/admin/clients/:id/videos/:videoId/disable', wrap(async (req, res) => {
   if (!requireAdmin(req, res)) return;
   await clients.setVideoActive(req.params.id, req.params.videoId, false);
+  await audit.record(req, 'video_retiree', { targetType: 'client', targetId: req.params.id, detail: { videoId: req.params.videoId } });
   res.json({ ok: true });
 }));
 
@@ -402,6 +407,7 @@ router.post('/admin/orders/:id/retry', wrap(async (req, res) => {
   if (!order || order.status !== 'error') return res.status(409).json({ error: 'Seules les commandes en erreur peuvent être relancées' });
   const next = order.opus_project_id || order.options?.mode === 'client_file' ? 'opus_done' : 'paid';
   await orders.setStatus(order.id, next, { error: null });
+  await audit.record(req, 'commande_relancee', { targetType: 'order', targetId: order.id, detail: { erreur: order.error } });
   worker.nudge();
   res.json({ ok: true, status: next });
 }));
