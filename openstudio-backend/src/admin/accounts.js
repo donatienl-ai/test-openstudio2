@@ -269,7 +269,7 @@ async function purgeExpiredSessions() {
 
 /**
  * Crée le compte super admin indiqué dans ADMIN_BOOTSTRAP_EMAIL s'il n'existe aucun super admin,
- * ou renouvelle son lien d'activation s'il n'a jamais été activé et que le lien a expiré.
+ * ou renouvelle son lien d'activation à chaque démarrage tant qu'il n'a pas été activé.
  * Renvoie le lien d'activation à afficher dans les logs, ou null.
  */
 async function ensureBootstrap({ email, name }) {
@@ -286,7 +286,9 @@ async function ensureBootstrap({ email, name }) {
     const { inviteToken } = await createUser({ email: mail, name: name || mail, role: 'super_admin' });
     return inviteLink(inviteToken);
   }
-  if (!existing.activated_at && (!existing.invite_expires_at || new Date(existing.invite_expires_at) < new Date())) {
+  // Tant que le compte n'est pas activé, chaque démarrage écrit un nouveau lien dans les logs
+  // (l'ancien cesse de fonctionner) : un redémarrage suffit si le lien a été perdu.
+  if (!existing.activated_at) {
     const { inviteToken } = await resetAccess(existing.id);
     return inviteLink(inviteToken);
   }
