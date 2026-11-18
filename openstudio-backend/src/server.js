@@ -7,6 +7,8 @@ const routes = require('./routes');
 const socialRoutes = require('./routes-social');
 const montageRoutes = require('./routes-montage');
 const adminRoutes = require('./routes-admin');
+const adminClientRoutes = require('./routes-admin-clients');
+const clientAccess = require('./admin/client-access');
 const adminSession = require('./admin/session');
 const accounts = require('./admin/accounts');
 const storage = require('./storage');
@@ -35,6 +37,7 @@ app.get('/health', (req, res) => res.json({ ok: true, dryRun: config.opus.dryRun
 // Identification de l'équipe (session du back-office) avant toutes les routes
 app.use('/api', adminSession.attach);
 app.use('/api', adminRoutes);
+app.use('/api', adminClientRoutes);
 app.use('/api', socialRoutes);
 app.use('/api', montageRoutes);
 app.use('/api', routes);
@@ -69,13 +72,25 @@ async function main() {
   if (activationLink) {
     console.log(`[back-office] Lien d'activation du super admin ${config.admin.bootstrapEmail} (valable ${config.admin.inviteHours} h) : ${activationLink}`);
   }
+  // Liens d'accès des clients : envoyés le jour de la diffusion (vérification toutes les 10 minutes)
+  if (!config.clientSiteUrl) console.error('[accès client] CLIENT_SITE_URL et FRONTEND_ORIGIN vides : impossible de créer les liens d\'accès des clients.');
+  const mailProblem = require('./mailer').problem();
+  console.log(mailProblem ? `[accès client] Envoi automatique en attente : ${mailProblem}`
+    : `[accès client] Envoi automatique actif${config.mail.redirectTo ? ` (TEST : tous les e-mails partent vers ${config.mail.redirectTo})` : ''}.`);
+  const runAccess = () => clientAccess.runScheduled().catch((e) => console.error('[accès client]', e.message));
+  setTimeout(runAccess, 15000).unref();
+  setInterval(runAccess, 10 * 60 * 1000).unref();
   setInterval(() => accounts.purgeExpiredSessions().catch((e) => console.error('[back-office] purge des sessions', e.message)), 60 * 60 * 1000).unref();
   if (config.testClientName) {
     // Tests uniquement : espace client prêt à l'emploi, sans passer par les routes admin.
     const c = (await clients.findByName(config.testClientName))
-      || (await clients.create({ name: config.testClientName, company: config.testClientName }));
+      || (await clients.create({ name: config.testClientName, company: config.testClientName, keepPlainToken: true }));
     const site = config.frontendOrigins[0] || 'https://VOTRE-SITE';
-    console.log(`[test] Lien de l'espace client « ${c.name} » : ${site}/?client=${c.id}&clientToken=${c.access_token}`);
+    if (c.access_token && c.access_token_hash) {
+      console.log(`[test] Lien de l'espace client « ${c.name} » : ${site}/?client=${c.id}&clientToken=${c.access_token}`);
+    } else {
+      console.log(`[test] Client « ${c.name} » : lien d'accès géré depuis le back-office (fiche client).`);
+    }
   }
   if (config.clientUploadsEnabled) console.log('[test] Dépôt de vidéos par le client ACTIVÉ (CLIENT_UPLOADS_ENABLED) : à désactiver en production.');
   app.listen(config.port, () => {

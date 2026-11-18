@@ -80,6 +80,15 @@ services:
         sync: false
       - key: ADMIN_BOOTSTRAP_NAME
         sync: false
+      # Liens d'accès des clients envoyés par e-mail (lot 2)
+      - key: MAILJET_API_KEY
+        sync: false
+      - key: MAILJET_SECRET_KEY
+        sync: false
+      - key: MAILJET_FROM_EMAIL
+        value: communication@openmedias.fr
+      - key: MAIL_REDIRECT_TO
+        sync: false
       # Publication sur les réseaux sociaux (Upload-Post) : clé API et secret des notifications (webhook).
       # À saisir dans Render ; ne jamais les mettre dans le dépôt ni dans le site.
       - key: UPLOAD_POST_API_KEY

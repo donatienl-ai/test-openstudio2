@@ -32,6 +32,12 @@ Si l'adresse du serveur change, modifier `config.js` **et** `connect-src` dans l
 | `ADMIN_BOOTSTRAP_NAME` | Nom affiché du super admin. |
 | `ADMIN_SESSION_HOURS` | Durée d'une session, 12 h par défaut. |
 | `ADMIN_REQUIRE_2FA` | `true` pour exiger un code à 6 chiffres (Google Authenticator…) en plus du mot de passe. Désactivé par défaut. Les comptes déjà activés devront refaire leur activation (« Réinitialiser l'accès ») pour configurer le code. |
+| `CLIENT_SITE_URL` | Adresse de l'espace client, utilisée dans les liens d'accès (par défaut : la première adresse de `FRONTEND_ORIGIN`). |
+| `MAILJET_API_KEY`, `MAILJET_SECRET_KEY` | Clés Mailjet, les mêmes que sur l'ancien serveur. Sans elles, aucun lien ne part par e-mail. |
+| `MAILJET_FROM_EMAIL` | Expéditeur, `communication@openmedias.fr` par défaut. |
+| `MAIL_REDIRECT_TO` | **Tests** : tous les e-mails partent vers cette adresse au lieu des clients. |
+| `MAIL_ALLOW_REAL_RECIPIENTS` | `1` pour envoyer réellement aux clients (au lancement). Sans cette valeur ni `MAIL_REDIRECT_TO`, rien ne part. |
+| `MJ_TPL_CLIENT_ACCESS` | Identifiant du modèle Mailjet du lien d'accès (variables `nom`, `entreprise`, `lien`, `date_diffusion`). Vide : e-mail texte simple. |
 | `ADMIN_TOKEN` | Ancien jeton technique, encore accepté pendant la transition (droits admin, pas super admin). **À supprimer avant la mise en production.** |
 
 ## Comptes et sécurité
@@ -44,3 +50,12 @@ Si l'adresse du serveur change, modifier `config.js` **et** `connect-src` dans l
 - Mot de passe oublié ou téléphone perdu : le super admin clique sur « Réinitialiser l'accès » et transmet le nouveau lien. L'ancien accès est coupé immédiatement.
 - La base ne contient ni jeton utilisable (les jetons sont hachés) ni secret de double authentification en clair (il est chiffré).
 - Les actions sensibles sont inscrites au journal d'activité : connexions, comptes, clients, vidéos, relances de commandes.
+
+## Clients et liens d'accès (lot 2)
+
+- Chaque client a un **lien d'accès personnel** à son espace. Le serveur n'en garde qu'une empreinte : personne, même l'équipe, ne peut relire un lien existant.
+- **Le jour de la diffusion, à partir de 8 h** (heure de Paris), le lien est créé et envoyé à l'e-mail du client. Le serveur vérifie toutes les 10 minutes, jusqu'à 20 h. En cas d'échec, il réessaie toutes les heures, 5 fois au plus.
+- Depuis la fiche client, l'équipe peut **envoyer le lien tout de suite**, **créer un lien à transmettre elle-même** (affiché une seule fois) ou **couper l'accès**. Chaque nouveau lien rend le précédent inutilisable.
+- Un client dont le lien a été remis à la main ou coupé ne reçoit pas d'envoi automatique.
+- **Import CSV** : colonnes `nom`, `entreprise`, `email`, `date de diffusion` (JJ/MM/AAAA), `package`, `notes`. Séparateur `;` (Excel) ou `,`. Les e-mails déjà présents sont ignorés.
+- Les clients créés avant le back-office gardent leur lien actuel.
