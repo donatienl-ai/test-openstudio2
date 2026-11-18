@@ -31,14 +31,15 @@ Si l'adresse du serveur change, modifier `config.js` **et** `connect-src` dans l
 | `ADMIN_BOOTSTRAP_EMAIL` | E-mail du super admin, créé automatiquement au premier démarrage. |
 | `ADMIN_BOOTSTRAP_NAME` | Nom affiché du super admin. |
 | `ADMIN_SESSION_HOURS` | Durée d'une session, 12 h par défaut. |
+| `ADMIN_REQUIRE_2FA` | `true` pour exiger un code à 6 chiffres (Google Authenticator…) en plus du mot de passe. Désactivé par défaut. Les comptes déjà activés devront refaire leur activation (« Réinitialiser l'accès ») pour configurer le code. |
 | `ADMIN_TOKEN` | Ancien jeton technique, encore accepté pendant la transition (droits admin, pas super admin). **À supprimer avant la mise en production.** |
 
 ## Comptes et sécurité
 
 - Deux rôles : **super admin** (tout, plus la gestion des comptes de l'équipe et le journal d'activité) et **admin**.
-- Un compte est créé par le super admin, qui transmet le lien d'activation (valable 72 h, utilisable une fois). La personne choisit son mot de passe (9 caractères minimum, avec au moins une lettre et un chiffre, par exemple 8 chiffres et 1 lettre), puis configure la double authentification dans une application comme Google Authenticator.
+- Un compte est créé par le super admin, qui transmet le lien d'activation (valable 72 h, utilisable une fois). La personne choisit son mot de passe (9 caractères minimum, avec au moins une lettre et un chiffre, par exemple 8 chiffres et 1 lettre), puis, si `ADMIN_REQUIRE_2FA=true`, configure la double authentification dans une application comme Google Authenticator.
 - Identifiant de connexion : la partie avant le @ de l'e-mail (`thomas.d@openmedias.fr` → `thomas.d`), modifiable à la création du compte. L'e-mail complet est aussi accepté.
-- Connexion en deux temps : identifiant et mot de passe, puis code à 6 chiffres. Un code ne sert qu'une fois.
+- Connexion : identifiant et mot de passe ; avec `ADMIN_REQUIRE_2FA=true`, un code à 6 chiffres en plus (un code ne sert qu'une fois).
 - Après 5 échecs, le compte est bloqué 15 minutes. Chaque adresse IP est limitée à 20 tentatives par quart d'heure.
 - Mot de passe oublié ou téléphone perdu : le super admin clique sur « Réinitialiser l'accès » et transmet le nouveau lien. L'ancien accès est coupé immédiatement.
 - La base ne contient ni jeton utilisable (les jetons sont hachés) ni secret de double authentification en clair (il est chiffré).

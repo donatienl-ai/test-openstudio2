@@ -111,14 +111,14 @@
   function viewInvite() {
     var i = S.invite;
     return '<div class="auth"><div class="auth-card">' + brand('Activation de votre compte') +
-      '<div class="steps"><i class="on"></i><i></i></div>' +
+      (i.twoFactor ? '<div class="steps"><i class="on"></i><i></i></div>' : '') +
       '<h1>Bienvenue ' + esc(i.name) + '</h1><p class="muted small">Votre identifiant de connexion : <b class="mono">' + esc(i.username) + '</b>. Choisissez votre mot de passe.</p>' +
       '<form data-form="invite-start" novalidate>' + errorBox() +
       '<input type="hidden" name="login" autocomplete="username" value="' + esc(i.username) + '">' +
       '<label>Mot de passe<input name="password" type="password" autocomplete="new-password" minlength="9" required></label>' +
       '<label>Confirmez le mot de passe<input name="confirm" type="password" autocomplete="new-password" minlength="9" required></label>' +
       '<p class="small muted">Au moins 9 caractères, avec au moins une lettre et un chiffre (par exemple 8 chiffres et 1 lettre).</p>' +
-      '<button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Continuer</button>' +
+      '<button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>' + (i.twoFactor ? 'Continuer' : 'Activer mon compte') + '</button>' +
       '</form></div></div>';
   }
 
@@ -173,7 +173,7 @@
   function pageHome() {
     return '<div class="head"><div><h1>Bonjour ' + esc(S.user.name) + '</h1>' +
       '<p class="muted">Le back-office se construit lot par lot. Les rubriques marquées d’un numéro de lot arrivent dans les prochaines semaines.</p></div></div>' +
-      '<div class="card"><h2>Ce qui est disponible</h2><p>Connexion sécurisée par mot de passe et code à 6 chiffres.' +
+      '<div class="card"><h2>Ce qui est disponible</h2><p>Connexion à l’espace équipe avec votre identifiant.' +
       (isSuper() ? ' En tant que super admin, vous gérez aussi les comptes de l’équipe et consultez le journal d’activité.' : '') + '</p></div>';
   }
 
@@ -326,7 +326,10 @@
   var FORMS = {
     login: function (f) {
       return api('POST', '/admin/auth/login', { username: f.username.value, password: f.password.value }, '-')
-        .then(function (d) { S.pendingToken = d.token; S.view = 'code'; });
+        .then(function (d) {
+          if (d.user) { setToken(d.token); return enterApp(d.user); } // double authentification désactivée
+          S.pendingToken = d.token; S.view = 'code';
+        });
     },
     code: function (f) {
       return api('POST', '/admin/auth/code', { code: f.code.value }, S.pendingToken)
@@ -336,7 +339,16 @@
     'invite-start': function (f) {
       if (f.password.value !== f.confirm.value) return Promise.reject(new Error('Les deux mots de passe ne sont pas identiques.'));
       return api('POST', '/admin/auth/invite/start', { token: S.invite.token, password: f.password.value }, '-')
-        .then(function (d) { S.invite.secret = d.secret; S.invite.uri = d.uri; S.view = 'invite-key'; });
+        .then(function (d) {
+          if (d.user) { // double authentification désactivée : compte activé
+            setToken(d.token);
+            history.replaceState(null, '', location.pathname);
+            S.invite = null;
+            enterApp(d.user);
+            return toast('Compte activé. Bienvenue !');
+          }
+          S.invite.secret = d.secret; S.invite.uri = d.uri; S.view = 'invite-key';
+        });
     },
     'invite-finish': function (f) {
       return api('POST', '/admin/auth/invite/finish', { token: S.invite.token, code: f.code.value }, '-')
@@ -420,7 +432,7 @@
     if (invite) {
       render();
       return api('GET', '/admin/auth/invite?token=' + encodeURIComponent(invite), null, '-')
-        .then(function (d) { S.invite = { token: invite, email: d.email, username: d.username, name: d.name, role: d.role }; S.view = 'invite'; render(); })
+        .then(function (d) { S.invite = { token: invite, email: d.email, username: d.username, name: d.name, role: d.role, twoFactor: d.twoFactor }; S.view = 'invite'; render(); })
         .catch(function (e) { S.view = 'error'; S.error = e.message; render(); });
     }
     if (!getToken()) { S.view = 'login'; return render(); }

@@ -25,6 +25,8 @@ const config = {
     bootstrapEmail: (process.env.ADMIN_BOOTSTRAP_EMAIL || '').trim(),
     bootstrapName: (process.env.ADMIN_BOOTSTRAP_NAME || '').trim(),
     sessionHours: num(process.env.ADMIN_SESSION_HOURS, 12),
+    // Double authentification (code à 6 chiffres) : désactivée par défaut, ADMIN_REQUIRE_2FA=true pour l'exiger
+    require2fa: String(process.env.ADMIN_REQUIRE_2FA || '').trim().toLowerCase() === 'true',
     inviteHours: num(process.env.ADMIN_INVITE_HOURS, 72),
     // Transition : ancien jeton technique, accepté tant qu'il est renseigné (à retirer avant la production)
     legacyToken: (process.env.ADMIN_TOKEN || '').trim(),
