@@ -92,7 +92,7 @@
     return '<div class="auth"><div class="auth-card">' + brand() +
       '<h1>Connexion</h1><p class="muted small">Réservé aux collaborateurs OpenMedias.</p>' +
       '<form data-form="login" novalidate>' + errorBox() +
-      '<label>E-mail professionnel<input name="email" type="email" autocomplete="username" required></label>' +
+      '<label>Identifiant<input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="ex. thomas.d" required></label>' +
       '<label>Mot de passe<input name="password" type="password" autocomplete="current-password" required></label>' +
       '<button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Continuer</button>' +
       '</form></div></div>';
@@ -112,11 +112,12 @@
     var i = S.invite;
     return '<div class="auth"><div class="auth-card">' + brand('Activation de votre compte') +
       '<div class="steps"><i class="on"></i><i></i></div>' +
-      '<h1>Bienvenue ' + esc(i.name) + '</h1><p class="muted small">Compte ' + esc(i.email) + '. Choisissez votre mot de passe.</p>' +
+      '<h1>Bienvenue ' + esc(i.name) + '</h1><p class="muted small">Votre identifiant de connexion : <b class="mono">' + esc(i.username) + '</b>. Choisissez votre mot de passe.</p>' +
       '<form data-form="invite-start" novalidate>' + errorBox() +
-      '<label>Mot de passe<input name="password" type="password" autocomplete="new-password" minlength="12" required></label>' +
-      '<label>Confirmez le mot de passe<input name="confirm" type="password" autocomplete="new-password" minlength="12" required></label>' +
-      '<p class="small muted">Au moins 12 caractères, avec au moins une lettre et un chiffre.</p>' +
+      '<input type="hidden" name="login" autocomplete="username" value="' + esc(i.username) + '">' +
+      '<label>Mot de passe<input name="password" type="password" autocomplete="new-password" minlength="9" required></label>' +
+      '<label>Confirmez le mot de passe<input name="confirm" type="password" autocomplete="new-password" minlength="9" required></label>' +
+      '<p class="small muted">Au moins 9 caractères, avec au moins une lettre et un chiffre (par exemple 8 chiffres et 1 lettre).</p>' +
       '<button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Continuer</button>' +
       '</form></div></div>';
   }
@@ -191,25 +192,26 @@
     var rows;
     if (!S.team) rows = '<div class="empty">Chargement…</div>';
     else {
-      rows = '<table><thead><tr><th>Nom</th><th>E-mail</th><th>Rôle</th><th>Statut</th><th>Dernière connexion</th><th></th></tr></thead><tbody>' +
+      rows = '<table><thead><tr><th>Nom</th><th>Identifiant</th><th>E-mail</th><th>Rôle</th><th>Statut</th><th>Dernière connexion</th><th></th></tr></thead><tbody>' +
         S.team.map(function (u) {
           var self = u.id === S.user.id;
           var actions = self ? '<span class="small muted">Vous</span>' :
             '<button class="btn small secondary" data-a="reset" data-id="' + esc(u.id) + '">' + (u.activated ? 'Réinitialiser l’accès' : 'Nouveau lien') + '</button>' +
             (u.active ? '<button class="btn small danger" data-a="disable" data-id="' + esc(u.id) + '">Désactiver</button>'
               : '<button class="btn small secondary" data-a="enable" data-id="' + esc(u.id) + '">Réactiver</button>');
-          return '<tr><td><b>' + esc(u.name) + '</b></td><td>' + esc(u.email) + '</td><td>' +
+          return '<tr><td><b>' + esc(u.name) + '</b></td><td class="mono">' + esc(u.username || '—') + '</td><td>' + esc(u.email) + '</td><td>' +
             (u.role === 'super_admin' ? '<span class="tag super">Super admin</span>' : 'Admin') + '</td><td>' + statusTag(u) +
             '</td><td class="small">' + esc(fmtDate(u.lastLoginAt)) + '</td><td class="actions">' + actions + '</td></tr>';
         }).join('') + '</tbody></table>';
     }
     var link = S.lastLink ? '<div class="card"><h2>Lien d’activation pour ' + esc(S.lastLink.name) + '</h2>' +
-      '<p class="small">Envoyez ce lien à la personne, par exemple par e-mail. Il est valable 72 heures et ne sert qu’une fois. Il ne sera plus affiché ensuite.</p>' +
+      '<p class="small">Envoyez ce lien à la personne, par exemple par e-mail, avec son identifiant <b class="mono">' + esc(S.lastLink.username) + '</b>. Le lien est valable 72 heures et ne sert qu’une fois. Il ne sera plus affiché ensuite.</p>' +
       '<div class="linkbox"><input readonly value="' + esc(S.lastLink.url) + '" aria-label="Lien d’activation"><button class="btn secondary" data-a="copy-link">Copier</button></div></div>' : '';
     return '<div class="head"><div><h1>Équipe</h1><p class="muted">Chaque personne a son propre compte : le journal d’activité indique qui a fait quoi.</p></div></div>' + link +
       '<div class="card"><h2>Ajouter un compte</h2><form data-form="team-add" class="grid-form" novalidate>' +
       '<label>Nom<input name="name" required placeholder="Ex. Équipe communication"></label>' +
-      '<label>E-mail<input name="email" type="email" required placeholder="prenom@openmedias.fr"></label>' +
+      '<label>E-mail<input name="email" type="email" required placeholder="thomas.d@openmedias.fr"></label>' +
+      '<label>Identifiant <span class="muted">(facultatif)</span><input name="username" autocapitalize="none" spellcheck="false" placeholder="par défaut : avant le @"></label>' +
       '<label>Rôle<select name="role"><option value="admin">Admin</option><option value="super_admin">Super admin</option></select></label>' +
       '<button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Créer le compte</button></form>' +
       (S.error ? '<div class="mt">' + errorBox() + '</div>' : '') + '</div>' +
@@ -234,6 +236,7 @@
 
   function describe(e) {
     var d = e.detail || {};
+    if (d.identifiant && !d.email) return d.identifiant + (d.motif ? ' — ' + d.motif : '');
     if (d.email) return d.email + (d.role ? ' (' + (d.role === 'super_admin' ? 'super admin' : 'admin') + ')' : '') + (d.motif ? ' — ' + d.motif : '');
     if (d.name) return d.name;
     if (d.title) return d.title;
@@ -322,7 +325,7 @@
 
   var FORMS = {
     login: function (f) {
-      return api('POST', '/admin/auth/login', { email: f.email.value, password: f.password.value }, '-')
+      return api('POST', '/admin/auth/login', { username: f.username.value, password: f.password.value }, '-')
         .then(function (d) { S.pendingToken = d.token; S.view = 'code'; });
     },
     code: function (f) {
@@ -347,9 +350,9 @@
     },
     'team-add': function (f) {
       var name = f.name.value.trim();
-      return api('POST', '/admin/team', { name: name, email: f.email.value, role: f.role.value })
+      return api('POST', '/admin/team', { name: name, email: f.email.value, username: f.username.value.trim() || undefined, role: f.role.value })
         .then(function (d) {
-          S.lastLink = { name: d.user.name, url: d.inviteLink };
+          S.lastLink = { name: d.user.name, username: d.user.username, url: d.inviteLink };
           f.reset();
           return api('GET', '/admin/team');
         })
@@ -372,7 +375,7 @@
       var u = (S.team || []).filter(function (x) { return x.id === id; })[0];
       if (!u || !window.confirm(confirmText.replace('{nom}', u.name))) return;
       withBusy(api('POST', '/admin/team/' + encodeURIComponent(id) + path).then(function (d) {
-        if (d.inviteLink) S.lastLink = { name: d.user.name, url: d.inviteLink };
+        if (d.inviteLink) S.lastLink = { name: d.user.name, username: d.user.username, url: d.inviteLink };
         if (after) toast(after.replace('{nom}', d.user.name));
         return api('GET', '/admin/team');
       }).then(function (d) { S.team = d.users; }));
@@ -417,7 +420,7 @@
     if (invite) {
       render();
       return api('GET', '/admin/auth/invite?token=' + encodeURIComponent(invite), null, '-')
-        .then(function (d) { S.invite = { token: invite, email: d.email, name: d.name, role: d.role }; S.view = 'invite'; render(); })
+        .then(function (d) { S.invite = { token: invite, email: d.email, username: d.username, name: d.name, role: d.role }; S.view = 'invite'; render(); })
         .catch(function (e) { S.view = 'error'; S.error = e.message; render(); });
     }
     if (!getToken()) { S.view = 'login'; return render(); }

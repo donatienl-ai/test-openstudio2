@@ -25,10 +25,11 @@ test('mot de passe : un hachage malformé est refusé sans planter', async () =>
   assert.equal(await verifyPassword(undefined, 'scrypt$1$1$1$a$b'), false);
 });
 
-test('mot de passe : règles minimales', () => {
-  assert.ok(passwordProblem('court1'));
+test('mot de passe : 9 caractères minimum, au moins une lettre et un chiffre', () => {
+  assert.ok(passwordProblem('1234567a'), '8 caractères : trop court');
   assert.ok(passwordProblem('seulementdeslettres'));
-  assert.ok(passwordProblem('123456789012'));
+  assert.ok(passwordProblem('123456789'), 'que des chiffres');
+  assert.equal(passwordProblem('12345678a'), null, '8 chiffres + 1 lettre');
   assert.equal(passwordProblem('Montage-BFM-2027'), null);
 });
 

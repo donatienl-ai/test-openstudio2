@@ -4,6 +4,7 @@ module.exports = `
 CREATE TABLE IF NOT EXISTS admin_users (
   id                   UUID PRIMARY KEY,
   email                TEXT NOT NULL UNIQUE,          -- toujours en minuscules
+  username             TEXT,                           -- identifiant de connexion (ex. thomas.d), index unique plus bas
   name                 TEXT NOT NULL,
   role                 TEXT NOT NULL CHECK (role IN ('super_admin', 'admin')),
   password_hash        TEXT,
@@ -20,6 +21,10 @@ CREATE TABLE IF NOT EXISTS admin_users (
   created_by           UUID,
   created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Bases créées avant l'identifiant de connexion
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS username TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS admin_users_username ON admin_users (username);
 
 CREATE TABLE IF NOT EXISTS admin_sessions (
   token_hash   TEXT PRIMARY KEY,                       -- jeton haché : la base ne contient aucun jeton utilisable

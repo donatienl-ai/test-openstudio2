@@ -9,7 +9,7 @@ const N = 16384;
 const R = 8;
 const P = 1;
 const KEYLEN = 64;
-const MIN_LENGTH = 12;
+const MIN_LENGTH = 9; // ex. 8 chiffres + 1 lettre ; la double authentification complète le mot de passe
 
 function scrypt(password, salt, n, r, p) {
   return new Promise((resolve, reject) => {

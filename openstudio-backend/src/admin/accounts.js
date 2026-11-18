@@ -27,6 +27,10 @@ class AdminError extends Error {
 const normalizeEmail = (e) => String(e || '').trim().toLowerCase();
 const isEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 const isUuid = (v) => /^[0-9a-f-]{36}$/i.test(String(v));
+const USERNAME_RE = /^[a-z0-9][a-z0-9._-]{1,39}$/;
+/** Identifiant de connexion : la partie avant @ de l'e-mail (thomas.d@openmedias.fr → thomas.d). */
+const usernameFromEmail = (mail) => normalizeEmail(mail).split('@')[0];
+const normalizeUsername = (u) => String(u || '').trim().toLowerCase();
 
 function newToken(prefix) {
   return `${prefix}${crypto.randomBytes(32).toString('base64url')}`;
@@ -40,6 +44,7 @@ function publicUser(u) {
   return {
     id: u.id,
     email: u.email,
+    username: u.username,
     name: u.name,
     role: u.role,
     active: u.active,
@@ -73,18 +78,23 @@ async function countSuperAdmins() {
 }
 
 /** Crée un compte en attente d'activation. Renvoie le compte et le jeton du lien d'invitation. */
-async function createUser({ email, name, role = 'admin', createdBy = null }) {
+async function createUser({ email, name, role = 'admin', createdBy = null, username = null }) {
   const mail = normalizeEmail(email);
   if (!isEmail(mail)) throw new AdminError('Adresse e-mail invalide.');
+  const login = normalizeUsername(username) || usernameFromEmail(mail);
+  if (!USERNAME_RE.test(login)) {
+    throw new AdminError("Identifiant invalide : lettres, chiffres, point, tiret ou tiret bas (2 à 40 caractères).");
+  }
   if (!String(name || '').trim()) throw new AdminError('Nom du compte requis.');
   if (!ROLES.includes(role)) throw new AdminError('Rôle inconnu.');
-  const existing = await db.query('SELECT id FROM admin_users WHERE email = $1', [mail]);
-  if (existing.rows.length) throw new AdminError('Un compte existe déjà avec cette adresse.', 409);
+  const existing = await db.query('SELECT email, username FROM admin_users WHERE email = $1 OR username = $2', [mail, login]);
+  if (existing.rows.some((r) => r.email === mail)) throw new AdminError('Un compte existe déjà avec cette adresse.', 409);
+  if (existing.rows.length) throw new AdminError(`L'identifiant « ${login} » est déjà pris : choisissez-en un autre.`, 409);
   const token = newToken('osi_');
   const { rows } = await db.query(
-    `INSERT INTO admin_users (id, email, name, role, invite_hash, invite_expires_at, created_by)
-     VALUES ($1, $2, $3, $4, $5, now() + make_interval(hours => $6), $7) RETURNING *`,
-    [crypto.randomUUID(), mail, String(name).trim(), role, hashToken(token), config.admin.inviteHours, createdBy]
+    `INSERT INTO admin_users (id, email, username, name, role, invite_hash, invite_expires_at, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6, now() + make_interval(hours => $7), $8) RETURNING *`,
+    [crypto.randomUUID(), mail, login, String(name).trim(), role, hashToken(token), config.admin.inviteHours, createdBy]
   );
   return { user: rows[0], inviteToken: token };
 }
@@ -159,24 +169,27 @@ async function finishActivation(user, code) {
 /* ------------------------------------------------------------------ Connexion */
 
 /**
- * Étape 1 de la connexion : e-mail + mot de passe.
- * Message volontairement identique pour un e-mail inconnu et un mauvais mot de passe.
+ * Étape 1 de la connexion : identifiant (ex. thomas.d) ou e-mail complet, + mot de passe.
+ * Message volontairement identique pour un identifiant inconnu et un mauvais mot de passe.
  */
-async function checkPassword(email, password) {
-  const mail = normalizeEmail(email);
-  const { rows } = await db.query('SELECT * FROM admin_users WHERE email = $1', [mail]);
+async function checkPassword(identifier, password) {
+  const id = normalizeUsername(identifier);
+  const { rows } = await db.query(
+    id.includes('@') ? 'SELECT * FROM admin_users WHERE email = $1' : 'SELECT * FROM admin_users WHERE username = $1',
+    [id]
+  );
   const user = rows[0];
   if (!user || !user.active || !user.activated_at || !user.password_hash) {
     // Même durée de calcul qu'un vrai essai, pour ne pas révéler si le compte existe.
     await verifyPassword(String(password || ''), 'scrypt$16384$8$1$AAAAAAAAAAAAAAAAAAAAAA==$AAAA');
-    throw new AdminError('E-mail ou mot de passe incorrect.', 401);
+    throw new AdminError('Identifiant ou mot de passe incorrect.', 401);
   }
   if (user.locked_until && new Date(user.locked_until) > new Date()) {
     throw new AdminError(`Compte bloqué après ${MAX_FAILED_LOGINS} essais. Réessayez dans ${LOCK_MINUTES} minutes.`, 423);
   }
   if (!(await verifyPassword(String(password || ''), user.password_hash))) {
     await registerFailure(user.id);
-    throw new AdminError('E-mail ou mot de passe incorrect.', 401);
+    throw new AdminError('Identifiant ou mot de passe incorrect.', 401);
   }
   return user;
 }
@@ -264,6 +277,10 @@ async function ensureBootstrap({ email, name }) {
   if (!mail) return null;
   const { rows } = await db.query('SELECT * FROM admin_users WHERE email = $1', [mail]);
   const existing = rows[0];
+  if (existing && !existing.username) {
+    // Compte créé avant l'identifiant de connexion
+    await db.query('UPDATE admin_users SET username = $2 WHERE id = $1 AND username IS NULL', [existing.id, usernameFromEmail(mail)]);
+  }
   if (!existing) {
     if ((await countSuperAdmins()) > 0) return null;
     const { inviteToken } = await createUser({ email: mail, name: name || mail, role: 'super_admin' });
@@ -300,4 +317,6 @@ module.exports = {
   ensureBootstrap,
   hashToken,
   normalizeEmail,
+  normalizeUsername,
+  usernameFromEmail,
 };

@@ -36,8 +36,9 @@ Si l'adresse du serveur change, modifier `config.js` **et** `connect-src` dans l
 ## Comptes et sécurité
 
 - Deux rôles : **super admin** (tout, plus la gestion des comptes de l'équipe et le journal d'activité) et **admin**.
-- Un compte est créé par le super admin, qui transmet le lien d'activation (valable 72 h, utilisable une fois). La personne choisit son mot de passe (12 caractères minimum, avec une lettre et un chiffre), puis configure la double authentification dans une application comme Google Authenticator.
-- Connexion en deux temps : e-mail et mot de passe, puis code à 6 chiffres. Un code ne sert qu'une fois.
+- Un compte est créé par le super admin, qui transmet le lien d'activation (valable 72 h, utilisable une fois). La personne choisit son mot de passe (9 caractères minimum, avec au moins une lettre et un chiffre, par exemple 8 chiffres et 1 lettre), puis configure la double authentification dans une application comme Google Authenticator.
+- Identifiant de connexion : la partie avant le @ de l'e-mail (`thomas.d@openmedias.fr` → `thomas.d`), modifiable à la création du compte. L'e-mail complet est aussi accepté.
+- Connexion en deux temps : identifiant et mot de passe, puis code à 6 chiffres. Un code ne sert qu'une fois.
 - Après 5 échecs, le compte est bloqué 15 minutes. Chaque adresse IP est limitée à 20 tentatives par quart d'heure.
 - Mot de passe oublié ou téléphone perdu : le super admin clique sur « Réinitialiser l'accès » et transmet le nouveau lien. L'ancien accès est coupé immédiatement.
 - La base ne contient ni jeton utilisable (les jetons sont hachés) ni secret de double authentification en clair (il est chiffré).

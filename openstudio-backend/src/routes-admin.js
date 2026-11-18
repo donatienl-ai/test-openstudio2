@@ -28,16 +28,17 @@ function sendError(res, e) {
 
 /* ------------------------------------------------------------------ Connexion */
 
-/** Étape 1 : e-mail + mot de passe → jeton provisoire, valable 5 minutes, pour saisir le code. */
+/** Étape 1 : identifiant (ou e-mail) + mot de passe → jeton provisoire, valable 5 minutes, pour saisir le code. */
 router.post('/admin/auth/login', throttle, json, wrap(async (req, res) => {
-  const { email, password } = req.body || {};
+  const { username, email, password } = req.body || {};
+  const identifier = username || email;
   let user;
   try {
-    user = await accounts.checkPassword(email, password);
+    user = await accounts.checkPassword(identifier, password);
   } catch (e) {
     if (e instanceof accounts.AdminError) {
       await audit.record({ ip: req.ip, auditActorLabel: 'non connecté' }, 'connexion_refusee', {
-        detail: { email: accounts.normalizeEmail(email), motif: e.message },
+        detail: { identifiant: accounts.normalizeUsername(identifier).slice(0, 80), motif: e.message },
       });
     }
     return sendError(res, e);
@@ -85,7 +86,7 @@ router.get('/admin/auth/me', requireTeam, (req, res) => {
 router.get('/admin/auth/invite', throttle, wrap(async (req, res) => {
   const user = await accounts.findByInvite(String(req.query.token || ''));
   if (!user) return res.status(404).json({ error: 'Lien d’activation invalide ou expiré. Demandez-en un nouveau.' });
-  res.json({ email: user.email, name: user.name, role: user.role });
+  res.json({ email: user.email, username: user.username, name: user.name, role: user.role });
 }));
 
 /** Étape 1 : choix du mot de passe → clé à saisir dans l'application d'authentification. */
@@ -125,15 +126,16 @@ router.get('/admin/team', requireSuperAdmin, wrap(async (req, res) => {
 }));
 
 router.post('/admin/team', requireSuperAdmin, json, wrap(async (req, res) => {
-  const { email, name, role } = req.body || {};
+  const { email, name, role, username } = req.body || {};
   let created;
   try {
-    created = await accounts.createUser({ email, name, role: role || 'admin', createdBy: req.adminUser.id });
+    created = await accounts.createUser({ email, name, username, role: role || 'admin', createdBy: req.adminUser.id });
   } catch (e) {
     return sendError(res, e);
   }
   await audit.record(req, 'compte_cree', {
-    targetType: 'admin_user', targetId: created.user.id, detail: { email: created.user.email, role: created.user.role },
+    targetType: 'admin_user', targetId: created.user.id,
+    detail: { email: created.user.email, identifiant: created.user.username, role: created.user.role },
   });
   res.status(201).json({ user: accounts.publicUser(created.user), inviteLink: accounts.inviteLink(created.inviteToken) });
 }));

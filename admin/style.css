@@ -90,7 +90,7 @@ td.actions .btn + .btn { margin-left: 6px; }
 .tag.off { background: #eceff3; color: var(--muted); }
 .tag.super { background: var(--blue-soft); color: var(--blue); }
 
-.grid-form { display: grid; grid-template-columns: 1fr 1fr 180px auto; gap: 12px; align-items: end; }
+.grid-form { display: grid; grid-template-columns: 1fr 1.2fr 1fr 150px auto; gap: 12px; align-items: end; }
 .linkbox { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
 .linkbox input { flex: 1; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
 
