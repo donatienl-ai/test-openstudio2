@@ -43,16 +43,16 @@ Toutes ces requêtes portent l'en-tête `Authorization: Bearer <ADMIN_TOKEN>`.
 API=https://openstudio-backend.onrender.com
 AUTH="Authorization: Bearer $ADMIN_TOKEN"
 
-# 1. Créer le client → renvoie client.id et clientToken
+# 1. Créer le client (ou depuis le back-office, rubrique Clients) → renvoie client.id
 curl -X POST $API/api/admin/clients -H "$AUTH" -H 'Content-Type: application/json' \
-  -d '{"name":"Ecoval Industries","company":"Ecoval Industries","logoKey":"clients/ecoval/logo.png"}'
+  -d '{"name":"Ecoval Industries","company":"Ecoval Industries","email":"contact@ecoval.fr","broadcastDate":"2027-01-12"}'
 
 # 2. Ajouter les vidéos de son package (fichiers déjà déposés dans le stockage)
 curl -X POST $API/api/admin/clients/<CLIENT_ID>/videos -H "$AUTH" -H 'Content-Type: application/json' \
   -d '{"programmeId":"bfm-business","title":"Vision d’entreprises — 12 mars","sourceKey":"clients/ecoval/bfm-business.mp4","broadcastDate":"2026-03-12"}'
 
-# 3. Lien à envoyer au client
-#    https://VOTRE-SITE/?client=<CLIENT_ID>&clientToken=<CLIENT_TOKEN>
+# 3. Lien d'accès : envoyé automatiquement par e-mail le jour de la diffusion (voir admin/README.md),
+#    ou créé à la main depuis la fiche client du back-office.
 ```
 
 Programmes disponibles (logos, langue) : `programmes` dans `src/opusclip.config.js`

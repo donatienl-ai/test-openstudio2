@@ -28,6 +28,24 @@ p { margin: 0 0 12px; }
 a { color: var(--blue); }
 .muted { color: var(--muted); }
 .mt { margin-top: 12px; }
+.mb { margin-bottom: 16px; }
+.nowrap { white-space: nowrap; }
+.warn { background: var(--amber-soft); color: #5c3d00; padding: 12px; border-radius: var(--radius); font-size: 14px; }
+textarea { font: inherit; padding: 10px 12px; border: 1px solid #c9d0db; border-radius: var(--radius); resize: vertical; color: var(--ink); }
+textarea:focus { outline: 2px solid var(--blue); outline-offset: 1px; border-color: var(--blue); }
+a.btn { text-decoration: none; display: inline-block; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btns.left { justify-content: flex-start; margin-top: 4px; }
+.filters { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; grid-template-columns: none; }
+.filters input { flex: 1; min-width: 220px; }
+.form-2 { grid-template-columns: 1fr 1fr; }
+.form-2 .wide { grid-column: 1 / -1; }
+.cols { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; align-items: start; }
+.card.flush { padding: 4px 8px; }
+table.rows tbody tr { cursor: pointer; }
+table.rows tbody tr:hover { background: #f8f9fc; }
+td a { text-decoration: none; color: inherit; }
+th.num, td.num { text-align: right; }
 .small { font-size: 13px; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
@@ -89,6 +107,8 @@ td.actions .btn + .btn { margin-left: 6px; }
 .tag.wait { background: var(--amber-soft); color: var(--amber); }
 .tag.off { background: #eceff3; color: var(--muted); }
 .tag.super { background: var(--blue-soft); color: var(--blue); }
+.tag.info { background: var(--blue-soft); color: var(--blue); }
+.tag.err { background: var(--red-soft); color: var(--red); }
 
 .grid-form { display: grid; grid-template-columns: 1fr 1.2fr 1fr 150px auto; gap: 12px; align-items: end; }
 .linkbox { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
@@ -102,6 +122,7 @@ td.actions .btn + .btn { margin-left: 6px; }
   .side .brand, .side .sep { display: none; }
   .side .me { margin-top: 0; margin-left: auto; }
   main { padding: 20px 16px; }
-  .grid-form { grid-template-columns: 1fr; }
+  .grid-form, .form-2, .cols { grid-template-columns: 1fr; }
+  .filters { flex-wrap: wrap; }
   td.actions { white-space: normal; }
 }

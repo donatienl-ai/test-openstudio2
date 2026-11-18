@@ -50,4 +50,23 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 CREATE INDEX IF NOT EXISTS audit_log_at ON audit_log (at DESC);
 CREATE INDEX IF NOT EXISTS audit_log_target ON audit_log (target_type, target_id);
+
+-- Lot 2 : fiche client et lien d'accès envoyé le jour de la diffusion
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS broadcast_date DATE;            -- date de diffusion de l'émission
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS package_label TEXT;             -- ex. « BFM Business + immersion »
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS notes TEXT;                     -- notes internes, jamais montrées au client
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_token_hash TEXT;         -- lien d'accès haché (le lien lui-même n'est pas conservé)
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_issued_at TIMESTAMPTZ;   -- dernier lien créé
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_issued_via TEXT;         -- 'email' ou 'manuel'
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_revoked_at TIMESTAMPTZ;  -- accès coupé par l'équipe
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_email_sent_at TIMESTAMPTZ;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_email_error TEXT;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_email_attempts INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_email_last_try_at TIMESTAMPTZ;
+ALTER TABLE clients ALTER COLUMN access_token DROP NOT NULL;
+-- Clients créés avant le lot 2 : leur lien actuel continue de fonctionner, désormais vérifié par son empreinte
+UPDATE clients SET access_token_hash = encode(sha256(convert_to(access_token, 'UTF8')), 'hex')
+  WHERE access_token_hash IS NULL AND access_token IS NOT NULL AND access_revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS clients_access_due ON clients (broadcast_date)
+  WHERE access_email_sent_at IS NULL AND access_revoked_at IS NULL;
 `;

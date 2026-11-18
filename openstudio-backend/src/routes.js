@@ -326,29 +326,7 @@ router.post('/webhooks/opusclip', express.raw({ type: '*/*', limit: '1mb' }), wr
 // Administration (équipe) — Authorization: Bearer <ADMIN_TOKEN>
 // ---------------------------------------------------------------------------
 
-/** Créer un client → renvoie son identifiant et son jeton d'espace. */
-router.post('/admin/clients', json, wrap(async (req, res) => {
-  if (!requireAdmin(req, res)) return;
-  const { name, company, email, logoKey } = req.body || {};
-  if (!name) return res.status(400).json({ error: 'Nom du client requis' });
-  const c = await clients.create({ name, company, email, logoKey });
-  await audit.record(req, 'client_cree', { targetType: 'client', targetId: c.id, detail: { name: c.name, company: c.company } });
-  res.status(201).json({ client: { id: c.id, name: c.name, company: c.company }, clientToken: c.access_token });
-}));
-
-router.get('/admin/clients', wrap(async (req, res) => {
-  if (!requireAdmin(req, res)) return;
-  res.json({ clients: await clients.list() });
-}));
-
-/** Mettre à jour un client (ex. logo de l'entreprise après upload via /api/uploads kind=logo). */
-router.post('/admin/clients/:id', json, wrap(async (req, res) => {
-  if (!requireAdmin(req, res)) return;
-  const c = await clients.update(req.params.id, req.body || {});
-  if (!c) return res.status(404).json({ error: 'Client introuvable' });
-  await audit.record(req, 'client_modifie', { targetType: 'client', targetId: c.id, detail: { champs: Object.keys(req.body || {}) } });
-  res.json({ client: { id: c.id, name: c.name, company: c.company, logoKey: c.logo_key } });
-}));
+// Création, liste et modification des clients : routes-admin-clients.js (back-office, lot 2)
 
 /** Ajouter une vidéo au package d'un client (vidéo déjà déposée dans le stockage). */
 router.post('/admin/clients/:id/videos', json, wrap(async (req, res) => {

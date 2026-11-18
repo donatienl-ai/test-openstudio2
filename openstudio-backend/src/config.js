@@ -15,6 +15,27 @@ const config = {
   publicBaseUrl: (process.env.PUBLIC_BASE_URL || 'http://localhost:3000').replace(/\/$/, ''),
   frontendOrigins: (process.env.FRONTEND_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean),
 
+  // Adresse de l'espace client, utilisée dans les liens d'accès envoyés aux clients
+  clientSiteUrl: (process.env.CLIENT_SITE_URL || (process.env.FRONTEND_ORIGIN || '').split(',')[0] || '').trim().replace(/\/$/, ''),
+
+  // E-mails (Mailjet) : mêmes réglages que l'ancien serveur server/
+  mail: {
+    apiKey: (process.env.MAILJET_API_KEY || '').trim(),
+    secretKey: (process.env.MAILJET_SECRET_KEY || '').trim(),
+    fromEmail: (process.env.MAILJET_FROM_EMAIL || 'communication@openmedias.fr').trim(),
+    fromName: (process.env.MAILJET_FROM_NAME || 'OpenMedias').trim(),
+    sandbox: process.env.MAILJET_SANDBOX === '1',
+    // Tests : tous les e-mails partent vers cette adresse. Obligatoire tant que MAIL_ALLOW_REAL_RECIPIENTS n'est pas à 1.
+    redirectTo: (process.env.MAIL_REDIRECT_TO || '').trim(),
+    allowRealRecipients: process.env.MAIL_ALLOW_REAL_RECIPIENTS === '1',
+    apiUrl: (process.env.MAILJET_API_URL || 'https://api.mailjet.com/v3.1/send').trim(),
+    // Modèle Mailjet du lien d'accès client (variables : nom, entreprise, lien, date_diffusion). Vide : texte simple.
+    templateClientAccess: num(process.env.MJ_TPL_CLIENT_ACCESS, 0),
+    // Envoi automatique du lien d'accès le jour de la diffusion, entre ces heures (heure de Paris)
+    accessSendFromHour: num(process.env.CLIENT_ACCESS_SEND_HOUR, 8),
+    accessSendUntilHour: 20,
+  },
+
   // Back-office de l'équipe (application séparée du site client)
   admin: {
     // Adresse du back-office, sans barre finale (ex. https://admin.openstudio.fr) : CORS et liens d'activation
