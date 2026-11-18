@@ -74,7 +74,7 @@ router.post('/webhooks/stripe', express.raw({ type: '*/*', limit: '1mb' }), wrap
   res.status(r.status).json({ received: r.status === 200 });
 }));
 
-/** Équipe : demandes reçues (Authorization: Bearer <ADMIN_TOKEN>), en attendant le back-office. */
+/** Équipe : demandes reçues (session du back-office, ou ADMIN_TOKEN pendant la transition). */
 router.get('/admin/montage-requests', wrap(async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'non autorisé' });
   res.json({ requests: await montage.listRequests() });
