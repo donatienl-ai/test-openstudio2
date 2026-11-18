@@ -147,6 +147,28 @@ async function startActivation(user, password) {
   return { secret, uri: totp.otpauthUri(secret, user.email) };
 }
 
+/** Activation sans double authentification (ADMIN_REQUIRE_2FA désactivé) : le mot de passe suffit. */
+async function activateWithPasswordOnly(user, password) {
+  const problem = passwordProblem(password);
+  if (problem) throw new AdminError(problem);
+  const { rows } = await db.query(
+    `UPDATE admin_users SET password_hash = $2, totp_pending_secret = NULL, activated_at = now(),
+       invite_hash = NULL, invite_expires_at = NULL, failed_logins = 0, locked_until = NULL, last_login_at = now()
+     WHERE id = $1 RETURNING *`,
+    [user.id, await hashPassword(password)]
+  );
+  return rows[0];
+}
+
+/** Connexion réussie sans code : remet à zéro le compteur d'échecs. */
+async function markLogin(userId) {
+  const { rows } = await db.query(
+    'UPDATE admin_users SET failed_logins = 0, locked_until = NULL, last_login_at = now() WHERE id = $1 RETURNING *',
+    [userId]
+  );
+  return rows[0];
+}
+
 /** Étape 2 : le premier code saisi prouve que l'application d'authentification est bien configurée. */
 async function finishActivation(user, code) {
   const fresh = await get(user.id);
@@ -309,6 +331,8 @@ module.exports = {
   findByInvite,
   startActivation,
   finishActivation,
+  activateWithPasswordOnly,
+  markLogin,
   checkPassword,
   checkSecondFactor,
   createSession,

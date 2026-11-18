@@ -9,6 +9,7 @@ const accounts = require('./admin/accounts');
 const audit = require('./admin/audit');
 const { AttemptLimiter } = require('./admin/limiter');
 const { requireTeam, requireSuperAdmin } = require('./admin/session');
+const config = require('./config');
 
 const router = express.Router();
 const json = express.json({ limit: '20kb' });
@@ -42,6 +43,14 @@ router.post('/admin/auth/login', throttle, json, wrap(async (req, res) => {
       });
     }
     return sendError(res, e);
+  }
+  if (!config.admin.require2fa) {
+    // Double authentification désactivée : le mot de passe ouvre directement la session
+    const logged = await accounts.markLogin(user.id);
+    const full = await accounts.createSession(user.id, 'full', req);
+    req.adminUser = logged;
+    await audit.record(req, 'connexion', { targetType: 'admin_user', targetId: user.id, detail: { email: user.email } });
+    return res.json({ token: full.token, expiresInSec: full.expiresInSec, user: accounts.publicUser(logged) });
   }
   const s = await accounts.createSession(user.id, 'pending_2fa', req);
   res.json({ step: 'code', token: s.token, expiresInSec: s.expiresInSec });
@@ -86,7 +95,7 @@ router.get('/admin/auth/me', requireTeam, (req, res) => {
 router.get('/admin/auth/invite', throttle, wrap(async (req, res) => {
   const user = await accounts.findByInvite(String(req.query.token || ''));
   if (!user) return res.status(404).json({ error: 'Lien d’activation invalide ou expiré. Demandez-en un nouveau.' });
-  res.json({ email: user.email, username: user.username, name: user.name, role: user.role });
+  res.json({ email: user.email, username: user.username, name: user.name, role: user.role, twoFactor: config.admin.require2fa });
 }));
 
 /** Étape 1 : choix du mot de passe → clé à saisir dans l'application d'authentification. */
@@ -94,6 +103,19 @@ router.post('/admin/auth/invite/start', throttle, json, wrap(async (req, res) =>
   const { token, password } = req.body || {};
   const user = await accounts.findByInvite(String(token || ''));
   if (!user) return res.status(404).json({ error: 'Lien d’activation invalide ou expiré. Demandez-en un nouveau.' });
+  if (!config.admin.require2fa) {
+    // Double authentification désactivée : le compte est activé dès le mot de passe choisi
+    let activated;
+    try {
+      activated = await accounts.activateWithPasswordOnly(user, password);
+    } catch (e) {
+      return sendError(res, e);
+    }
+    const s = await accounts.createSession(activated.id, 'full', req);
+    req.adminUser = activated;
+    await audit.record(req, 'compte_active', { targetType: 'admin_user', targetId: activated.id, detail: { email: activated.email } });
+    return res.json({ token: s.token, expiresInSec: s.expiresInSec, user: accounts.publicUser(activated) });
+  }
   try {
     const { secret, uri } = await accounts.startActivation(user, password);
     res.json({ secret, uri });

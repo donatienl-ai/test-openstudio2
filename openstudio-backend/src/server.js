@@ -63,6 +63,7 @@ async function main() {
     console.error('[back-office] ADMIN_ENCRYPTION_KEY absente ou trop courte (32 caractères minimum) : l\'activation des comptes de l\'équipe est impossible.');
   }
   if (!config.admin.origin) console.error('[back-office] ADMIN_ORIGIN vide : le back-office ne pourra pas appeler l\'API (CORS).');
+  if (!config.admin.require2fa) console.log('[back-office] Double authentification désactivée (ADMIN_REQUIRE_2FA) : connexion par identifiant et mot de passe.');
   if (config.admin.legacyToken) console.log('[back-office] ADMIN_TOKEN encore accepté (transition) : à retirer avant la mise en production.');
   const activationLink = await accounts.ensureBootstrap({ email: config.admin.bootstrapEmail, name: config.admin.bootstrapName });
   if (activationLink) {
