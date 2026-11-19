@@ -10,8 +10,9 @@ const clients = require('./clients');
 const mailer = require('./mailer');
 const audit = require('./admin/audit');
 const access = require('./admin/client-access');
+const credits = require('./credits/service');
 const importer = require('./admin/client-import');
-const { requireTeam } = require('./admin/session');
+const { requireTeam, requireSuperAdmin } = require('./admin/session');
 const mapping = require('./opusclip.config');
 const stripe = require('./montage/stripe');
 
@@ -100,6 +101,7 @@ router.post('/admin/clients', requireTeam, json, wrap(async (req, res) => {
   if (await emailTaken(fields.email)) return res.status(409).json({ error: 'Un client existe déjà avec cette adresse e-mail.' });
   const c = await clients.create(fields);
   await access.ensureCode(c.id);
+  await credits.grantIncluded(c.id, 'création du compte');
   await audit.record(req, 'client_cree', { targetType: 'client', targetId: c.id, detail: { name: c.name, company: c.company } });
   res.status(201).json({ client: await fresh(c.id) });
 }));
@@ -125,6 +127,7 @@ router.post('/admin/clients/import', requireTeam, bigJson, wrap(async (req, res)
     if (r.problems.length) continue;
     const c = await clients.create(r.client);
     await access.ensureCode(c.id);
+    await credits.grantIncluded(c.id, 'création du compte');
     created.push(c);
   }
   await audit.record(req, 'clients_importes', { detail: { crees: created.length, ignores: result.rejected } });
@@ -132,6 +135,15 @@ router.post('/admin/clients/import', requireTeam, bigJson, wrap(async (req, res)
 }));
 
 /* ------------------------------------------------------------------ Fiche client */
+
+// Paiements du client : montages sur mesure et recharges de crédits
+const PAY_ALL = `(SELECT id, 'montage' AS kind, offer_title, status, amount_ttc_cents, paid_at, created_at, stripe_session_id,
+           last_payment_error, payment_failed_at, payment_failures, client_id, contact->>'company' AS company
+    FROM montage_requests
+    UNION ALL
+    SELECT id, 'recharge', pack_label || ' (' || credits || ' crédits)', status, amount_ttc_cents, paid_at, created_at, stripe_session_id,
+           last_payment_error, payment_failed_at, payment_failures, client_id, NULL
+    FROM credit_purchases)`;
 
 router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
   let c = await clients.get(req.params.id);
@@ -148,9 +160,9 @@ router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
               (SELECT COUNT(*)::int FROM deliverables d WHERE d.order_id = o.id) AS files
        FROM orders o WHERE o.client_id = $1 ORDER BY o.created_at DESC LIMIT 100`, [c.id]),
     db.query(
-      `SELECT id, offer_title, status, amount_ttc_cents, paid_at, created_at, stripe_session_id IS NOT NULL AS has_invoice,
+      `SELECT id, kind, offer_title, status, amount_ttc_cents, paid_at, created_at, stripe_session_id IS NOT NULL AS has_invoice,
               last_payment_error, payment_failed_at, payment_failures
-       FROM montage_requests WHERE client_id = $1 ORDER BY created_at DESC LIMIT 100`, [c.id]),
+       FROM ${PAY_ALL} p WHERE client_id = $1 ORDER BY created_at DESC LIMIT 100`, [c.id]),
     db.query(
       `SELECT id, video_title, platforms, status, scheduled_at, created_at
        FROM publications WHERE client_id = $1 ORDER BY created_at DESC LIMIT 100`, [c.id]),
@@ -162,6 +174,7 @@ router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
     emails: emails.rows,
     contents: contents.rows.map((o) => ({ ...o, programme: o.programme_id ? programmeTitle(o.programme_id) : null })),
     payments: montage.rows,
+    credits: await credits.account(c.id, { historyLimit: 200 }),
     publications: publications.rows,
     videos: videos.map((v) => ({
       id: v.id,
@@ -210,12 +223,13 @@ router.get('/admin/dashboard', requireTeam, wrap(async (req, res) => {
               COALESCE(SUM(amount_ttc_cents) FILTER (WHERE status = 'paid' AND paid_at > now() - interval '30 days'), 0)::int AS paid_cents,
               COUNT(*) FILTER (WHERE status = 'awaiting_payment')::int AS awaiting,
               COUNT(*) FILTER (WHERE status = 'to_quote')::int AS to_quote,
-              COUNT(*) FILTER (WHERE status <> 'paid' AND payment_failed_at > now() - interval '30 days')::int AS failed
-       FROM montage_requests`),
+              COUNT(*) FILTER (WHERE status <> 'paid' AND payment_failed_at > now() - interval '30 days')::int AS failed,
+              COUNT(*) FILTER (WHERE kind = 'recharge' AND status = 'paid' AND paid_at > now() - interval '30 days')::int AS recharges
+       FROM ${PAY_ALL} p`),
     db.query(
-      `SELECT m.id, m.offer_title, m.last_payment_error, m.payment_failed_at, m.payment_failures, m.status,
-              m.contact->>'company' AS company, c.id AS client_id, c.name AS client_name
-       FROM montage_requests m LEFT JOIN clients c ON c.id = m.client_id
+      `SELECT m.id, m.kind, m.offer_title, m.last_payment_error, m.payment_failed_at, m.payment_failures, m.status,
+              m.company, c.id AS client_id, c.name AS client_name
+       FROM ${PAY_ALL} m LEFT JOIN clients c ON c.id = m.client_id
        WHERE m.status <> 'paid' AND m.payment_failed_at > now() - interval '30 days'
        ORDER BY m.payment_failed_at DESC LIMIT 20`),
     db.query("SELECT COUNT(*)::int AS n FROM montage_requests WHERE client_id IS NULL AND status = 'paid'"),
@@ -255,7 +269,7 @@ router.get('/admin/dashboard', requireTeam, wrap(async (req, res) => {
 /** Facture (ou reçu) d'un paiement du client, à ouvrir depuis la fiche. */
 router.get('/admin/clients/:id/payments/:paymentId/invoice', requireTeam, wrap(async (req, res) => {
   const { rows } = await db.query(
-    "SELECT stripe_session_id, status FROM montage_requests WHERE id::text = $1 AND client_id::text = $2",
+    `SELECT stripe_session_id, status FROM ${PAY_ALL} p WHERE id::text = $1 AND client_id::text = $2`,
     [req.params.paymentId, req.params.id]
   );
   const p = rows[0];
@@ -300,6 +314,35 @@ router.post('/admin/clients/:id/access/revoke', requireTeam, wrap(async (req, re
   if (!c) return res.status(404).json({ error: 'Client introuvable' });
   await audit.record(req, 'acces_coupe', { targetType: 'client', targetId: c.id });
   res.json({ client: await fresh(c.id) });
+}));
+
+/* ------------------------------------------------------------------ Crédits */
+
+router.post('/admin/clients/:id/credits/adjust', requireTeam, json, wrap(async (req, res) => {
+  const c = await clients.get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Client introuvable' });
+  const { credits: delta, reason } = req.body || {};
+  let row;
+  try {
+    row = await credits.adjust(c.id, Number(delta), reason, req.adminUser ? req.adminUser.name : 'équipe');
+  } catch (e) {
+    if (e instanceof credits.CreditError) return res.status(e.status).json({ error: e.message });
+    throw e;
+  }
+  await audit.record(req, 'credits_ajustes', { targetType: 'client', targetId: c.id, detail: { credits: Number(delta), motif: row.label, solde: row.balance_after } });
+  res.json({ credits: await credits.account(c.id, { historyLimit: 200 }) });
+}));
+
+router.get('/admin/credit-settings', requireTeam, wrap(async (req, res) => {
+  res.json({ settings: await credits.settings.get({ fresh: true }), defaults: credits.settings.DEFAULTS, vatRate: config.stripe.vatRate });
+}));
+
+router.post('/admin/credit-settings', requireSuperAdmin, json, wrap(async (req, res) => {
+  const before = await credits.settings.get({ fresh: true });
+  const r = await credits.settings.save(req.body || {}, req.adminUser ? req.adminUser.name : null);
+  if (r.error) return res.status(400).json({ error: r.error });
+  await audit.record(req, 'bareme_credits_modifie', { detail: { avant: before, apres: r.value } });
+  res.json({ settings: r.value });
 }));
 
 module.exports = router;

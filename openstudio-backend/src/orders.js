@@ -123,6 +123,16 @@ async function setStatus(id, status, fields = {}) {
   }
   await db.query(`UPDATE orders SET ${sets.join(', ')} WHERE id = $1`, params);
   await db.logEvent(id, status, fields.error ? { error: fields.error } : null);
+  if (status === 'error') await refundCredits(id);
+}
+
+/** Commande en échec : les crédits du client lui sont rendus (sans effet s'ils l'ont déjà été). */
+async function refundCredits(id) {
+  try {
+    await require('./credits/service').refundOrder(id);
+  } catch (e) {
+    console.error(`[order ${id}] remboursement des crédits impossible : ${e.message}`);
+  }
 }
 
 async function fail(id, message) {
@@ -148,7 +158,10 @@ async function recoverInterruptedFinalizations(maxRestarts = 3) {
      WHERE status = 'postprocessing' AND finalize_restarts + 1 >= $1 RETURNING id`,
     [maxRestarts]
   );
-  for (const r of stop) console.error(`[order ${r.id}] ERREUR : finalisation abandonnée après ${maxRestarts} redémarrages`);
+  for (const r of stop) {
+    console.error(`[order ${r.id}] ERREUR : finalisation abandonnée après ${maxRestarts} redémarrages`);
+    await refundCredits(r.id);
+  }
   const { rowCount } = await db.query(
     `UPDATE orders SET status = 'opus_done', finalize_restarts = finalize_restarts + 1, updated_at = now()
      WHERE status = 'postprocessing'`

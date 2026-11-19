@@ -162,3 +162,19 @@ a.tile:hover { border-color: #c9d0db; }
 .codebox { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding: 12px 14px; background: var(--bg); border: 1px dashed #c9d0db; border-radius: var(--radius); }
 .access-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 22px; letter-spacing: 0.08em; }
 .codebox.off .access-code { color: var(--muted); text-decoration: line-through; }
+.credit-sum { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+.credit-sum > div { display: flex; flex-direction: column; gap: 4px; }
+.credit-sum b { font-size: 20px; }
+.credit-sum .credit-bal { font-size: 30px; line-height: 1.1; }
+.err-text { color: var(--red); }
+td.num, th.num { text-align: right; }
+td.pos { color: #127A45; font-weight: 600; }
+td.neg { font-weight: 600; }
+.form-inline { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.form-inline label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; }
+.form-inline label.grow { flex: 1 1 280px; }
+.form-inline input { min-width: 120px; }
+table.edit input { width: 100%; box-sizing: border-box; }
+label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 400; white-space: nowrap; }
+div.form-2 { display: grid; gap: 14px 20px; align-items: end; }
+div.form-2 label { display: flex; flex-direction: column; gap: 6px; }

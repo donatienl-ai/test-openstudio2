@@ -123,4 +123,55 @@ CREATE TABLE IF NOT EXISTS client_sessions (
   user_agent    TEXT
 );
 CREATE INDEX IF NOT EXISTS client_sessions_client ON client_sessions (client_id);
+
+-- Crédits clients : le solde (clients.credit_balance) ne bouge qu'avec une ligne du registre, dans la même requête
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS credit_balance INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS credits_expire_at TIMESTAMPTZ;   -- vide : diffusion + 30 jours
+CREATE TABLE IF NOT EXISTS client_credit_ledger (
+  id             BIGSERIAL PRIMARY KEY,
+  client_id      UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  kind           TEXT NOT NULL,   -- inclus | recharge | debit | remboursement | expiration | ajustement
+  credits        INTEGER NOT NULL,
+  balance_after  INTEGER NOT NULL,
+  label          TEXT,
+  order_id       UUID,
+  purchase_id    UUID,
+  actor          TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS client_credit_ledger_client ON client_credit_ledger (client_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS client_credit_ledger_inclus ON client_credit_ledger (client_id) WHERE kind = 'inclus';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS credits_cost INTEGER;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS credits_charged INTEGER NOT NULL DEFAULT 0;
+-- Recharges de crédits payées par carte (Stripe Checkout)
+CREATE TABLE IF NOT EXISTS credit_purchases (
+  id                    UUID PRIMARY KEY,
+  client_id             UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  pack_id               TEXT NOT NULL,
+  pack_label            TEXT NOT NULL,
+  credits               INTEGER NOT NULL,
+  amount_ht_cents       INTEGER NOT NULL,
+  amount_ttc_cents      INTEGER NOT NULL,
+  status                TEXT NOT NULL,   -- awaiting_payment | paid | cancelled
+  stripe_session_id     TEXT,
+  stripe_payment_intent TEXT,
+  last_payment_error    TEXT,
+  payment_failed_at     TIMESTAMPTZ,
+  payment_failures      INTEGER NOT NULL DEFAULT 0,
+  return_base           TEXT,
+  paid_at               TIMESTAMPTZ,
+  credited_at           TIMESTAMPTZ,
+  email_sent_at         TIMESTAMPTZ,
+  email_error           TEXT,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS credit_purchases_client ON credit_purchases (client_id, created_at DESC);
+-- Réglages modifiables depuis le back-office (barème des crédits, packs de recharge)
+CREATE TABLE IF NOT EXISTS app_settings (
+  key         TEXT PRIMARY KEY,
+  value       JSONB NOT NULL,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_by  TEXT
+);
 `;

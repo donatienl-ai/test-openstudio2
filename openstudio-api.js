@@ -73,6 +73,7 @@
     if (!res.ok) {
       const err = new Error(data.error || `Erreur ${res.status}`);
       err.status = res.status;
+      err.data = data;
       throw err;
     }
     return data;
@@ -118,7 +119,8 @@
     rememberOrder(id, token, type);
     let order = (await call('POST', `/api/orders/${id}/validate`, { token })).order;
     if (opts.simulatePayment !== false) {
-      order = (await call('POST', `/api/orders/${id}/pay/simulate`, { token })).order;
+      // Commandes de l'espace client : crédits débités au lancement (402 si le solde ne suffit pas)
+      order = (await call('POST', `/api/orders/${id}/pay/credits`, { token })).order;
     }
     return { order, token, link: orderLink(id, token) };
   }
@@ -138,6 +140,13 @@
   const getCatalog = () => call('GET', '/api/catalog');
   /** Client connecté + vidéos de son package (étape 1 « Vidéo » des capsules). */
   const getMyVideos = () => call('GET', '/api/me');
+  // Crédits : solde, recharges (paiement par carte), factures des recharges
+  const credits = {
+    get: () => call('GET', '/api/me/credits'),
+    buy: (packId) => call('POST', '/api/me/credits/purchases', { body: { packId } }),
+    purchase: (id) => call('GET', `/api/me/credits/purchases/${encodeURIComponent(id)}`),
+    invoice: (id) => call('GET', `/api/me/credits/purchases/${encodeURIComponent(id)}/invoice`),
+  };
   /** Réponse du client sur les campagnes marketing (true : accepte, false : refuse). */
   const setMarketing = (optin) => call('POST', '/api/me/marketing', { body: { optin: Boolean(optin) } });
   /** Adresse de lecture d'une vidéo du package (valable 1 heure). */
@@ -219,6 +228,7 @@
     zipUrl,
     getCatalog,
     getMyVideos,
+    credits,
     setMarketing,
     loginWithCode,
     videoStreamUrl,

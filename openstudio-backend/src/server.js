@@ -6,6 +6,7 @@ const worker = require('./worker');
 const routes = require('./routes');
 const socialRoutes = require('./routes-social');
 const montageRoutes = require('./routes-montage');
+const creditRoutes = require('./routes-credits');
 const adminRoutes = require('./routes-admin');
 const adminClientRoutes = require('./routes-admin-clients');
 const clientAccess = require('./admin/client-access');
@@ -40,6 +41,7 @@ app.use('/api', adminRoutes);
 app.use('/api', adminClientRoutes);
 app.use('/api', socialRoutes);
 app.use('/api', montageRoutes);
+app.use('/api', creditRoutes);
 app.use('/api', routes);
 
 app.use((req, res) => res.status(404).json({ error: 'Route inconnue' }));
@@ -75,6 +77,14 @@ async function main() {
   // Codes de connexion : chaque client a le sien, toujours le même
   clientAccess.ensureAllCodes().then((n) => { if (n) console.log(`[accès client] ${n} code(s) de connexion créé(s)`); })
     .catch((e) => console.error('[accès client] codes', e.message));
+  // Crédits : offerts aux comptes qui ne les ont pas encore, puis échéances vérifiées toutes les heures
+  const credits = require('./credits/service');
+  credits.grantIncludedToAll().then((n) => { if (n) console.log(`[crédits] crédits offerts attribués à ${n} client(s)`); })
+    .catch((e) => console.error('[crédits] attribution', e.message));
+  const runExpiry = () => credits.expireAll().then((n) => { if (n) console.log(`[crédits] ${n} solde(s) arrivé(s) à échéance`); })
+    .catch((e) => console.error('[crédits] échéances', e.message));
+  setTimeout(runExpiry, 20000).unref();
+  setInterval(runExpiry, 60 * 60 * 1000).unref();
   // Codes d'accès des clients : envoyés le jour de la diffusion (vérification toutes les 10 minutes)
   if (!config.clientSiteUrl) console.error('[accès client] CLIENT_SITE_URL et FRONTEND_ORIGIN vides : impossible de créer les liens d\'accès des clients.');
   const mailProblem = require('./mailer').problem();

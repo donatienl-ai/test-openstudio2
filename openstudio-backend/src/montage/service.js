@@ -106,6 +106,9 @@ async function handleStripeWebhook(rawBody, signatureHeader) {
   const r = await db.query('INSERT INTO stripe_events (id) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id', [String(event.id)]);
   if (!r.rowCount) return { status: 200, duplicate: true };
   const s = event.data && event.data.object;
+  // Recharge de crédits : traitée par le module crédits
+  const purchaseId = s && s.metadata && s.metadata.credit_purchase_id;
+  if (purchaseId) return require('../credits/service').handleStripeEvent(event, purchaseId);
   const requestId = s && ((s.metadata && s.metadata.montage_request_id) || s.client_reference_id);
   if (!requestId) return { status: 200, ignored: true };
   if (event.type === 'checkout.session.completed' && s.payment_status === 'paid') await markPaid(requestId, s.payment_intent || null);

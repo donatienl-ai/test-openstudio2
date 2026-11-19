@@ -31,6 +31,7 @@ const config = {
     apiUrl: (process.env.MAILJET_API_URL || 'https://api.mailjet.com/v3.1/send').trim(),
     // Modèle Mailjet du lien d'accès client (variables : nom, entreprise, lien, date_diffusion). Vide : texte simple.
     templateClientAccess: num(process.env.MJ_TPL_CLIENT_ACCESS, 0),
+    templateCreditsRecharge: num(process.env.MJ_TPL_CREDITS_RECHARGE, 0),
     // Envoi automatique du lien d'accès le jour de la diffusion, entre ces heures (heure de Paris)
     accessSendFromHour: num(process.env.CLIENT_ACCESS_SEND_HOUR, 8),
     accessSendUntilHour: 20,

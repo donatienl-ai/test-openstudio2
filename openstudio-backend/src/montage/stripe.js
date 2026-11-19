@@ -35,10 +35,11 @@ async function stripeRequest(method, path, body, { fetchImpl = fetch } = {}) {
 }
 
 /**
- * @param {{ requestId, title, description, amountTtcCents, email, successUrl, cancelUrl }} p
+ * @param {{ requestId, title, description, amountTtcCents, email, successUrl, cancelUrl, metadata? }} p
  * @returns {Promise<{ id: string, url: string }>}
  */
 async function createCheckoutSession(p) {
+  const metadata = p.metadata || { montage_request_id: p.requestId };
   const s = await stripeRequest('POST', '/checkout/sessions', {
     mode: 'payment',
     client_reference_id: p.requestId,
@@ -46,13 +47,13 @@ async function createCheckoutSession(p) {
     locale: 'fr',
     success_url: p.successUrl,
     cancel_url: p.cancelUrl,
-    metadata: { montage_request_id: p.requestId },
-    payment_intent_data: { metadata: { montage_request_id: p.requestId }, description: p.title },
+    metadata,
+    payment_intent_data: { metadata, description: p.title },
     // Facture Stripe générée après le paiement (numérotée, PDF) : affichée dans le back-office.
     // Les mentions légales (raison sociale, SIRET, TVA) se règlent dans Stripe → Paramètres → Factures.
     invoice_creation: {
       enabled: true,
-      invoice_data: { description: p.title, metadata: { montage_request_id: p.requestId } },
+      invoice_data: { description: p.title, metadata },
     },
     line_items: [{
       quantity: 1,
