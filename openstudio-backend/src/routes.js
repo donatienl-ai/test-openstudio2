@@ -19,6 +19,7 @@ const { validateSubtitleFile } = require('./media/subtitles');
 const { MockPaymentProvider } = require('./payment');
 const audit = require('./admin/audit');
 const { AttemptLimiter } = require('./admin/limiter');
+const credits = require('./credits/service');
 
 // Connexion par code : 10 essais par quart d'heure et par adresse IP
 const codeLimiter = new AttemptLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
@@ -89,6 +90,8 @@ function publicOrder(order, deliverablesCount = 0) {
     error: order.status === 'error' ? 'Un problème est survenu, notre équipe a été prévenue.' : null,
     createdAt: order.created_at,
     readyAt: order.ready_at,
+    creditsCost: order.credits_cost == null ? null : Number(order.credits_cost),
+    creditsCharged: Number(order.credits_charged || 0),
     deliverablesCount,
   };
 }
@@ -101,6 +104,7 @@ function publicVideo(v) {
     programmeId: v.programme_id,
     programme: programme ? programme.title : v.programme_id,
     broadcastDate: v.broadcast_date,
+    durationSec: v.duration_sec == null ? null : Number(v.duration_sec),
   };
 }
 
@@ -263,8 +267,8 @@ router.post('/orders/:id/validate', wrap(async (req, res) => {
   if (order.status !== 'draft') return res.json({ order: publicOrder(order) });
 
   let normalized;
+  const context = {};
   try {
-    const context = {};
     if (order.type === 'capsules' || (order.type === 'subtitles' && order.options?.videoId)) {
       context.video = await clients.getVideo(order.client_id, order.options?.videoId);
     }
@@ -290,17 +294,38 @@ router.post('/orders/:id/validate', wrap(async (req, res) => {
     throw e;
   }
   const updated = await orders.markValidated(order.id, normalized, normalized.mode || null);
-  res.json({ order: publicOrder(updated || (await orders.get(order.id))) });
+  // Coût en crédits fixé par le serveur au moment de la validation (jamais par le navigateur)
+  if (order.client_id) {
+    const cost = credits.costOf(order.type, normalized, { prices: (await credits.settings.get()).prices, durationSec: context.video ? context.video.duration_sec : null });
+    if (cost) await db.query('UPDATE orders SET credits_cost = $2 WHERE id = $1', [order.id, cost.credits]);
+  }
+  res.json({ order: publicOrder(await orders.get(order.id)) });
 }));
 
-/** Paiement simulé (environnement de test). */
-router.post('/orders/:id/pay/simulate', wrap(async (req, res) => {
+/**
+ * Lancement d'une commande de l'espace client : débit des crédits, puis traitement.
+ * Solde insuffisant : 402 avec { code: 'credits_insuffisants', needed, balance }.
+ */
+async function payOrder(req, res) {
   const order = await loadOrder(req, res);
   if (!order) return;
   if (order.status === 'draft') return res.status(409).json({ error: "La commande doit d'abord être validée" });
-  await payment.startPayment(order); // idempotent : sans effet si déjà payée
+  if (order.status === 'validated') {
+    if (order.client_id && Number(order.credits_cost) > 0) {
+      try {
+        await credits.chargeOrder(order, { actor: 'client' });
+      } catch (e) {
+        if (e instanceof credits.CreditError) return res.status(e.status).json({ error: e.message, code: e.code, needed: e.needed, balance: e.balance });
+        throw e;
+      }
+    }
+    await payment.startPayment(order); // idempotent : sans effet si déjà payée
+  }
   res.json({ order: publicOrder(await orders.get(order.id)) });
-}));
+}
+router.post('/orders/:id/pay/credits', wrap(payOrder));
+/** Ancien nom (paiement simulé) : les commandes de l'espace client y sont aussi débitées en crédits. */
+router.post('/orders/:id/pay/simulate', wrap(payOrder));
 
 router.get('/orders/:id', wrap(async (req, res) => {
   const order = await loadOrder(req, res);
@@ -490,6 +515,15 @@ router.post('/admin/orders/:id/retry', wrap(async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const order = await orders.get(req.params.id);
   if (!order || order.status !== 'error') return res.status(409).json({ error: 'Seules les commandes en erreur peuvent être relancées' });
+  // Les crédits rendus lors de l'échec sont débités à nouveau
+  if (order.client_id && Number(order.credits_cost) > 0 && !Number(order.credits_charged)) {
+    try {
+      await credits.chargeOrder(order, { actor: 'équipe (relance)' });
+    } catch (e) {
+      if (e instanceof credits.CreditError) return res.status(409).json({ error: `Relance impossible : ${e.message} Ajoutez des crédits au client (fiche client) puis relancez.` });
+      throw e;
+    }
+  }
   const next = order.opus_project_id || order.options?.mode === 'client_file' ? 'opus_done' : 'paid';
   await orders.setStatus(order.id, next, { error: null });
   await audit.record(req, 'commande_relancee', { targetType: 'order', targetId: order.id, detail: { erreur: order.error } });

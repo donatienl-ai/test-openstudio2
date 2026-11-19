@@ -38,6 +38,7 @@ Si l'adresse du serveur change, modifier `config.js` **et** `connect-src` dans l
 | `MAIL_REDIRECT_TO` | **Tests** : tous les e-mails partent vers cette adresse au lieu des clients. |
 | `MAIL_ALLOW_REAL_RECIPIENTS` | `1` pour envoyer réellement aux clients (au lancement). Sans cette valeur ni `MAIL_REDIRECT_TO`, rien ne part. |
 | `MJ_TPL_CLIENT_ACCESS` | Identifiant du modèle Mailjet du lien d'accès (variables `nom`, `entreprise`, `lien`, `date_diffusion`). Vide : e-mail texte simple. |
+| `MJ_TPL_CREDITS_RECHARGE` | Identifiant du modèle Mailjet de la confirmation de recharge (variables `nom`, `entreprise`, `pack`, `credits`, `montant_ttc`, `solde`, `valable_jusqu_au`, `lien`). Vide : e-mail texte simple. |
 | `ADMIN_TOKEN` | Ancien jeton technique, encore accepté pendant la transition (droits admin, pas super admin). **À supprimer avant la mise en production.** |
 
 ## Comptes et sécurité

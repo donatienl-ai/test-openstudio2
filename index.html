@@ -890,6 +890,31 @@ em,i:not([class]){font-style:normal}
 .os-bandnav nav{display:flex;gap:24px;align-items:center;flex-wrap:wrap;font-size:14px}
 .os-bandnav nav a{color:rgba(255,255,255,.8);text-decoration:none}
 .os-bandnav nav a.on{color:#fff;font-weight:600}
+.os-cr{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:14px;color:var(--os-navy);background:#fff;border:1px solid var(--os-navy);border-radius:50px;padding:10px 18px 10px 12px;cursor:pointer;white-space:nowrap}
+.os-cr b{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:15px;letter-spacing:.02em}
+.os-cr span{color:var(--os-mut);font-size:13px}
+.os-cr.dk{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.6);color:#fff}.os-cr.dk span{color:rgba(255,255,255,.75)}
+.os-cr.low{border-color:#E0A526}
+.os-cr.cr-side{width:100%;justify-content:center;margin-top:-16px;box-sizing:border-box}
+.cr-ico{width:18px;height:18px;flex:none}
+.cr-tag{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--os-mut);margin-top:auto;padding-top:4px}
+.cr-tag .cr-ico{width:15px;height:15px}
+.cr-tag.dk{color:rgba(255,255,255,.82)}
+.cr-sum{display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:14px;background:#F6F5FF;border:1px solid #E1E0FB}
+.cr-sum .cr-ico{width:40px;height:40px}
+.cr-sum b{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:28px;color:var(--os-navy,#1C1C62);line-height:1.1}
+.cr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.cr-pack{display:flex;flex-direction:column;gap:6px;text-align:left;font:inherit;background:#fff;border:1.5px solid #E2E0D8;border-radius:14px;padding:16px;cursor:pointer;color:#1A1A2E;position:relative}
+.cr-pack:hover:not(:disabled){border-color:#3B3BF9}
+.cr-pack:disabled{opacity:.55;cursor:default}
+.cr-pack.rec{border-color:#3B3BF9;box-shadow:0 0 0 3px rgba(59,59,249,.12)}
+.cr-pack .n{display:flex;align-items:center;gap:6px;font-weight:700;font-size:18px}
+.cr-pack .pr{font-weight:700;font-size:20px;margin-top:6px}
+.cr-pack .badge{position:absolute;top:-10px;left:12px;background:#3B3BF9;color:#fff;font-size:11px;font-weight:600;border-radius:50px;padding:3px 9px}
+.cr-warn{padding:12px 14px;border-radius:10px;background:#FFF6E5;border:1px solid #F2D49B;color:#7A4B00;font-size:14px;line-height:1.5}
+.cr-hist{font-size:13px}.cr-hist summary{cursor:pointer;color:var(--os-mut)}
+.cr-hist ol{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cr-hist li{display:flex;justify-content:space-between;gap:12px}.cr-hist .p{color:#127A45;font-weight:600}.cr-hist .m{color:#1A1A2E;font-weight:600}
 .os-bandnav .who{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:none;padding:11px 18px;border:1px solid rgba(255,255,255,.6);border-radius:50px;cursor:pointer}
 .os-hero{display:flex;flex-wrap:wrap;gap:48px;align-items:center}
 .os-hero .txt{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:26px}
@@ -1805,7 +1830,7 @@ function opusMore(j) {
 const bkOn = () => !!(window.OPENSTUDIO_API && window.OpenStudio);
 const BK = { videos: null, loading: false, err: '', client: null, submitting: false, prog: '', clientUploads: false, uploading: false, upProg: '' };
 const BK_PROGRAMMES = [['bfm', 'BFM TV'], ['bfm-business', 'BFM Business'], ['capital', 'Capital'], ['le-figaro', 'Le Figaro']];
-const bkVideo = x => ({ id: 'bk-' + x.id, bkId: x.id, title: x.title || 'Vidéo', media: x.programme || '', programmeId: x.programmeId || '', kind: x.programme || '', type: 'plateau', duration: 0, date: x.broadcastDate ? new Date(x.broadcastDate) : null, pal: ['#1C1C62', '#3B3BFA'], highlights: [] });
+const bkVideo = x => ({ id: 'bk-' + x.id, bkId: x.id, title: x.title || 'Vidéo', media: x.programme || '', programmeId: x.programmeId || '', kind: x.programme || '', type: 'plateau', duration: Number(x.durationSec) || 0, date: x.broadcastDate ? new Date(x.broadcastDate) : null, pal: ['#1C1C62', '#3B3BFA'], highlights: [] });
 const bkMedia = v => MEDIAS.find(m => v && m.name.toLowerCase() === String(v.media).toLowerCase()) || mediaById('openmedias');
 const bkContact = () => { const c = client(); return c ? { name: c.contact, email: c.email, company: c.name } : undefined; };
 const bkNoSession = () => !OpenStudio.clientSession();
@@ -2088,7 +2113,7 @@ function bkCapsulesPage(c) {
   } else if (n === 2) {
     const ill = { capsules: '<i style="width:38px;height:68px"></i><i style="width:38px;height:68px;background:#48406E"></i><i style="width:38px;height:68px;background:#384868"></i>', teaser: '<i style="width:46px;height:82px"></i>', subtitles: '<i style="width:150px;height:84px"></i>' };
     main = `<section class="os-card" aria-labelledby="q-type"><div><h2 id="q-type">Que voulez-vous en faire ?</h2><div class="sub">Le logo de l'émission et le vôtre sont ajoutés dans tous les cas.</div></div>
-      <div class="os-opts" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${Object.entries(FLOW_KINDS).map(([id, x]) => `<button type="button" class="os-opt" data-a="bk-kind" data-arg="${id}" aria-pressed="${kd === id}" style="gap:14px"><span class="ill" aria-hidden="true">${ill[id]}</span><span class="mono">${esc(x.tag)}</span><b style="font-size:16px">${esc(x.label)}</b><span class="d" style="font-size:14px;line-height:1.45">${esc(x.desc)}</span></button>`).join('')}</div>
+      <div class="os-opts" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${Object.entries(FLOW_KINDS).map(([id, x]) => `<button type="button" class="os-opt" data-a="bk-kind" data-arg="${id}" aria-pressed="${kd === id}" style="gap:14px"><span class="ill" aria-hidden="true">${ill[id]}</span><span class="mono">${esc(x.tag)}</span><b style="font-size:16px">${esc(x.label)}</b><span class="d" style="font-size:14px;line-height:1.45">${esc(x.desc)}</span>${osLive() ? crTag(crCostTxt(id, v)) : ''}</button>`).join('')}</div>
       <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:16px 18px;border-radius:12px;background:var(--os-bg)"><span style="font-size:14px;line-height:1.5"><b style="font-weight:600">Envie d'un montage fait main ?</b> Nos monteurs réalisent votre vidéo de A à Z.</span><button class="os-link" style="font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-decoration:none;text-transform:uppercase" data-a="mt-open">Confier ma vidéo à un monteur ↗</button></div></section>`;
   } else if (n === 3) {
     if (kd === 'subtitles') main = `<section class="os-card"><h2>Vos sous-titres</h2><div>${[['Langue', 'Français, la langue parlée dans la vidéo'], ['Transcription', 'Automatique, à partir du son de la vidéo'], ['Format', 'Celui de la vidéo d’origine']].map(([a1, b1]) => `<div class="os-row"><span class="k">${a1}</span><span class="v">${b1}</span></div>`).join('')}</div><p class="mut" style="margin:0;font-size:14px">La traduction dans une autre langue arrive bientôt.</p></section>`;
@@ -2108,14 +2133,13 @@ function bkCapsulesPage(c) {
   }
   const rows = flowRows(v).filter(r => r[0] !== 'Livraison' && (n > 1 || r[0] === 'Émission' || r[0] === 'Habillage'));
   const aside = n < 4 ? `<aside class="os-aside" aria-labelledby="recap"><h2 id="recap">Votre commande</h2>
-      <dl>${rows.map(([k2, val]) => `<dt>${k2}</dt><dd>${esc(val)}</dd>`).join('')}</dl><hr>
+      <dl>${rows.map(([k2, val]) => `<dt>${k2}</dt><dd>${esc(val)}</dd>`).join('')}${osLive() && n > 1 ? `<dt>Coût</dt><dd style="display:flex;align-items:center;gap:6px">${CR_ICO}${crCostTxt(kd, v)}</dd>` : ''}</dl><hr>
       <button class="os-cta" data-a="bk-step" data-arg="${n + 1}" ${n === 1 && !v ? 'disabled' : ''}>Continuer</button>
       <span class="note">Rien n'est lancé tant que vous n'avez pas validé.</span></aside>`
     : `<aside class="os-aside" aria-labelledby="valider"><h2 id="valider">Validation</h2>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><span>${esc(FLOW_KINDS[kd].short)}</span><span style="font-weight:600">${flowPrice() == null ? 'Inclus' : flowPriceTxt()}</span></div>
-      <div class="os-paybox"><span class="mut" style="font-size:13px">Paiement</span><span style="font-size:14px">${flowPrice() == null ? 'Inclus dans votre package : rien à payer' : 'Carte bancaire, prélèvement SEPA ou virement'}</span></div>
+      ${flowCostBlock(kd, v)}
       <label class="os-check"><input type="checkbox" data-in="flow-check" ${k.checked ? 'checked' : ''}><span>J'ai vérifié l'émission, le format et la durée.</span></label>
-      <button class="os-cta" style="padding:17px 24px" data-a="pay-open" ${k.checked && !BK.submitting ? '' : 'disabled'}>${BK.submitting ? 'Validation en cours…' : 'Valider et lancer ↗'}</button>
+      ${flowShort(kd, v) ? `<button class="os-cta" style="padding:17px 24px" data-a="cr-open" data-arg="${crCost(kd, v)}">Recharger mes crédits ↗</button>` : `<button class="os-cta" style="padding:17px 24px" data-a="pay-open" ${k.checked && !BK.submitting ? '' : 'disabled'}>${BK.submitting ? 'Validation en cours…' : 'Valider et lancer ↗'}</button>`}
       <span class="note">Une pastille vous prévient dès que c’est prêt.</span></aside>`;
   return `<main class="os-wrap"><div style="display:flex;flex-direction:column;gap:18px"><button class="os-back" data-a="${back[1].startsWith('nav') ? 'nav' : 'bk-step'}" data-arg="${back[1].split('|')[1]}">← ${back[0]}</button><h1 class="t">${h1}</h1>${steps}</div>
     <div class="os-cols"><div class="os-colm">${main}</div>${aside}</div></main>`;
@@ -2140,7 +2164,16 @@ function osLaunched(c, o) {
       <div class="os-help"><span>Une question sur votre commande ? Votre chargée de projet reste joignable.</span><a href="mailto:contact@openmedias.fr">Contacter l'équipe ↗</a></div>
     </main>`;
 }
-/* Tarifs : capsules, teaser et sous-titres sont inclus dans le package (V1). Renseigner un montant en € HT active le paiement. */
+/* Coût en crédits dans le récapitulatif : solde avant / après, ou montant manquant */
+const flowShort = (kd, v) => osLive() && crBal() != null && crBal() < crCost(kd, v);
+function flowCostBlock(kd, v) {
+  if (!osLive()) return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><span>${esc(FLOW_KINDS[kd].short)}</span><span style="font-weight:600">Inclus</span></div>`;
+  const cost = crCost(kd, v); const b = crBal();
+  return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><span>${esc(FLOW_KINDS[kd].short)}</span><span style="font-weight:700;display:inline-flex;align-items:center;gap:6px;white-space:nowrap">${CR_ICO}${crN(cost)} crédits</span></div>
+    ${kd === 'subtitles' ? `<span class="mut" style="font-size:13px;margin-top:-8px">${v && v.duration > 0 ? `Vidéo de ${crDur(v.duration)} : ${Math.max(1, Math.ceil(v.duration / 300))} tranche${Math.ceil(v.duration / 300) > 1 ? 's' : ''} de 5 min entamée${Math.ceil(v.duration / 300) > 1 ? 's' : ''}` : 'Durée de la vidéo estimée à 10 min'}</span>` : ''}
+    <div class="os-paybox"><span class="mut" style="font-size:13px">Payé avec vos crédits</span><span style="font-size:14px">${b == null ? 'Chargement de votre solde…' : b < cost ? `Solde : ${crN(b)} crédits. Il vous en manque <b>${crN(cost - b)}</b>.` : `Solde après création : <b>${crN(b - cost)} crédits</b> (sur ${crN(b)})`}</span></div>`;
+}
+/* Tarifs en euros (non utilisés : les créations se paient en crédits). Renseigner un montant en € HT active le paiement. */
 const FLOW_PRICES = { capsules: null, teaser: null, subtitles: null };
 const flowPrice = () => FLOW_PRICES[flowKind()];
 const flowPriceTxt = () => flowPrice() == null ? 'Inclus dans votre package' : `${flowPrice().toLocaleString('fr-FR')} € HT`;
@@ -2154,10 +2187,11 @@ function flowModHtml() {
 function payModalHtml(m) {
   const v = flowVideo(); const kd = flowKind(); const paid = flowPrice() != null; const c = client() || {};
   return `<div style="display:flex;flex-direction:column;gap:22px">
-    <div class="os-paysum"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(FLOW_KINDS[kd].short)}</span><span class="small muted">${esc(v ? [v.media, v.title].filter(Boolean).join(' · ') : '')}${kd !== 'subtitles' ? ` · ${esc(flowFmt()[1].toLowerCase())} ${esc(flowFmt()[0])}` : ''}</span></div><span class="p">${paid ? flowPriceTxt() : 'Inclus'}</span></div>
-    <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Moyen de paiement</span>
+    <div class="os-paysum"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(FLOW_KINDS[kd].short)}</span><span class="small muted">${esc(v ? [v.media, v.title].filter(Boolean).join(' · ') : '')}${kd !== 'subtitles' ? ` · ${esc(flowFmt()[1].toLowerCase())} ${esc(flowFmt()[0])}` : ''}</span></div><span class="p" style="display:inline-flex;align-items:center;gap:6px">${paid ? flowPriceTxt() : osLive() ? `${CR_ICO}${crN(crCost(kd, v))} crédits` : 'Inclus'}</span></div>
+    <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">${paid || !osLive() ? 'Moyen de paiement' : 'Paiement en crédits'}</span>
       ${paid ? `<div class="os-seg" style="display:flex" role="group" aria-label="Moyen de paiement">${[['cb', 'Carte bancaire'], ['sepa', 'Prélèvement SEPA'], ['vir', 'Virement']].map(([id, l]) => `<button type="button" style="flex:1 1 auto" data-a="pay-mode" data-arg="${id}" aria-pressed="${(m.mode || 'cb') === id}">${l}</button>`).join('')}</div>
       <p class="small muted" style="margin:0">${m.mode === 'vir' ? 'Vous recevez nos coordonnées bancaires par e-mail. La création démarre dès réception du virement.' : 'Vous êtes redirigé vers la page sécurisée de notre prestataire de paiement.'}</p>`
+      : osLive() ? `<p style="margin:0;padding:14px 16px;border-radius:10px;border:1px solid #E2E0D8;font-size:14px;line-height:1.5;display:flex;gap:10px;align-items:center">${CR_ICO}<span><b>${crN(crCost(kd, v))} crédits</b> seront débités de votre solde${crBal() != null ? ` (${crN(crBal())} → ${crN(crBal() - crCost(kd, v))})` : ''}. Si la création échoue, ils vous sont rendus.</span></p>`
       : `<p style="margin:0;padding:14px 16px;border-radius:10px;border:1px solid #E2E0D8;font-size:14px;line-height:1.5">Cette création est incluse dans votre package : aucun paiement n’est demandé.</p>`}</div>
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px"><span class="muted">Facture au nom de <b style="color:#1A1A2E">${esc(c.name || '')}</b></span><button class="os-link" data-a="nav" data-arg="factures">Modifier</button></div>
     ${bkNoSession() ? `<p class="small" style="color:var(--warn);margin:0">Pour commander, ouvrez le lien d'accès à votre espace envoyé par l'équipe OpenMedias.</p>` : ''}
@@ -2170,9 +2204,9 @@ async function bkSubmitCapsules() {
   try {
     // kind : le serveur livre 1 vidéo de 15 s pour un teaser, plusieurs capsules sinon
     const { order } = await OpenStudio.submitOrder('capsules', { videoId: v.bkId, kind: flowKind() === 'teaser' ? 'teaser' : 'capsules', duration: `${flowDur()} s`, format: `${fmt[1]} ${fmt[0]}` }, bkContact());
-    bkAfterSubmit(order);
+    bkAfterSubmit(order); crLoad(true);
     BK.submitting = false; S.modal = null; k.lastKind = flowKind(); k.bkOrderId = order.id; k.bkStep = 5; S.keepScroll = false; render(); window.scrollTo(0, 0);
-  } catch (e) { BK.submitting = false; S.keepScroll = true; render(); toast(e.message); }
+  } catch (e) { BK.submitting = false; S.keepScroll = true; if (!crHandleOrderError(e)) { render(); toast(e.message); } }
 }
 /* Interview sous-titrée à partir d'une vidéo du package : le serveur reprend le fichier déjà stocké. */
 async function bkSubmitPkgSubtitles() {
@@ -2180,9 +2214,9 @@ async function bkSubmitPkgSubtitles() {
   BK.submitting = true; S.keepScroll = true; render();
   try {
     const { order } = await OpenStudio.submitOrder('subtitles', { videoId: v.bkId, spokenLanguage: LANGS.fr, subtitleLanguage: LANGS.fr, splitLongLines: true, programmeId: v.programmeId || null }, bkContact());
-    bkAfterSubmit(order);
+    bkAfterSubmit(order); crLoad(true);
     BK.submitting = false; S.modal = null; k.lastKind = 'subtitles'; k.bkOrderId = order.id; k.bkStep = 5; S.keepScroll = false; render(); window.scrollTo(0, 0);
-  } catch (e) { BK.submitting = false; S.keepScroll = true; render(); toast(e.message); }
+  } catch (e) { BK.submitting = false; S.keepScroll = true; if (!crHandleOrderError(e)) { render(); toast(e.message); } }
 }
 function flowSubmit() { if (bkNoSession()) { toast('Ouvrez le lien d’accès envoyé par l’équipe OpenMedias pour commander.'); return; } return flowKind() === 'subtitles' ? bkSubmitPkgSubtitles() : bkSubmitCapsules(); }
 // Sous-titres : bloc de validation (remplace le bouton d'enregistrement local quand le back-end est actif).
@@ -2447,6 +2481,7 @@ async function enterRealSpace(code) {
   S.fails = 0; S.clientId = id; S.asAdmin = false; S.modal = null;
   resetClientState();
   trackEvent('user.login', { first, real: true }, first ? 'first-login' : 'login-' + Date.now().toString(36));
+  CR.d = null; crLoad(true);
   go('client', 'dashboard');
   bkAskMarketing();
 }
@@ -2868,6 +2903,7 @@ function osSideShell(c, active, main) {
   <nav aria-label="Navigation principale">
     <button class="os-brand" data-a="nav" data-arg="dashboard" aria-label="Accueil OpenStudio"><b>OPENSTUDIO</b><span>par OpenMedias</span></button>
     <button class="os-cta os-side-cta" style="width:100%" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button>
+    ${crPill('cr-side')}
     <div class="os-nav os-side-nav" style="margin-top:-12px">${items.map(([k, l, n]) => `<a href="#" data-a="nav" data-arg="${k}" class="${active === k ? 'on' : ''}" ${active === k ? 'aria-current="page"' : ''}>${l}${n ? ` <span class="mono">${n}</span>` : ''}</a>`).join('')}</div>
     ${osDevisCard(true)}
     <div class="os-nav more" style="margin-top:auto"><a href="#" data-a="logout">Se déconnecter</a></div>
@@ -2880,7 +2916,7 @@ function osTopShell(c, tab, body) {
   const tabs = [['capsules', 'Créer'], ['emissions', 'Mes émissions'], ['medias', 'Mes créations'], ['performances', 'Performances']];
   return `<div class="os os-page"><header class="os-top"><div><div class="l"><button class="brand" data-a="nav" data-arg="dashboard">OPENSTUDIO</button>
     <nav class="os-tabs" aria-label="Navigation principale">${tabs.map(([k, l]) => `<a href="#" data-a="nav" data-arg="${k}" class="${tab === k ? 'on' : ''}" ${tab === k ? 'aria-current="page"' : ''}>${l}</a>`).join('')}</nav></div>
-    <button class="os-acc" data-a="nav" data-arg="access"><span>${esc(c.name)}</span><b aria-hidden="true">${esc(osInitials(c.contact || c.name))}</b></button></div></header>
+    <div style="display:flex;gap:12px;align-items:center">${crPill()}<button class="os-acc" data-a="nav" data-arg="access"><span>${esc(c.name)}</span><b aria-hidden="true">${esc(osInitials(c.contact || c.name))}</b></button></div></div></header>
     ${body}</div>`;
 }
 function viewClient() {
@@ -2936,12 +2972,12 @@ function osHome(c) {
   const lib = (f === 'all' || f === 'prep' ? prep.map(osPrepCard) : []).concat(shown.map(osClipCard));
   return `<div class="os" style="background:#fff"><section class="os-band" aria-labelledby="accroche"><div>
     <div class="os-bandnav"><button class="brand" data-a="nav" data-arg="dashboard">OPENSTUDIO</button>
-      <nav aria-label="Navigation principale"><a href="#" data-a="nav" data-arg="emissions">Mes émissions</a><a href="#" data-a="nav" data-arg="medias">Mes créations</a><a href="mailto:contact@openmedias.fr">Aide</a><button class="who" data-a="nav" data-arg="access">${esc(c.name)}</button></nav></div>
+      <nav aria-label="Navigation principale"><a href="#" data-a="nav" data-arg="emissions">Mes émissions</a><a href="#" data-a="nav" data-arg="medias">Mes créations</a><a href="mailto:contact@openmedias.fr">Aide</a>${crPill('dk')}<button class="who" data-a="nav" data-arg="access">${esc(c.name)}</button></nav></div>
     <div class="os-hero"><div class="txt">
       ${hv ? `<span class="os-badge"><i aria-hidden="true"></i>${hv.media ? `Votre interview ${esc(hv.media)} est prête` : 'Votre interview est prête'}</span>` : `<span class="os-badge wait"><i aria-hidden="true"></i>${BK.loading ? 'Chargement de vos émissions…' : 'Votre vidéo sera bientôt disponible'}</span>`}
       <h1 id="accroche">Vous êtes passés à la télé.<span>Faites-le savoir.</span></h1>
       <p>Choisissez ce que vous voulez en tirer. On s'occupe du découpage, des sous-titres et de vos logos.</p>
-      <div class="os-choices" role="group" aria-label="Que voulez-vous créer ?">${kinds.map(k => `<button type="button" class="os-choice" data-a="home-pick" data-arg="${k.id}" aria-pressed="${k.id === cur.id}"><span class="t">${esc(k.tag)}<span class="r" aria-hidden="true"></span></span><b>${esc(k.label)}</b><span class="d">${esc(k.desc)}</span></button>`).join('')}</div>
+      <div class="os-choices" role="group" aria-label="Que voulez-vous créer ?">${kinds.map(k => `<button type="button" class="os-choice" data-a="home-pick" data-arg="${k.id}" aria-pressed="${k.id === cur.id}"><span class="t">${esc(k.tag)}<span class="r" aria-hidden="true"></span></span><b>${esc(k.label)}</b><span class="d">${esc(k.desc)}</span>${osLive() ? crTag(crCostTxt(k.id, hv), true) : ''}</button>`).join('')}</div>
       <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center"><button class="os-cta big" data-a="flow-go" data-arg="${cur.id}|4" ${hv ? '' : 'disabled'}>${cur.cta}</button><button class="os-link" data-a="flow-go" data-arg="${cur.id}|3" ${hv ? '' : 'disabled'}>Changer le format ou la durée</button></div>
       ${!osLive() ? `<p style="font-size:14px">Pour retrouver vos émissions, ouvrez le lien d'accès envoyé par l'équipe OpenMedias.</p>` : ''}
     </div>
@@ -2968,7 +3004,7 @@ function osEmissions(c) {
       <span class="os-dot ok"><i aria-hidden="true"></i>Prêt à découper</span>
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="os-pillbtn p" data-a="em-go" data-arg="capsules|${esc(v.bkId)}">Faire des capsules</button><button class="os-pillbtn s" data-a="em-go" data-arg="subtitles|${esc(v.bkId)}">Sous-titrer</button></div></div>`).join('');
   return `<header class="os-head"><div style="display:flex;flex-direction:column;gap:6px"><span class="kick">${today} — ${esc(c.name)}</span><h1>Vos passages à l'antenne</h1></div>
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="os-out" data-a="nav" data-arg="access">Mon package</button><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></div></header>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">${crPill()}<button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></div></header>
     ${osLive() && BK.videos ? `<section aria-labelledby="mavideo" style="display:flex;flex-direction:column;gap:14px"><h2 id="mavideo" class="os-h2">${vids.length > 1 ? 'Vos émissions' : 'Votre émission'}</h2>
       ${vids.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px">${vids.map(v => `<figure style="margin:0;display:flex;flex-direction:column;gap:8px">${bkPlayer(v)}<figcaption style="font-size:14px"><b>${esc(bkLabel(v, ' — '))}</b>${v.date ? `<span class="mut"> · diffusée le ${fmtD(v.date)}</span>` : ''}</figcaption></figure>`).join('')}</div>` : bkSoonBanner()}</section>` : ''}
     <section aria-labelledby="grille" style="display:flex;flex-direction:column;gap:14px">
@@ -3032,6 +3068,16 @@ function osCommandes(c) {
     <p class="mut" style="margin:0;font-size:14px">Les factures de chaque commande sont dans <a href="#" data-a="nav" data-arg="factures">Factures</a>.</p>`;
 }
 /* ---------- Factures ---------- */
+/** Recharges de crédits payées par carte, avec leur facture Stripe. */
+function crFacturesHtml() {
+  if (!osLive()) return '';
+  if (!CR.d) { if (!CR.loading) setTimeout(crLoad, 0); return ''; }
+  const list = CR.d.purchases || []; const cols = 'grid-template-columns:110px minmax(0,1fr) 120px 150px';
+  return `<section style="margin-top:28px;display:flex;flex-direction:column;gap:12px" aria-labelledby="fact-cr"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 id="fact-cr" class="os-h2" style="margin:0">Recharges de crédits</h2><button class="os-pillbtn s" data-a="cr-open">Recharger mes crédits</button></div>
+    ${list.length ? `<div class="os-tbl fact"><div style="min-width:560px"><div class="os-tr h" style="${cols}"><span>Date</span><span>Recharge</span><span>Montant</span><span></span></div>
+      ${list.map(x => `<div class="os-tr" style="${cols}"><span class="mono" style="font-size:13px">${new Date(x.paidAt || x.createdAt).toLocaleDateString('fr-FR')}</span><span style="font-size:14px;display:inline-flex;gap:6px;align-items:center">${esc(x.label)} <span class="mut">· ${CR_ICO}${crN(x.credits)} crédits</span></span><span style="font-size:14px">${x.amountTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} € TTC</span><span>${x.hasInvoice ? `<button class="os-link" data-a="cr-inv" data-arg="${esc(x.id)}">Voir la facture ↗</button>` : '<span class="mut" style="font-size:13px">Paiement de test</span>'}</span></div>`).join('')}</div></div>`
+      : `<div class="os-empty"><span>Aucune recharge pour le moment.</span></div>`}</section>`;
+}
 function osFactures(c) {
   const rows = osCommandRows(c).filter(r => r.kind !== 'devis' && r.st !== 'err');
   const cols = 'grid-template-columns:130px 110px minmax(0,1fr) 120px 140px';
@@ -3039,7 +3085,7 @@ function osFactures(c) {
     <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
       <div style="flex:999 1 560px;min-width:0">${rows.length ? `<div class="os-tbl fact"><div style="min-width:620px"><div class="os-tr h" style="${cols}"><span>Commande</span><span>Date</span><span>Contenu</span><span>Montant</span><span>Statut</span></div>
         ${rows.map(r => `<div class="os-tr" style="${cols}"><span class="mono" style="font-size:13px">${esc(r.num)}</span><span class="mono" style="font-size:13px">${r.date.toLocaleDateString('fr-FR')}</span><span style="font-size:14px">${esc(r.what)}${r.sub ? ` <span class="mut">· ${esc(r.sub)}</span>` : ''}</span><span style="font-size:14px">${esc(r.amount === 'Inclus' ? 'Inclus' : r.amount)}</span><span class="os-dot ${r.amount === 'Inclus' ? 'ok' : 'prep'}"><i aria-hidden="true"></i>${r.amount === 'Inclus' ? 'Rien à payer' : 'Envoyée par e-mail'}</span></div>`).join('')}</div></div>`
-        : `<div class="os-empty"><b style="color:var(--os-navy)">Aucune facture pour le moment</b><span>Vos commandes apparaîtront ici avec leur facturation.</span></div>`}</div>
+        : `<div class="os-empty"><b style="color:var(--os-navy)">Aucune facture pour le moment</b><span>Vos commandes apparaîtront ici avec leur facturation.</span></div>`}${crFacturesHtml()}</div>
       <aside aria-labelledby="fact-info" style="flex:1 1 280px;min-width:0;background:#fff;border:1px solid var(--os-line);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:16px">
         <h2 id="fact-info" style="margin:0;font-size:16px;font-weight:600;font-family:Inter,sans-serif">Informations de facturation</h2>
         <dl style="margin:0;display:flex;flex-direction:column;gap:12px;font-size:14px">${[['Société', c.name], ['Contact', c.contact], ['E-mail', c.email], ['Chargée de projet', c.manager]].filter(x => x[1]).map(([k, v]) => `<div style="display:flex;flex-direction:column;gap:2px"><dt class="mut" style="font-size:13px">${k}</dt><dd style="margin:0">${esc(v)}</dd></div>`).join('')}</dl>
@@ -3075,6 +3121,94 @@ function osLivraison(c, id) {
         <div class="os-tint"><h2>Envie d'un montage fait main ?</h2><p>Nos monteurs peuvent reprendre vos vidéos à la main, avec le soin d'un montage professionnel.</p><button data-a="mt-open">Confier ma vidéo à un monteur ↗</button></div>
       </aside></div></main>`;
 }
+/* ---------- Crédits : solde, coût des créations, recharges par carte ---------- */
+const CR = { d: null, loading: false, err: '' };
+const CR_DEF = { capsules: 300, teaser: 300, subtitlesPer5Min: 300 };
+const CR_ICO = `<svg class="cr-ico" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.6" fill="#FFD66B" stroke="#E0A526" stroke-width="1.3"/><circle cx="10" cy="10" r="6.2" fill="none" stroke="#F3BE45" stroke-width="1"/><path d="M10 5.2l1.2 3.1 3.1 1.2-3.1 1.2L10 13.8l-1.2-3.1-3.1-1.2 3.1-1.2z" fill="#fff" stroke="#E0A526" stroke-width=".8" stroke-linejoin="round"/></svg>`;
+const crN = n => Number(n || 0).toLocaleString('fr-FR').replace(/\u202f/g, '\u00a0');
+const crPrices = () => (CR.d && CR.d.prices) || CR_DEF;
+const crBal = () => CR.d ? CR.d.balance : null;
+/** Coût en crédits d'une création (même calcul que le serveur, qui fait foi). */
+function crCost(kind, v) {
+  const p = crPrices();
+  if (kind === 'teaser') return p.teaser;
+  if (kind === 'subtitles') { const d = v && v.duration; const n = d > 0 ? Math.max(1, Math.ceil(d / 300)) : 2; return n * p.subtitlesPer5Min; }
+  return p.capsules;
+}
+const crDur = d => { d = Math.round(d); const m = Math.floor(d / 60), r = d % 60; return m ? `${m} min${r ? ` ${r} s` : ''}` : `${r} s`; };
+const crTag = (t, dk) => `<span class="cr-tag${dk ? ' dk' : ''}">${CR_ICO}${t}</span>`;
+function crCostTxt(kind, v) {
+  if (kind === 'subtitles' && !(v && v.duration > 0)) return `${crN(crPrices().subtitlesPer5Min)} crédits par tranche de 5 min`;
+  return `${crN(crCost(kind, v))} crédits`;
+}
+async function crLoad(force) {
+  if (!osLive() || CR.loading || (CR.d && !force)) return;
+  CR.loading = true;
+  try { CR.d = await OpenStudio.credits.get(); CR.err = ''; } catch (e) { CR.err = e.message; }
+  CR.loading = false;
+  if (S.view === 'client') { S.keepScroll = true; render(); }
+}
+function crPill(cls = '') {
+  if (!osLive()) return '';
+  if (!CR.d && !CR.loading) setTimeout(crLoad, 0);
+  const b = crBal(); const low = b != null && b < crPrices().capsules;
+  return `<button type="button" class="os-cr ${cls}${low ? ' low' : ''}" data-a="cr-open" aria-label="${b == null ? 'Mes crédits' : `Mes crédits : ${crN(b)} disponibles`}">${CR_ICO}<b>${b == null ? '…' : crN(b)}</b><span>crédits</span></button>`;
+}
+const crDay = d => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+function crModalHtml(m) {
+  const d = CR.d;
+  if (!d) return `<p class="mut">${CR.err ? esc(CR.err) : 'Chargement de vos crédits…'}</p>`;
+  const p = d.prices; const missing = m.need ? Math.max(0, m.need - d.balance) : 0;
+  const packs = d.packs.filter(x => x.available);
+  const rec = missing ? (packs.filter(x => x.credits >= missing).sort((a, b) => a.credits - b.credits)[0] || null) : null;
+  const until = d.expiresAt ? `Valables jusqu’au ${crDay(new Date(new Date(d.expiresAt).getTime() - 1000))} inclus.` : `Valables ${d.validityDays} jours à partir de la diffusion de votre émission.`;
+  const KIND = { inclus: 'Crédits offerts', recharge: 'Recharge', debit: 'Création', remboursement: 'Crédits rendus', expiration: 'Échéance', ajustement: 'Ajustement OpenMedias' };
+  return `<div style="display:flex;flex-direction:column;gap:20px">
+    <div class="cr-sum">${CR_ICO}<div style="display:flex;flex-direction:column;gap:4px"><b>${crN(d.balance)} crédits</b><span class="mut" style="font-size:14px">${d.balance ? until : 'Rechargez pour lancer de nouvelles créations.'}</span></div></div>
+    ${missing ? `<p class="cr-warn" style="margin:0">Il vous manque <b>${crN(missing)} crédits</b> pour cette création (${crN(m.need)} nécessaires).</p>` : ''}
+    <p class="mut" style="margin:0;font-size:14px;line-height:1.5">Un projet de capsules ou un teaser : <b style="color:#1A1A2E">${crN(p.capsules)} crédits</b>. Interview sous-titrée : <b style="color:#1A1A2E">${crN(p.subtitlesPer5Min)} crédits</b> par tranche de 5 minutes.</p>
+    <div style="display:flex;flex-direction:column;gap:12px"><h4 style="margin:0;font-size:15px">Recharger mes crédits</h4>
+      <div class="cr-grid">${packs.map(x => `<button type="button" class="cr-pack${rec && rec.id === x.id ? ' rec' : ''}" data-a="cr-buy" data-arg="${esc(x.id)}" ${m.buying ? 'disabled' : ''}>${rec && rec.id === x.id ? '<span class="badge">Suffisant pour cette création</span>' : ''}<span style="font-size:13px;font-weight:600">${esc(x.label)}</span><span class="n">${CR_ICO}${crN(x.credits)}</span><span class="mut" style="font-size:13px">${x.productions >= 1 ? `${String(x.productions).replace('.', ',')} production${x.productions > 1 ? 's' : ''}` : 'Pour compléter votre solde'}</span><span class="pr">${crN(x.priceHT)} € <small style="font-size:12px;font-weight:500">HT</small></span><span class="mut" style="font-size:12px">${x.priceTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} € TTC</span>${m.buying === x.id ? '<span style="font-size:12px;color:#3B3BF9">Ouverture du paiement…</span>' : ''}</button>`).join('')}</div>
+      <p class="mut" style="margin:0;font-size:13px;line-height:1.5">Paiement sécurisé par carte bancaire. Chaque recharge relance la validité de tout votre solde pour ${d.validityDays} jours. Facture disponible dans <a href="#" data-a="nav" data-arg="factures">Factures</a>.</p>
+      ${m.err ? `<p class="cr-warn" style="margin:0">${esc(m.err)}</p>` : ''}</div>
+    ${d.history.length ? `<details class="cr-hist"><summary>Historique de mes crédits</summary><ol>${d.history.slice(0, 12).map(h => `<li><span>${esc(KIND[h.kind] || h.kind)}${h.label ? ` <span class="mut">· ${esc(h.label)}</span>` : ''} <span class="mut">· ${new Date(h.at).toLocaleDateString('fr-FR')}</span></span><span class="${h.credits > 0 ? 'p' : 'm'}">${h.credits > 0 ? '+' : '−'}${crN(Math.abs(h.credits))}</span></li>`).join('')}</ol></details>` : ''}
+  </div>`;
+}
+function crOpen(need) { S.modal = { type: 'credits', need: need || 0 }; S.keepScroll = true; render(); crLoad(true); }
+async function crBuy(id) {
+  const m = S.modal; if (!m || m.type !== 'credits' || m.buying) return;
+  m.buying = id; m.err = ''; S.keepScroll = true; render();
+  try { const r = await OpenStudio.credits.buy(id); location.href = r.checkoutUrl; }
+  catch (e) { m.buying = null; m.err = e.message || 'Le paiement n’a pas pu être préparé. Réessayez dans un instant.'; S.keepScroll = true; render(); }
+}
+async function crInvoice(id) {
+  const w = window.open('', '_blank');
+  try { const r = await OpenStudio.credits.invoice(id); if (w) w.location = r.url; else location.href = r.url; }
+  catch (e) { if (w) w.close(); toast(e.message); }
+}
+/** Lancement refusé faute de crédits : la fenêtre de recharge s'ouvre avec le montant manquant. */
+function crHandleOrderError(e) {
+  if (e && e.data && e.data.code === 'credits_insuffisants') { crLoad(true); crOpen(e.data.needed); return true; }
+  return false;
+}
+// Retour de la page de paiement : ?credits=paid|cancelled&purchase=…
+(function () {
+  let q; try { q = new URLSearchParams(location.search); } catch (e) { return; }
+  const st = q.get('credits'); const id = q.get('purchase');
+  if (!st) return;
+  ['credits', 'purchase'].forEach(k => q.delete(k));
+  try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (e) {}
+  setTimeout(async () => {
+    if (!window.OpenStudio || !OpenStudio.credits) return;
+    if (st === 'cancelled') { toast('Paiement annulé : aucun montant n’a été prélevé.'); return; }
+    for (let i = 0; i < 12; i++) {
+      let r = null; try { r = await OpenStudio.credits.purchase(id); } catch (e) {}
+      if (r && r.purchase.status === 'paid') { await crLoad(true); toast(`Recharge confirmée : +${crN(r.purchase.credits)} crédits. Un e-mail de confirmation vous a été envoyé.`); if (S.view === 'client') crOpen(); return; }
+      await new Promise(ok => setTimeout(ok, 1500));
+    }
+    toast('Paiement reçu : vos crédits seront ajoutés dans quelques instants.'); crLoad(true);
+  }, 800);
+})();
 /* ---------- Confier ma vidéo à un monteur (fenêtre : 1. demande, 2. paiement Stripe) ---------- */
 const MT = { offers: null, mode: null };
 const MT_KEY = 'om-montage-form-v1';
@@ -5074,7 +5208,7 @@ function modalHtml() {
   } else if (m.type === 'pay') {
     title = 'Paiement';
     h = payModalHtml(m);
-    foot = `<div style="display:flex;flex-direction:column;gap:10px;width:100%"><button class="os-cta big" style="width:100%" data-a="bk-submit" ${BK.submitting || bkNoSession() ? 'disabled' : ''}>${BK.submitting ? 'Validation en cours…' : flowPrice() == null ? 'Valider et lancer ↗' : `Payer ${flowPriceTxt()} et lancer ↗`}</button><span class="small muted" style="text-align:center">${flowPrice() == null ? 'Votre facture sera disponible dans l’onglet Factures.' : 'Paiement sécurisé. Votre facture sera disponible dans l’onglet Factures.'}</span></div>`;
+    foot = `<div style="display:flex;flex-direction:column;gap:10px;width:100%"><button class="os-cta big" style="width:100%" data-a="bk-submit" ${BK.submitting || bkNoSession() ? 'disabled' : ''}>${BK.submitting ? 'Validation en cours…' : flowPrice() == null ? 'Valider et lancer ↗' : `Payer ${flowPriceTxt()} et lancer ↗`}</button><span class="small muted" style="text-align:center">${flowPrice() == null ? (osLive() ? 'Les crédits sont débités au lancement de la création.' : 'Votre facture sera disponible dans l’onglet Factures.') : 'Paiement sécurisé. Votre facture sera disponible dans l’onglet Factures.'}</span></div>`;
   } else if (m.type === 'montage') {
     title = 'Confier ma vidéo à un monteur';
     h = mtHtml(m);
@@ -5083,6 +5217,10 @@ function modalHtml() {
     title = 'Confier ma vidéo à un monteur';
     h = mtDoneHtml(m);
     foot = `<button class="os-cta" data-a="close">Fermer</button>`;
+  } else if (m.type === 'credits') {
+    title = 'Mes crédits';
+    h = crModalHtml(m);
+    foot = `<button class="os-pillbtn s" style="height:44px;padding:0 20px" data-a="close">Fermer</button>`;
   } else if (m.type === 'os-marketing') {
     title = 'Restons en contact';
     h = `<p>OpenMedias peut vous envoyer de temps en temps ses actualités et ses offres : nouvelles émissions, formats vidéo, événements.</p><p class="small muted" style="margin-top:10px">Vous pourrez changer d'avis à tout moment en nous écrivant. Votre réponse ne change rien à votre espace ni à vos vidéos.</p>`;
@@ -5368,6 +5506,9 @@ const A = {
   'bk-video': a => { S.cap.bkVideoId = a; S.keepScroll = true; render(); },
   'bk-step': a => { if (+a > 1 && !S.cap.bkVideoId) { toast('Choisissez d’abord une émission.'); return; } S.cap.bkStep = Math.min(+a, 4); S.modal = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
   'bk-submit': () => flowSubmit(),
+  'cr-open': a => crOpen(Number(a) || 0),
+  'cr-buy': a => crBuy(a),
+  'cr-inv': a => crInvoice(a),
   'bk-new': () => { S.cap.bkStep = 1; S.cap.bkOrderId = null; S.keepScroll = false; render(); },
   'bk-kind': a => { S.cap.flowKind = a; if (a === 'teaser' && !S.cap.fmt) S.cap.fmt = '9:16'; S.keepScroll = true; render(); },
   'home-pick': a => { S.home = a; S.keepScroll = true; render(); },

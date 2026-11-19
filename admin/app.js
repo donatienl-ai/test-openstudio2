@@ -155,7 +155,7 @@
     ['clients', 'Clients', null],
     ['emissions', 'Émissions et vidéos', 'lot 3'],
     ['commandes', 'Commandes', 'lot 3'],
-    ['credits', 'Crédits', 'lot 4'],
+    ['credits', 'Crédits', null],
   ];
   var NAV_SUPER = [['equipe', 'Équipe'], ['journal', 'Journal d’activité']];
 
@@ -174,6 +174,7 @@
     else if (S.page === 'equipe' && isSuper()) page = pageTeam();
     else if (S.page === 'journal' && isSuper()) page = pageAudit();
     else if (S.page === 'accueil') page = pageHome();
+    else if (S.page === 'credits') page = pageCredits();
     else page = pageSoon();
     return '<div class="shell"><nav class="side" aria-label="Navigation">' + brand('Espace équipe') + nav + navSuper +
       '<div class="me"><span><b>' + esc(S.user.name) + '</b><br>' + (isSuper() ? 'Super admin' : 'Admin') + '</span>' +
@@ -194,7 +195,7 @@
     var tiles = '<div class="tiles">' +
       tile('Comptes actifs', a.active, a.everConnected + ' se sont déjà connectés, sur ' + a.total + ' clients', '', '#clients') +
       tile('Connectés aujourd’hui', a.connectedToday, a.returningToday ? a.returningToday + ' revenus (déjà venus un autre jour)' : 'aucun retour aujourd’hui', '') +
-      tile('Paiements reçus · 30 jours', p.paid, euros(p.paid_cents) + ' TTC', 'ok') +
+      tile('Paiements reçus · 30 jours', p.paid, euros(p.paid_cents) + ' TTC' + (p.recharges ? ' · dont ' + p.recharges + ' recharge' + (p.recharges > 1 ? 's' : '') + ' de crédits' : ''), 'ok') +
       tile('Paiements en échec · 30 jours', p.failed, p.awaiting + ' en attente de paiement', p.failed ? 'err' : '') +
       '</div>';
     var max = Math.max.apply(null, a.days.map(function (x) { return x.connected; }).concat([1]));
@@ -217,6 +218,67 @@
     if (p.to_quote) alerts.push(p.to_quote + ' demande' + (p.to_quote > 1 ? 's' : '') + ' de montage à chiffrer.');
     return head + errorBox() + tiles + (alerts.length ? '<div class="warn mb">' + alerts.map(esc).join('<br>') + '</div>' : '') +
       week + section('Paiements en échec', p.failures.length, fails);
+  }
+
+  function nb(n) { return Number(n || 0).toLocaleString('fr-FR').replace(/\u202f/g, '\u00a0'); }
+
+  var CREDIT_KINDS = {
+    inclus: ['Crédits offerts', 'ok'], recharge: ['Recharge payée', 'ok'], debit: ['Création', 'info'],
+    remboursement: ['Crédits rendus (échec)', 'wait'], expiration: ['Échéance', 'off'], ajustement: ['Ajustement', 'info'],
+  };
+
+  /** Fiche client : solde, échéance, décompte des crédits et ajustement manuel. */
+  function creditsCard(d) {
+    var cr = d.credits;
+    if (!cr) return '';
+    var used = cr.history.filter(function (h) { return h.kind === 'debit'; }).reduce(function (t, h) { return t - h.credits; }, 0) -
+      cr.history.filter(function (h) { return h.kind === 'remboursement'; }).reduce(function (t, h) { return t + h.credits; }, 0);
+    var until = cr.expiresAt ? 'Valables jusqu’au ' + fmtDay(new Date(new Date(cr.expiresAt).getTime() - 1000).toISOString().slice(0, 10)) + ' inclus'
+      : 'Échéance : ' + cr.validityDays + ' jours après la diffusion (date de diffusion à renseigner)';
+    var expired = cr.expiresAt && new Date(cr.expiresAt) <= new Date();
+    var rows = cr.history.length ? '<table><thead><tr><th>Date</th><th>Mouvement</th><th>Détail</th><th class="num">Crédits</th><th class="num">Solde</th></tr></thead><tbody>' + cr.history.map(function (h) {
+      var k = CREDIT_KINDS[h.kind] || [h.kind, ''];
+      return '<tr><td class="small nowrap">' + esc(fmtDate(h.at)) + '</td><td>' + tag(k) + '</td><td class="small">' + esc(h.label || '') +
+        (h.actor && h.kind === 'ajustement' ? ' <span class="muted">· par ' + esc(h.actor) + '</span>' : '') +
+        '</td><td class="num nowrap ' + (h.credits > 0 ? 'pos' : 'neg') + '">' + (h.credits > 0 ? '+' : '−') + nb(Math.abs(h.credits)) + '</td><td class="num nowrap">' + nb(h.balanceAfter) + '</td></tr>';
+    }).join('') + '</tbody></table>' : emptyLine('Aucun mouvement pour le moment.');
+    return '<div class="card"><div class="card-head"><h2>Crédits</h2></div>' +
+      '<div class="credit-sum"><div><span class="small muted">Solde disponible</span><b class="credit-bal">' + nb(cr.balance) + '</b><span class="small ' + (expired ? 'err-text' : 'muted') + '">' + esc(until) + '</span></div>' +
+      '<div><span class="small muted">Consommés en créations</span><b>' + nb(used) + '</b></div>' +
+      '<div><span class="small muted">Barème</span><span class="small">Capsules ou teaser : ' + nb(cr.prices.capsules) + ' · Sous-titres : ' + nb(cr.prices.subtitlesPer5Min) + ' / 5 min</span></div></div>' +
+      '<details class="mt"><summary class="small">Ajuster le solde (geste commercial, correction)</summary>' +
+      '<form data-form="credits-adjust" class="form-inline mt" novalidate><label>Crédits<input name="credits" type="number" step="1" placeholder="+300 ou -300" required></label>' +
+      '<label class="grow">Motif<input name="reason" maxlength="300" placeholder="Ex. geste commercial suite à un souci de génération" required></label>' +
+      '<button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Appliquer</button></form></details>' +
+      '<h3 class="mt">Décompte</h3>' + rows + '</div>';
+  }
+
+  /** Barème des crédits et packs de recharge (modifiable par le super admin). */
+  function pageCredits() {
+    var head = '<div class="head"><div><h1>Crédits</h1><p class="muted">Coût de chaque création et prix des recharges proposées aux clients.</p></div></div>';
+    var st = S.creditSettings;
+    if (!st) return head + errorBox() + '<div class="card empty">Chargement…</div>';
+    var v = st.settings; var ro = !isSuper();
+    var dis = ro ? ' disabled' : '';
+    var p = v.prices;
+    var packs = v.packs.map(function (x, i) {
+      return '<tr><td><input name="pk_label_' + i + '" value="' + esc(x.label) + '"' + dis + '></td><td><input name="pk_credits_' + i + '" type="number" min="1" step="1" value="' + esc(x.credits) + '"' + dis + '></td>' +
+        '<td><input name="pk_price_' + i + '" type="number" min="1" step="0.01" value="' + esc(x.priceHT) + '"' + dis + '></td><td class="small nowrap">' + esc(euros(Math.round(x.priceHT * 100 * (1 + st.vatRate)))) + ' TTC</td>' +
+        '<td class="small nowrap">' + (p.capsules ? (Math.round(x.priceHT / (x.credits / p.capsules) * 100) / 100).toLocaleString('fr-FR') + ' € HT' : '—') + '</td>' +
+        '<td><label class="check"><input type="checkbox" name="pk_once_' + i + '"' + (x.once ? ' checked' : '') + dis + '> une seule fois</label><input type="hidden" name="pk_id_' + i + '" value="' + esc(x.id) + '"></td></tr>';
+    }).join('');
+    return head + errorBox() + (ro ? '<div class="note mb">Seul le super admin peut modifier le barème.</div>' : '') +
+      '<form data-form="credit-settings" novalidate><div class="card"><h2>Compte client</h2><div class="form-2">' +
+      '<label>Crédits offerts à la création du compte<input name="included" type="number" min="0" step="1" value="' + esc(v.included) + '"' + dis + '></label>' +
+      '<label>Validité (jours)<span class="small muted">après la diffusion, puis relancée à chaque recharge</span><input name="validityDays" type="number" min="1" max="365" step="1" value="' + esc(v.validityDays) + '"' + dis + '></label></div></div>' +
+      '<div class="card"><h2>Coût des créations</h2><div class="form-2">' +
+      '<label>Projet de capsules (3 propositions)<input name="capsules" type="number" min="0" step="1" value="' + esc(p.capsules) + '"' + dis + '></label>' +
+      '<label>Teaser de 15 s<input name="teaser" type="number" min="0" step="1" value="' + esc(p.teaser) + '"' + dis + '></label>' +
+      '<label>Interview sous-titrée, par tranche de 5 min entamée<input name="subtitlesPer5Min" type="number" min="0" step="1" value="' + esc(p.subtitlesPer5Min) + '"' + dis + '></label>' +
+      '<label>Traduction des sous-titres, par langue et tranche de 5 min<input name="translationPer5Min" type="number" min="0" step="1" value="' + esc(p.translationPer5Min) + '"' + dis + '></label></div></div>' +
+      '<div class="card"><h2>Packs de recharge</h2><table class="edit"><thead><tr><th>Nom</th><th>Crédits</th><th>Prix HT (€)</th><th>Prix TTC</th><th>Prix par production</th><th></th></tr></thead><tbody>' + packs + '</tbody></table>' +
+      '<p class="small muted mt">Une « production » = un projet de capsules. Les modifications s’appliquent aux prochains achats et aux prochaines créations.</p></div>' +
+      (ro ? '' : '<div class="btns left"><button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Enregistrer le barème</button></div>') + '</form>';
   }
 
   function pageSoon() {
@@ -283,6 +345,8 @@
     acces_retabli: 'Accès rétabli',
     acces_coupe: 'Accès coupé',
     marketing_reponse: 'Réponse sur les campagnes marketing',
+    credits_ajustes: 'Crédits ajustés',
+    bareme_credits_modifie: 'Barème des crédits modifié',
   };
 
   var FIELD_NAMES = {
@@ -294,6 +358,8 @@
     var d = e.detail || {};
     if (d.identifiant && !d.email) return d.identifiant + (d.motif ? ' — ' + d.motif : '');
     if (d.email) return d.email + (d.role ? ' (' + (d.role === 'super_admin' ? 'super admin' : 'admin') + ')' : '') + (d.motif ? ' — ' + d.motif : '');
+    if (d.credits !== undefined && d.motif) return (d.credits > 0 ? '+' : '') + nb(d.credits) + ' crédits — ' + d.motif + ' (solde ' + nb(d.solde) + ')';
+    if (d.apres && d.apres.packs) return 'barème et packs de recharge mis à jour';
     if (d.marketing && !d.champs) return d.marketing === 'oui' ? 'accepte d’être contacté' : 'refuse d’être contacté';
     if (d.title && d.programme) return d.title + ' (' + d.programme + ')';
     if (d.name) return d.name;
@@ -494,14 +560,14 @@
     }).join('') + '</tbody></table>' : '';
 
     var payments = (d.payments.length ? '<table><thead><tr><th>Date</th><th>Objet</th><th>Montant TTC</th><th>État</th></tr></thead><tbody>' + d.payments.map(function (p) {
-      return '<tr><td class="small nowrap">' + esc(fmtDate(p.paid_at || p.created_at)) + '</td><td>Montage sur mesure · ' + esc(p.offer_title) + '</td><td class="nowrap">' + esc(euros(p.amount_ttc_cents)) +
+      return '<tr><td class="small nowrap">' + esc(fmtDate(p.paid_at || p.created_at)) + '</td><td>' + (p.kind === 'recharge' ? 'Recharge de crédits · ' : 'Montage sur mesure · ') + esc(p.offer_title) + '</td><td class="nowrap">' + esc(euros(p.amount_ttc_cents)) +
         '</td><td>' + (p.status !== 'paid' && p.payment_failures
           ? '<span class="tag err">Échec de paiement</span><br><span class="small muted">' + esc(p.last_payment_error) + (p.payment_failures > 1 ? ' (' + p.payment_failures + ' essais)' : '') + '</span>'
           : p.status === 'paid' && p.has_invoice
           ? '<button class="tag ok linkish" type="button" data-a="payment-invoice" data-id="' + esc(p.id) + '" title="Voir la facture">Payée · voir la facture</button>'
           : tag(MONTAGE_STATUS[p.status], p.status)) + '</td></tr>';
     }).join('') + '</tbody></table>' : emptyLine('Aucun paiement pour le moment.')) +
-      '<p class="small muted mt">Les factures (Pennylane) et les recharges de crédits s’ajouteront ici avec le lot 6.</p>';
+      '';
 
     var history = d.history.length ? '<table class="compact"><tbody>' + d.history.map(function (e) {
       return '<tr><td class="small nowrap">' + esc(fmtDate(e.at)) + '</td><td class="small">' + esc(e.actor_label) + '</td><td class="small">' + esc(ACTIONS[e.action] || e.action) +
@@ -524,6 +590,7 @@
       marketingLine(c) + '</div>' +
       section('E-mails envoyés', d.emails.length, emails) + '</div></div>' +
       videoCard(d) +
+      creditsCard(d) +
       section('Contenus générés', d.contents.length, contents + pubs) +
       section('Paiements et factures', d.payments.length, payments) +
       section('Historique des actions sur la fiche', null, history);
@@ -695,6 +762,10 @@
     S.error = '';
     if (S.page === 'clients') loadClients();
     if (S.page === 'accueil') loadDashboard();
+    if (S.page === 'credits') {
+      S.creditSettings = null;
+      api('GET', '/admin/credit-settings').then(function (d) { S.creditSettings = d; render(); }).catch(function (e) { S.error = e.message; render(); });
+    }
     if (S.page === 'equipe' && isSuper()) {
       api('GET', '/admin/team').then(function (d) { S.team = d.users; render(); }).catch(function (e) { S.error = e.message; render(); });
     }
@@ -783,6 +854,26 @@
         location.hash = '#clients/' + d.client.id;
         toast('Client créé');
       });
+    },
+    'credits-adjust': function (f) {
+      var n = Number(f.credits.value);
+      if (!Number.isInteger(n) || !n) return Promise.reject(new Error('Indiquez un nombre entier de crédits, par exemple 300 ou -300.'));
+      if (!f.reason.value.trim()) return Promise.reject(new Error('Indiquez le motif de l’ajustement.'));
+      return api('POST', '/admin/clients/' + encodeURIComponent(S.client.client.id) + '/credits/adjust', { credits: n, reason: f.reason.value }).then(function () {
+        toast((n > 0 ? '+' : '') + nb(n) + ' crédits appliqués');
+        return loadClients();
+      });
+    },
+    'credit-settings': function (f) {
+      var st = S.creditSettings.settings;
+      var body = {
+        included: Number(f.included.value), validityDays: Number(f.validityDays.value),
+        prices: { capsules: Number(f.capsules.value), teaser: Number(f.teaser.value), subtitlesPer5Min: Number(f.subtitlesPer5Min.value), translationPer5Min: Number(f.translationPer5Min.value) },
+        packs: st.packs.map(function (x, i) {
+          return { id: f['pk_id_' + i].value, label: f['pk_label_' + i].value, credits: Number(f['pk_credits_' + i].value), priceHT: Number(String(f['pk_price_' + i].value).replace(',', '.')), once: f['pk_once_' + i].checked };
+        }),
+      };
+      return api('POST', '/admin/credit-settings', body).then(function (d) { S.creditSettings.settings = d.settings; toast('Barème enregistré'); });
     },
     'client-edit': function (f) {
       return api('POST', '/admin/clients/' + encodeURIComponent(S.client.client.id), readClientForm(f)).then(function () {
