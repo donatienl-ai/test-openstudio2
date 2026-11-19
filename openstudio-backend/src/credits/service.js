@@ -65,7 +65,7 @@ const EXPIRY_SQL = (validityParam) => `COALESCE(c.credits_expire_at, (
     (COALESCE(
        (SELECT MIN(COALESCE(v.broadcast_date, c.broadcast_date)) FROM client_videos v WHERE v.client_id = c.id AND v.active = true),
        c.broadcast_date
-     ) + (${validityParam}::int + 1))::timestamp AT TIME ZONE 'Europe/Paris'))`;
+     ) + ${validityParam}::int)::timestamp AT TIME ZONE 'Europe/Paris'))`;
 
 async function expiryOf(clientId) {
   const s = await settings.get();
