@@ -72,7 +72,10 @@ async function main() {
   if (activationLink) {
     console.log(`[back-office] Lien d'activation du super admin ${config.admin.bootstrapEmail} (valable ${config.admin.inviteHours} h) : ${activationLink}`);
   }
-  // Liens d'accès des clients : envoyés le jour de la diffusion (vérification toutes les 10 minutes)
+  // Codes de connexion : chaque client a le sien, toujours le même
+  clientAccess.ensureAllCodes().then((n) => { if (n) console.log(`[accès client] ${n} code(s) de connexion créé(s)`); })
+    .catch((e) => console.error('[accès client] codes', e.message));
+  // Codes d'accès des clients : envoyés le jour de la diffusion (vérification toutes les 10 minutes)
   if (!config.clientSiteUrl) console.error('[accès client] CLIENT_SITE_URL et FRONTEND_ORIGIN vides : impossible de créer les liens d\'accès des clients.');
   const mailProblem = require('./mailer').problem();
   console.log(mailProblem ? `[accès client] Envoi automatique en attente : ${mailProblem}`

@@ -99,6 +99,7 @@ router.post('/admin/clients', requireTeam, json, wrap(async (req, res) => {
   if (error) return res.status(400).json({ error });
   if (await emailTaken(fields.email)) return res.status(409).json({ error: 'Un client existe déjà avec cette adresse e-mail.' });
   const c = await clients.create(fields);
+  await access.ensureCode(c.id);
   await audit.record(req, 'client_cree', { targetType: 'client', targetId: c.id, detail: { name: c.name, company: c.company } });
   res.status(201).json({ client: await fresh(c.id) });
 }));
@@ -122,7 +123,9 @@ router.post('/admin/clients/import', requireTeam, bigJson, wrap(async (req, res)
   const created = [];
   for (const r of result.rows) {
     if (r.problems.length) continue;
-    created.push(await clients.create(r.client));
+    const c = await clients.create(r.client);
+    await access.ensureCode(c.id);
+    created.push(c);
   }
   await audit.record(req, 'clients_importes', { detail: { crees: created.length, ignores: result.rejected } });
   res.status(201).json({ created: created.length, rejected: result.rejected });
@@ -131,8 +134,9 @@ router.post('/admin/clients/import', requireTeam, bigJson, wrap(async (req, res)
 /* ------------------------------------------------------------------ Fiche client */
 
 router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
-  const c = await clients.get(req.params.id);
+  let c = await clients.get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Client introuvable' });
+  if (!access.readableCode(c)) { await access.ensureCode(c.id); c = await clients.get(c.id); }
   const videos = await clients.listAllVideos(c.id);
   const [emails, contents, montage, publications] = await Promise.all([
     db.query(
@@ -284,14 +288,11 @@ router.post('/admin/clients/:id/access/send', requireTeam, wrap(async (req, res)
   }
 }));
 
-/** Crée un lien à transmettre soi-même (affiché une seule fois). */
-router.post('/admin/clients/:id/access/link', requireTeam, wrap(async (req, res) => {
-  const c = await clients.get(req.params.id);
+router.post('/admin/clients/:id/access/restore', requireTeam, wrap(async (req, res) => {
+  const c = await access.restore(req.params.id);
   if (!c) return res.status(404).json({ error: 'Client introuvable' });
-  if (!config.clientSiteUrl) return res.status(503).json({ error: 'Adresse de l’espace client non configurée (CLIENT_SITE_URL).' });
-  const r = await access.issue(c.id, 'manuel');
-  await audit.record(req, 'acces_lien_cree', { targetType: 'client', targetId: c.id });
-  res.json({ client: await fresh(c.id), code: r.code });
+  await audit.record(req, 'acces_retabli', { targetType: 'client', targetId: c.id });
+  res.json({ client: await fresh(c.id) });
 }));
 
 router.post('/admin/clients/:id/access/revoke', requireTeam, wrap(async (req, res) => {
