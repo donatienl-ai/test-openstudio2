@@ -16,20 +16,26 @@ module.exports = {
   programmes: {
     // logoKey : logo blanc sur fond transparent, déposé dans le stockage (provisoire pour les tests ;
     // les fichiers définitifs remplaceront ces clés).
+    bfm: {
+      title: 'BFM TV',
+      logoKey: 'uploads/2026-11-13/9f2cebeb-fb15-4ea6-b0ea-dbdb98ed6cad/logo.png', // « BFM TV »
+      sourceLang: 'fr',
+    },
     'bfm-business': {
       title: 'BFM Business',
       logoKey: 'uploads/2026-11-13/862b4d8d-b428-446b-bf5f-717af5fc66a5/logo.png', // « BFM Business Partenaire »
-      sourceLang: 'fr',
-    },
-    bfm: {
-      title: 'BFM',
-      logoKey: 'uploads/2026-11-13/9f2cebeb-fb15-4ea6-b0ea-dbdb98ed6cad/logo.png', // « BFM TV »
       sourceLang: 'fr',
     },
     // Anciennement « immersion » : les vidéos déjà enregistrées sont migrées au démarrage (db.migrate).
     capital: {
       title: 'Capital',
       logoKey: 'uploads/2026-11-13/bfdb2744-dba4-489c-aa7e-5b5a8268639c/logo.png',
+      sourceLang: 'fr',
+    },
+    // Logo à fournir par l'équipe communication : en attendant, les vidéos sortent sans logo d'émission.
+    'le-figaro': {
+      title: 'Le Figaro',
+      logoKey: null,
       sourceLang: 'fr',
     },
   },

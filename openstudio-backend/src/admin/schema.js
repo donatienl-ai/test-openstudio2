@@ -69,4 +69,25 @@ UPDATE clients SET access_token_hash = encode(sha256(convert_to(access_token, 'U
   WHERE access_token_hash IS NULL AND access_token IS NOT NULL AND access_revoked_at IS NULL;
 CREATE INDEX IF NOT EXISTS clients_access_due ON clients (broadcast_date)
   WHERE access_email_sent_at IS NULL AND access_revoked_at IS NULL;
+
+-- Consentement aux campagnes marketing (NULL : non renseigné)
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS marketing_optin BOOLEAN;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS marketing_optin_at TIMESTAMPTZ;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS marketing_optin_source TEXT;
+
+-- E-mails envoyés à chaque client (suivi sur la fiche)
+CREATE TABLE IF NOT EXISTS client_emails (
+  id             BIGSERIAL PRIMARY KEY,
+  client_id      UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  kind           TEXT NOT NULL,                 -- acces (lien d'accès) ; d'autres types viendront
+  to_email       TEXT NOT NULL,
+  redirected_to  TEXT,                          -- mode test : adresse qui l'a réellement reçu
+  subject        TEXT,
+  status         TEXT NOT NULL,                 -- envoye | echec
+  provider_id    TEXT,                          -- identifiant Mailjet
+  error          TEXT,
+  automatic      BOOLEAN NOT NULL DEFAULT false,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS client_emails_client ON client_emails (client_id, created_at DESC);
 `;

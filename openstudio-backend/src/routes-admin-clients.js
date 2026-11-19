@@ -34,8 +34,19 @@ function publicClient(c) {
     logoKey: c.logo_key,
     createdAt: c.created_at,
     videos: c.videos === undefined ? undefined : Number(c.videos),
+    triggerDate: c.trigger_date !== undefined ? access.isoDay(c.trigger_date) : undefined,
+    marketing: {
+      optin: c.marketing_optin === undefined ? null : c.marketing_optin,
+      at: c.marketing_optin_at || null,
+      source: c.marketing_optin_source || null,
+    },
     access: access.accessStatus(c),
   };
+}
+
+/** Fiche à jour, avec le nombre de vidéos et la date qui déclenche l'envoi du lien. */
+async function fresh(id) {
+  return publicClient(await access.withAccessInfo(await clients.get(id)));
 }
 
 function mailState() {
@@ -56,7 +67,12 @@ function readFields(body, { creating }) {
     email: body.email === undefined ? undefined : (clean(body.email, 200) || '').toLowerCase() || null,
     packageLabel: clean(body.packageLabel, 200),
     notes: clean(body.notes, 2000),
+    marketingOptinSource: clean(body.marketingOptinSource, 200),
   };
+  if (body.marketingOptin !== undefined) {
+    const v = body.marketingOptin;
+    f.marketingOptin = v === true || v === 'oui' ? true : v === false || v === 'non' ? false : null;
+  }
   if (body.broadcastDate !== undefined) {
     const d = importer.parseDate(body.broadcastDate);
     if (d === false) return { error: 'Date de diffusion illisible (format attendu : JJ/MM/AAAA).' };
@@ -87,7 +103,7 @@ router.post('/admin/clients', requireTeam, json, wrap(async (req, res) => {
   if (await emailTaken(fields.email)) return res.status(409).json({ error: 'Un client existe déjà avec cette adresse e-mail.' });
   const c = await clients.create(fields);
   await audit.record(req, 'client_cree', { targetType: 'client', targetId: c.id, detail: { name: c.name, company: c.company } });
-  res.status(201).json({ client: publicClient(c) });
+  res.status(201).json({ client: await fresh(c.id) });
 }));
 
 /* ------------------------------------------------------------------ Import CSV */
@@ -120,14 +136,36 @@ router.post('/admin/clients/import', requireTeam, bigJson, wrap(async (req, res)
 router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
   const c = await clients.get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Client introuvable' });
-  const videos = await clients.listVideos(c.id);
+  const videos = await clients.listAllVideos(c.id);
+  const [emails, contents, montage, publications] = await Promise.all([
+    db.query(
+      `SELECT id, kind, to_email, redirected_to, subject, status, error, automatic, created_at
+       FROM client_emails WHERE client_id = $1 ORDER BY created_at DESC LIMIT 100`, [c.id]),
+    db.query(
+      `SELECT o.id, o.type, o.status, o.options->>'programmeId' AS programme_id, o.estimated_credits, o.error,
+              o.created_at, o.ready_at,
+              (SELECT COUNT(*)::int FROM deliverables d WHERE d.order_id = o.id) AS files
+       FROM orders o WHERE o.client_id = $1 ORDER BY o.created_at DESC LIMIT 100`, [c.id]),
+    db.query(
+      `SELECT id, offer_title, status, amount_ttc_cents, paid_at, created_at
+       FROM montage_requests WHERE client_id = $1 ORDER BY created_at DESC LIMIT 100`, [c.id]),
+    db.query(
+      `SELECT id, video_title, platforms, status, scheduled_at, created_at
+       FROM publications WHERE client_id = $1 ORDER BY created_at DESC LIMIT 100`, [c.id]),
+  ]);
+  const programmeTitle = (id) => (mapping.programmes[id] || {}).title || id;
   res.json({
-    client: { ...publicClient(c), videos: videos.length },
+    client: await fresh(c.id),
+    emails: emails.rows,
+    contents: contents.rows.map((o) => ({ ...o, programme: o.programme_id ? programmeTitle(o.programme_id) : null })),
+    payments: montage.rows,
+    publications: publications.rows,
     videos: videos.map((v) => ({
       id: v.id,
+      active: v.active,
       title: v.title,
       programmeId: v.programme_id,
-      programmeTitle: (mapping.programmes[v.programme_id] || {}).title || v.programme_id,
+      programmeTitle: programmeTitle(v.programme_id),
       broadcastDate: access.isoDay(v.broadcast_date),
       durationSec: v.duration_sec,
       createdAt: v.created_at,
@@ -151,12 +189,15 @@ router.post('/admin/clients/:id', requireTeam, json, wrap(async (req, res) => {
   if (req.body && req.body.sector !== undefined) fields.sector = clean(req.body.sector, 200);
   const changed = Object.keys(fields).filter((k) => String(fields[k] ?? '') !== String(
     { name: current.name, company: current.company, email: current.email, packageLabel: current.package_label, notes: current.notes,
-      broadcastDate: access.isoDay(current.broadcast_date), logoKey: current.logo_key, sector: current.sector }[k] ?? ''
+      broadcastDate: access.isoDay(current.broadcast_date), logoKey: current.logo_key, sector: current.sector,
+      marketingOptin: current.marketing_optin, marketingOptinSource: current.marketing_optin_source }[k] ?? ''
   ));
-  if (!changed.length) return res.json({ client: publicClient(current) });
+  if (!changed.length) return res.json({ client: await fresh(current.id) });
   const c = await clients.update(current.id, Object.fromEntries(changed.map((k) => [k, fields[k]])));
-  await audit.record(req, 'client_modifie', { targetType: 'client', targetId: c.id, detail: { champs: changed } });
-  res.json({ client: publicClient(c) });
+  const detail = { champs: changed };
+  if (changed.includes('marketingOptin')) detail.marketing = fields.marketingOptin === true ? 'oui' : fields.marketingOptin === false ? 'non' : 'non renseigné';
+  await audit.record(req, 'client_modifie', { targetType: 'client', targetId: c.id, detail });
+  res.json({ client: await fresh(c.id) });
 }));
 
 /* ------------------------------------------------------------------ Lien d'accès */
@@ -169,7 +210,7 @@ router.post('/admin/clients/:id/access/send', requireTeam, wrap(async (req, res)
   if (!config.clientSiteUrl) return res.status(503).json({ error: 'Adresse de l’espace client non configurée (CLIENT_SITE_URL).' });
   try {
     const r = await access.sendByEmail(c, { req });
-    res.json({ client: publicClient(r.client), redirectedTo: r.redirectedTo || null });
+    res.json({ client: await fresh(c.id), redirectedTo: r.redirectedTo || null });
   } catch (e) {
     res.status(502).json({ error: `L’e-mail n’est pas parti : ${e.message}` });
   }
@@ -182,14 +223,14 @@ router.post('/admin/clients/:id/access/link', requireTeam, wrap(async (req, res)
   if (!config.clientSiteUrl) return res.status(503).json({ error: 'Adresse de l’espace client non configurée (CLIENT_SITE_URL).' });
   const r = await access.issue(c.id, 'manuel');
   await audit.record(req, 'acces_lien_cree', { targetType: 'client', targetId: c.id });
-  res.json({ client: publicClient(r.client), link: r.link });
+  res.json({ client: await fresh(c.id), link: r.link });
 }));
 
 router.post('/admin/clients/:id/access/revoke', requireTeam, wrap(async (req, res) => {
   const c = await access.revoke(req.params.id);
   if (!c) return res.status(404).json({ error: 'Client introuvable' });
   await audit.record(req, 'acces_coupe', { targetType: 'client', targetId: c.id });
-  res.json({ client: publicClient(c) });
+  res.json({ client: await fresh(c.id) });
 }));
 
 module.exports = router;

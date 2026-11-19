@@ -2,7 +2,7 @@
 /**
  * Import de clients depuis un fichier CSV (export Excel ou Google Sheets, séparateur ; ou ,).
  * Colonnes reconnues (l'ordre n'a pas d'importance, majuscules et accents indifférents) :
- *   nom | entreprise | email | date de diffusion | package | notes
+ *   nom | entreprise | email | date de diffusion | package | notes | marketing (oui / non)
  */
 
 const HEADERS = {
@@ -12,7 +12,17 @@ const HEADERS = {
   broadcastDate: ['date de diffusion', 'date diffusion', 'date_diffusion', 'diffusion', 'date'],
   packageLabel: ['package', 'formule', 'offre', 'pack'],
   notes: ['notes', 'note', 'commentaire', 'commentaires', 'remarques'],
+  marketing: ['marketing', 'optin', 'opt-in', 'consentement marketing', 'campagnes marketing', 'accepte marketing'],
 };
+
+/** « oui », « x », « 1 »… → true ; « non », « 0 »… → false ; vide → null ; autre → undefined (illisible). */
+function parseYesNo(v) {
+  const s = simplify(v);
+  if (!s) return null;
+  if (['oui', 'o', 'yes', 'y', 'x', '1', 'vrai', 'true', 'ok'].includes(s)) return true;
+  if (['non', 'n', 'no', '0', 'faux', 'false'].includes(s)) return false;
+  return undefined;
+}
 
 const MAX_ROWS = 500;
 
@@ -90,6 +100,8 @@ function analyse(text, { existingEmails = new Set() } = {}) {
     if (!name) problems.push('nom manquant');
     if (email && !isEmail(email)) problems.push('e-mail invalide');
     if (date === false) problems.push('date illisible (format attendu : JJ/MM/AAAA)');
+    const marketing = parseYesNo(get('marketing'));
+    if (marketing === undefined) problems.push('marketing : indiquez oui ou non');
     if (email && existingEmails.has(email)) problems.push('déjà présent dans le back-office');
     if (email && seen.has(email)) problems.push('en double dans le fichier');
     if (email) seen.add(email);
@@ -102,6 +114,8 @@ function analyse(text, { existingEmails = new Set() } = {}) {
         broadcastDate: date || null,
         packageLabel: get('packageLabel') || null,
         notes: get('notes') || null,
+        marketingOptin: marketing === undefined ? null : marketing,
+        marketingOptinSource: typeof marketing === 'boolean' ? 'Import CSV' : null,
       },
       warnings: [!email ? 'pas d’e-mail : le lien ne pourra pas partir automatiquement' : null, !date && date !== false ? 'pas de date de diffusion' : null].filter(Boolean),
       problems,
@@ -115,4 +129,4 @@ function analyse(text, { existingEmails = new Set() } = {}) {
   };
 }
 
-module.exports = { parseCsv, parseDate, analyse, MAX_ROWS };
+module.exports = { parseCsv, parseDate, parseYesNo, analyse, MAX_ROWS };
