@@ -12,6 +12,7 @@ const audit = require('./admin/audit');
 const access = require('./admin/client-access');
 const importer = require('./admin/client-import');
 const { requireTeam } = require('./admin/session');
+const mapping = require('./opusclip.config');
 
 const router = express.Router();
 const json = express.json({ limit: '50kb' });
@@ -122,7 +123,16 @@ router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
   const videos = await clients.listVideos(c.id);
   res.json({
     client: { ...publicClient(c), videos: videos.length },
-    videos: videos.map((v) => ({ id: v.id, title: v.title, programmeId: v.programme_id, broadcastDate: access.isoDay(v.broadcast_date) })),
+    videos: videos.map((v) => ({
+      id: v.id,
+      title: v.title,
+      programmeId: v.programme_id,
+      programmeTitle: (mapping.programmes[v.programme_id] || {}).title || v.programme_id,
+      broadcastDate: access.isoDay(v.broadcast_date),
+      durationSec: v.duration_sec,
+      createdAt: v.created_at,
+    })),
+    programmes: Object.entries(mapping.programmes).map(([id, p]) => ({ id, title: p.title })),
     history: await audit.list({ targetType: 'client', targetId: c.id, limit: 50 }),
     mail: mailState(),
   });

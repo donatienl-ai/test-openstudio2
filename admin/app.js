@@ -27,6 +27,7 @@
     clientLink: null,       // lien créé à la main, affiché une seule fois
     importPreview: null,
     importCsv: '',
+    upload: null,           // dépôt de vidéo en cours : { clientId, name, pct }
   };
 
   /* ------------------------------------------------------------ Outils */
@@ -413,9 +414,7 @@
     var hasAccess = a.code === 'sent' || a.code === 'manual';
     var link = S.clientLink && S.clientLink.id === c.id ? '<div class="linkbox"><input readonly value="' + esc(S.clientLink.url) + '" aria-label="Lien d’accès"><button class="btn secondary" type="button" data-a="copy-link">Copier</button></div>' +
       '<p class="small muted mt">Transmettez ce lien au client vous-même. Il ne sera plus affiché ensuite.</p>' : '';
-    var videos = d.videos.length ? '<table><tbody>' + d.videos.map(function (v) {
-      return '<tr><td>' + esc(v.title) + '</td><td class="small muted">' + esc(v.programmeId) + '</td><td class="small nowrap">' + esc(fmtDay(v.broadcastDate)) + '</td></tr>';
-    }).join('') + '</tbody></table>' : '<p class="muted small">Aucune vidéo pour le moment. L’ajout des vidéos depuis le back-office arrive avec le lot 3.</p>';
+    var videos = videoCard(d);
     var history = d.history.length ? '<table><tbody>' + d.history.map(function (e) {
       return '<tr><td class="small nowrap">' + esc(fmtDate(e.at)) + '</td><td class="small">' + esc(e.actor_label) + '</td><td class="small">' + esc(ACTIONS[e.action] || e.action) +
         (describe(e) ? ' <span class="muted">— ' + esc(describe(e)) + '</span>' : '') + '</td></tr>';
@@ -431,9 +430,78 @@
       '<button class="btn secondary" type="button" data-a="client-link"' + (S.busy ? ' disabled' : '') + '>Créer un lien à transmettre</button>' +
       (hasAccess ? '<button class="btn danger" type="button" data-a="client-revoke"' + (S.busy ? ' disabled' : '') + '>Couper l’accès</button>' : '') +
       '</div>' + link + '</div>' +
-      '<div class="card"><h2>Vidéos (' + esc(d.videos.length) + ')</h2>' + videos + '</div></div></div>' +
+      '</div></div>' + videos +
       '<div class="card"><h2>Historique</h2>' + history + '</div>';
   }
+
+  function fmtDuration(sec) {
+    if (!sec) return '';
+    var s = Math.round(sec);
+    return Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0');
+  }
+
+  function videoCard(d) {
+    var c = d.client;
+    var up = S.upload && S.upload.clientId === c.id ? S.upload : null;
+    var list = d.videos.length ? '<table><thead><tr><th>Vidéo</th><th>Émission</th><th>Diffusion</th><th>Durée</th><th></th></tr></thead><tbody>' + d.videos.map(function (v) {
+      return '<tr><td><b>' + esc(v.title) + '</b><br><span class="small muted">Ajoutée le ' + esc(fmtDate(v.createdAt)) + '</span></td><td class="small">' + esc(v.programmeTitle) +
+        '</td><td class="small nowrap">' + esc(fmtDay(v.broadcastDate)) + '</td><td class="small nowrap">' + esc(fmtDuration(v.durationSec) || '—') + '</td>' +
+        '<td class="actions"><button class="btn small secondary" type="button" data-a="video-preview" data-id="' + esc(v.id) + '">Voir</button>' +
+        '<button class="btn small danger" type="button" data-a="video-remove" data-id="' + esc(v.id) + '">Retirer</button></td></tr>';
+    }).join('') + '</tbody></table>' : '<p class="muted small">Aucune vidéo pour le moment : le client verra son espace vide.</p>';
+    var options = (d.programmes || []).map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.title) + '</option>'; }).join('');
+    var form = up
+      ? '<div class="upload"><p class="small"><b>Envoi de ' + esc(up.name) + '</b> — ne fermez pas cette page.</p>' +
+        '<div class="bar"><i id="upload-bar"></i></div><p class="small muted" id="upload-pct">' + up.pct + ' %</p></div>'
+      : '<form data-form="video-add" class="form-2 mt" novalidate>' +
+        '<label class="wide">Fichier vidéo <span class="muted">(MP4, MOV… telle que reçue de la chaîne)</span><input name="file" type="file" accept="video/*,.mp4,.mov,.m4v,.webm,.mkv" required></label>' +
+        '<label>Émission<select name="programmeId">' + options + '</select></label>' +
+        '<label>Date de diffusion<input name="broadcastDate" type="date" value="' + esc(c.broadcastDate || '') + '"></label>' +
+        '<label class="wide">Titre affiché au client <span class="muted">(facultatif : « Émission — date » par défaut)</span><input name="title" maxlength="200"></label>' +
+        '<div class="wide"><button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Déposer la vidéo</button></div></form>';
+    return '<div class="card"><h2>Vidéos du package (' + esc(d.videos.length) + ')</h2>' + list +
+      '<h2 class="mt">Ajouter une vidéo</h2>' + form + '</div>';
+  }
+
+  /** Durée de la vidéo lue dans le navigateur (sans l'envoyer), ou null. */
+  function videoDuration(file) {
+    return new Promise(function (resolve) {
+      var v = document.createElement('video');
+      var url = URL.createObjectURL(file);
+      var done = function (val) { URL.revokeObjectURL(url); resolve(val); };
+      var t = setTimeout(function () { done(null); }, 8000);
+      v.preload = 'metadata';
+      v.onloadedmetadata = function () { clearTimeout(t); done(isFinite(v.duration) ? v.duration : null); };
+      v.onerror = function () { clearTimeout(t); done(null); };
+      v.src = url;
+    });
+  }
+
+  /** Envoi direct navigateur → stockage, avec progression. */
+  function putFile(url, file, headers, onProgress) {
+    return new Promise(function (resolve, reject) {
+      var x = new XMLHttpRequest();
+      x.open('PUT', url);
+      Object.keys(headers || {}).forEach(function (k) { x.setRequestHeader(k, headers[k]); });
+      x.upload.onprogress = function (e) { if (e.lengthComputable) onProgress(Math.floor((e.loaded / e.total) * 100)); };
+      x.onload = function () { x.status >= 200 && x.status < 300 ? resolve() : reject(new Error('Le stockage a refusé le fichier (erreur ' + x.status + ').')); };
+      x.onerror = function () { reject(new Error('Envoi interrompu : vérifiez votre connexion. Si le problème persiste, la règle CORS du stockage n’autorise peut-être pas encore le back-office (redémarrez le serveur).')); };
+      x.send(file);
+    });
+  }
+
+  function setUploadPct(pct) {
+    if (!S.upload) return;
+    S.upload.pct = pct;
+    var bar = document.getElementById('upload-bar');
+    var txt = document.getElementById('upload-pct');
+    if (bar) bar.style.width = pct + '%';
+    if (txt) txt.textContent = pct + ' %';
+  }
+
+  window.addEventListener('beforeunload', function (e) {
+    if (S.upload) { e.preventDefault(); e.returnValue = ''; }
+  });
 
   function pageClientImport() {
     var p = S.importPreview;
@@ -492,7 +560,7 @@
   function snapshotFields() {
     var saved = {};
     app.querySelectorAll('form[data-form] input[name], form[data-form] select[name]').forEach(function (el) {
-      if (el.type === 'password' || el.classList.contains('code')) return;
+      if (el.type === 'password' || el.type === 'file' || el.classList.contains('code')) return;
       saved[el.form.dataset.form + '|' + el.name] = el.value;
     });
     return saved;
@@ -500,7 +568,7 @@
   function restoreFields(saved) {
     app.querySelectorAll('form[data-form] input[name], form[data-form] select[name]').forEach(function (el) {
       var k = el.form.dataset.form + '|' + el.name;
-      if (Object.prototype.hasOwnProperty.call(saved, k)) el.value = saved[k];
+      if (el.type !== 'file' && Object.prototype.hasOwnProperty.call(saved, k)) el.value = saved[k];
     });
   }
 
@@ -514,6 +582,8 @@
       : S.view === 'error' ? '<div class="auth"><div class="auth-card">' + brand() + errorBox() + '<p class="mt"><a href="./">Revenir à la connexion</a></p></div></div>'
         : views[S.view]();
     restoreFields(saved);
+    var bar = document.getElementById('upload-bar');
+    if (bar) bar.style.width = (S.upload ? S.upload.pct : 0) + '%';
     if (focus) {
       var el = app.querySelector('form[data-form="' + focus.form + '"] [name="' + focus.name + '"]');
       if (el) { el.focus(); if (focus.pos !== null && el.setSelectionRange && el.type !== 'email' && el.type !== 'date') { try { el.setSelectionRange(focus.pos, focus.pos); } catch (e) { /* type sans curseur */ } } }
@@ -617,6 +687,37 @@
         return loadClients();
       });
     },
+    'video-add': function (f) {
+      var file = f.file.files && f.file.files[0];
+      if (!file) return Promise.reject(new Error('Choisissez le fichier vidéo.'));
+      var c = S.client.client;
+      var programmeId = f.programmeId.value;
+      var programme = (S.client.programmes || []).filter(function (p) { return p.id === programmeId; })[0];
+      var date = f.broadcastDate.value;
+      var title = f.title.value.trim() || ((programme ? programme.title : 'Émission') + (date ? ' — ' + fmtDay(date) : ''));
+      var key;
+      var duration;
+      return videoDuration(file).then(function (sec) {
+        duration = sec;
+        return api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/videos/upload', { fileName: file.name, contentType: file.type || 'video/mp4' });
+      }).then(function (u) {
+        key = u.key;
+        S.upload = { clientId: c.id, name: file.name, pct: 0 };
+        render();
+        return putFile(u.uploadUrl, file, u.headers, setUploadPct);
+      }).then(function () {
+        return api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/videos', {
+          programmeId: programmeId, title: title, sourceKey: key, broadcastDate: date || null, durationSec: duration,
+        });
+      }).then(function () {
+        S.upload = null;
+        toast('Vidéo ajoutée : le client la voit dans son espace');
+        return loadClients();
+      }, function (e) {
+        S.upload = null;
+        throw e;
+      });
+    },
     'import-preview': function (f) {
       return readFileText(f.file).then(function (fromFile) {
         var csv = fromFile !== null ? fromFile : f.csv.value;
@@ -713,6 +814,20 @@
       withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/access/revoke').then(function () {
         S.clientLink = null;
         toast('Accès coupé');
+        return loadClients();
+      }));
+    },
+    'video-preview': function (id) {
+      var w = window.open('', '_blank');
+      api('GET', '/admin/clients/' + encodeURIComponent(S.client.client.id) + '/videos/' + encodeURIComponent(id) + '/preview')
+        .then(function (d) { if (w) w.location = d.url; else window.location.href = d.url; })
+        .catch(function (e) { if (w) w.close(); S.error = e.message; render(); });
+    },
+    'video-remove': function (id) {
+      var v = S.client.videos.filter(function (x) { return x.id === id; })[0];
+      if (!v || !window.confirm('Retirer « ' + v.title + ' » de l’espace du client ? Il ne la verra plus (le fichier est conservé).')) return;
+      withBusy(api('POST', '/admin/clients/' + encodeURIComponent(S.client.client.id) + '/videos/' + encodeURIComponent(id) + '/disable').then(function () {
+        toast('Vidéo retirée');
         return loadClients();
       }));
     },
