@@ -9,7 +9,8 @@
  *     · diffusions suivantes : « votre nouvelle émission est en ligne » (même code, pas de nouveaux crédits).
  * - Une diffusion du jour incomplète (vidéo ou e-mail manquant) ne part pas : l'équipe reçoit une alerte. Si la
  *   vidéo arrive en retard, le mail part dès qu'elle est là (jusqu'à 7 jours après la date).
- * - À J-2 et J-1, l'équipe reçoit une alerte pour les diffusions encore incomplètes (une fois par diffusion).
+ * - À J-2 (avancé au vendredi si J-2 tombe un week-end : J-3 pour une diffusion du lundi), l'équipe reçoit une
+ *   alerte pour les diffusions encore incomplètes (une fois par diffusion), puis une autre le jour J si rien n'a bougé.
  * - Jamais deux fois le même mail : la diffusion est réservée avant l'envoi et marquée envoyée après.
  */
 const db = require('./db');
@@ -35,7 +36,7 @@ async function loadDiffusions(today) {
             EXISTS (SELECT 1 FROM diffusions o WHERE o.client_id = d.client_id AND o.mail_sent_at IS NOT NULL) AS client_mailed
      FROM diffusions d JOIN clients c ON c.id = d.client_id
      WHERE d.state = 'active' AND d.mail_sent_at IS NULL
-       AND d.date_diffusion BETWEEN $1::date - ${CATCH_UP_DAYS} AND $1::date + 2
+       AND d.date_diffusion BETWEEN $1::date - ${CATCH_UP_DAYS} AND $1::date + 5  -- + 5 : alerte du vendredi pour un mardi
      ORDER BY d.date_diffusion ASC, d.created_at ASC`,
     [today]
   );
@@ -141,7 +142,7 @@ async function tick({ force = false, now = new Date() } = {}) {
       intro: 'Ces clients sont diffusés aujourd’hui mais ne peuvent pas recevoir leur mail d’accès. Il part automatiquement dès que l’élément manquant est ajouté.',
     });
     const alertedJ2 = await alertTeam(plan.upcoming, {
-      titre: 'Diffusions des 2 prochains jours incomplètes', column: 'alert_j2_on', today,
+      titre: 'Diffusions à venir incomplètes', column: 'alert_j2_on', today,
       intro: 'Il manque encore un élément pour que ces clients reçoivent leur accès le jour de leur diffusion.',
     });
     lastResult = { ok: true, at: new Date().toISOString(), today, hour, sent, alertedDayJ, alertedJ2 };

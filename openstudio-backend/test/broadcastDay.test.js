@@ -50,10 +50,21 @@ test('vidéo arrivée en retard : le mail part encore jusqu’à 7 jours après'
   assert.equal(plan([d({ dateDiffusion: '2026-11-25' })]).toSend.length, 0);
 });
 
-test('J-2 et J-1 incomplets : alerte équipe ; J-3 : rien encore', () => {
+test('alerte à J-2, avancée au vendredi si J-2 tombe un week-end', () => {
+  assert.equal(rules.alertDayFor('2026-12-03'), '2026-12-01'); // jeudi → mardi (J-2)
+  assert.equal(rules.alertDayFor('2026-12-07'), '2026-12-04'); // lundi → vendredi (J-3)
+  assert.equal(rules.alertDayFor('2026-12-08'), '2026-12-04'); // mardi → vendredi (J-4)
+  assert.equal(rules.alertDayFor('2026-12-06'), '2026-12-04'); // dimanche → vendredi (J-2)
+});
+
+test('diffusions à venir incomplètes : alerte le bon jour, une seule fois', () => {
+  // Jeudi 3 : la diffusion de samedi 5 (J-2) est signalée, celle de dimanche 6 pas encore
   const p = plan([d({ id: 'a', dateDiffusion: '2026-12-05', videoId: null }), d({ id: 'b', dateDiffusion: '2026-12-04', clientEmail: null }), d({ id: 'c', dateDiffusion: '2026-12-06', videoId: null })]);
   assert.deepEqual(p.upcoming.map((x) => x.id), ['a', 'b']);
   assert.equal(p.toSend.length, 0);
+  // Vendredi 4 : la diffusion du lundi 7 (J-3) est signalée
+  const ven = rules.planDay([d({ id: 'lundi', dateDiffusion: '2026-12-07', videoId: null })], { today: '2026-12-04', hour: 9 });
+  assert.deepEqual(ven.upcoming.map((x) => x.id), ['lundi']);
   assert.equal(plan([d({ dateDiffusion: '2026-12-05', videoId: null, alertJ2On: '2026-12-03' })]).upcoming.length, 0);
 });
 

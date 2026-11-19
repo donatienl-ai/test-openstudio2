@@ -20,6 +20,19 @@ function parisParts(now = new Date()) {
  */
 const recipientOf = (d) => d.clientEmail || d.contactEmail || null;
 
+/**
+ * Jour de l'alerte « diffusion incomplète » : J-2, avancé au vendredi s'il tombe un week-end
+ * (diffusion du lundi → alerte le vendredi, J-3 ; du mardi → vendredi aussi, J-4).
+ */
+function alertDayFor(dateDiffusion) {
+  let day = tpl.addDays(dateDiffusion, -2);
+  for (;;) {
+    const wd = new Date(`${day}T12:00:00Z`).getUTCDay(); // 0 = dimanche, 6 = samedi
+    if (wd !== 0 && wd !== 6) return day;
+    day = tpl.addDays(day, -1);
+  }
+}
+
 function missingOf(d) {
   const m = [];
   if (!d.videoId) m.push('vidéo');
@@ -37,14 +50,13 @@ function planDay(diffusions, { today, hour, sendHour = 8 }) {
   const upcoming = [];
   const sendingClients = new Set();
   const minDay = tpl.addDays(today, -CATCH_UP_DAYS);
-  const j2 = tpl.addDays(today, 2);
   const inWindow = hour >= sendHour && hour < SEND_UNTIL_HOUR;
 
   for (const d of diffusions) {
     if (d.state !== 'active' || !d.dateDiffusion || d.mailSentAt) continue;
     const missing = missingOf(d);
     if (d.dateDiffusion > today) {
-      if (d.dateDiffusion <= j2 && missing && !d.alertJ2On) upcoming.push({ ...d, missing });
+      if (missing && !d.alertJ2On && today >= alertDayFor(d.dateDiffusion)) upcoming.push({ ...d, missing });
       continue;
     }
     if (d.dateDiffusion < minDay) continue; // trop ancien : plus de mail automatique
@@ -59,4 +71,4 @@ function planDay(diffusions, { today, hour, sendHour = 8 }) {
   return { toSend, blocked, upcoming };
 }
 
-module.exports = { CATCH_UP_DAYS, SEND_UNTIL_HOUR, parisParts, recipientOf, missingOf, planDay };
+module.exports = { CATCH_UP_DAYS, SEND_UNTIL_HOUR, parisParts, recipientOf, missingOf, alertDayFor, planDay };

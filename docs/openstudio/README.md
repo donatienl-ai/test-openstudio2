@@ -132,7 +132,7 @@ Toutes les 10 minutes, OpenStudio regarde les diffusions actives (`src/broadcast
 | Jour J, vidéo + e-mail présents, à partir de `MAIL_SEND_HOUR` (8 h, Paris) | **Premier mail** du client : code de connexion, arguments, crédits valables 30 jours (la vidéo n'est pas dans le mail : le client la trouve dans son espace). Le code n'est ensuite plus lisible par l'équipe (un nouveau peut être généré). |
 | Client déjà prévenu pour une diffusion précédente | Mail « votre nouvelle émission est en ligne » (même code, pas de nouveaux crédits) |
 | Jour J incomplet (vidéo ou e-mail manquant) | Pas de mail ; alerte à `TEAM_ALERT_EMAIL`. Le mail part dès que l'élément arrive (jusqu'à 7 jours après la date). |
-| J-2 / J-1 incomplet | Alerte à l'équipe, une fois par diffusion |
+| J-2 incomplet (avancé au vendredi si J-2 tombe un week-end : J-3 pour un lundi) | Alerte à l'équipe, une fois par diffusion |
 
 Destinataire : toujours l'e-mail du client (rempli depuis le signataire du BDC ou le contact Salesforce, corrigeable par l'équipe).
 Pas de mail client avant 8 h ni après 20 h. Une diffusion n'est jamais envoyée deux fois (réservation avant envoi).
