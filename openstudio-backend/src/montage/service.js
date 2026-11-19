@@ -110,6 +110,16 @@ async function handleStripeWebhook(rawBody, signatureHeader) {
   if (!requestId) return { status: 200, ignored: true };
   if (event.type === 'checkout.session.completed' && s.payment_status === 'paid') await markPaid(requestId, s.payment_intent || null);
   if (event.type === 'checkout.session.async_payment_succeeded') await markPaid(requestId, s.payment_intent || null);
+  if (event.type === 'payment_intent.payment_failed') {
+    const err = s.last_payment_error || {};
+    const reason = err.message || err.decline_code || err.code || 'Paiement refusé';
+    await db.query(
+      `UPDATE montage_requests SET last_payment_error = $2, payment_failed_at = now(),
+         payment_failures = payment_failures + 1, updated_at = now()
+       WHERE id = $1 AND status <> 'paid'`,
+      [requestId, String(reason).slice(0, 300)]
+    );
+  }
   if (event.type === 'checkout.session.expired') {
     await db.query("UPDATE montage_requests SET status = 'cancelled', updated_at = now() WHERE id = $1 AND status = 'awaiting_payment'", [requestId]);
   }

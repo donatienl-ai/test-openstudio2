@@ -144,7 +144,8 @@ router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
               (SELECT COUNT(*)::int FROM deliverables d WHERE d.order_id = o.id) AS files
        FROM orders o WHERE o.client_id = $1 ORDER BY o.created_at DESC LIMIT 100`, [c.id]),
     db.query(
-      `SELECT id, offer_title, status, amount_ttc_cents, paid_at, created_at, stripe_session_id IS NOT NULL AS has_invoice
+      `SELECT id, offer_title, status, amount_ttc_cents, paid_at, created_at, stripe_session_id IS NOT NULL AS has_invoice,
+              last_payment_error, payment_failed_at, payment_failures
        FROM montage_requests WHERE client_id = $1 ORDER BY created_at DESC LIMIT 100`, [c.id]),
     db.query(
       `SELECT id, video_title, platforms, status, scheduled_at, created_at
@@ -192,6 +193,56 @@ router.post('/admin/clients/:id', requireTeam, json, wrap(async (req, res) => {
   const c = await clients.update(current.id, Object.fromEntries(changed.map((k) => [k, fields[k]])));
   await audit.record(req, 'client_modifie', { targetType: 'client', targetId: c.id, detail: { champs: changed } });
   res.json({ client: await fresh(c.id) });
+}));
+
+/* ------------------------------------------------------------------ Tableau de bord (accueil) */
+
+router.get('/admin/dashboard', requireTeam, wrap(async (req, res) => {
+  const today = "(now() AT TIME ZONE 'Europe/Paris')::date";
+  const [pay, failures, orphans, acc, series, mails] = await Promise.all([
+    db.query(
+      `SELECT COUNT(*) FILTER (WHERE status = 'paid' AND paid_at > now() - interval '30 days')::int AS paid,
+              COALESCE(SUM(amount_ttc_cents) FILTER (WHERE status = 'paid' AND paid_at > now() - interval '30 days'), 0)::int AS paid_cents,
+              COUNT(*) FILTER (WHERE status = 'awaiting_payment')::int AS awaiting,
+              COUNT(*) FILTER (WHERE status = 'to_quote')::int AS to_quote,
+              COUNT(*) FILTER (WHERE status <> 'paid' AND payment_failed_at > now() - interval '30 days')::int AS failed
+       FROM montage_requests`),
+    db.query(
+      `SELECT m.id, m.offer_title, m.last_payment_error, m.payment_failed_at, m.payment_failures, m.status,
+              m.contact->>'company' AS company, c.id AS client_id, c.name AS client_name
+       FROM montage_requests m LEFT JOIN clients c ON c.id = m.client_id
+       WHERE m.status <> 'paid' AND m.payment_failed_at > now() - interval '30 days'
+       ORDER BY m.payment_failed_at DESC LIMIT 20`),
+    db.query("SELECT COUNT(*)::int AS n FROM montage_requests WHERE client_id IS NULL AND status = 'paid'"),
+    db.query(
+      `SELECT COUNT(*) FILTER (WHERE access_token_hash IS NOT NULL AND access_revoked_at IS NULL)::int AS active,
+              COUNT(*)::int AS total,
+              COUNT(*) FILTER (WHERE first_seen_at IS NOT NULL)::int AS ever_connected
+       FROM clients`),
+    db.query(
+      `SELECT d.day::date AS day,
+              COUNT(v.client_id)::int AS connected,
+              COUNT(v.client_id) FILTER (WHERE EXISTS (
+                SELECT 1 FROM client_visits p WHERE p.client_id = v.client_id AND p.day < v.day))::int AS returning
+       FROM generate_series(${today} - 6, ${today}, interval '1 day') AS d(day)
+       LEFT JOIN client_visits v ON v.day = d.day::date
+       GROUP BY d.day ORDER BY d.day`),
+    db.query("SELECT COUNT(*)::int AS n FROM client_emails WHERE status = 'echec' AND created_at > now() - interval '7 days'"),
+  ]);
+  const days = series.rows.map((r) => ({ day: access.isoDay(r.day), connected: r.connected, returning: r.returning }));
+  const todayRow = days[days.length - 1] || { connected: 0, returning: 0 };
+  res.json({
+    payments: { ...pay.rows[0], unattached: orphans.rows[0].n, failures: failures.rows },
+    accounts: {
+      active: acc.rows[0].active,
+      total: acc.rows[0].total,
+      everConnected: acc.rows[0].ever_connected,
+      connectedToday: todayRow.connected,
+      returningToday: todayRow.returning,
+      days,
+    },
+    accessEmailFailures7d: mails.rows[0].n,
+  });
 }));
 
 /* ------------------------------------------------------------------ Factures */

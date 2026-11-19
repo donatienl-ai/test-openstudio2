@@ -90,4 +90,22 @@ CREATE TABLE IF NOT EXISTS client_emails (
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS client_emails_client ON client_emails (client_id, created_at DESC);
+
+-- Paiements en échec (carte refusée…) : dernière raison donnée par Stripe
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS last_payment_error TEXT;
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS payment_failed_at TIMESTAMPTZ;
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS payment_failures INTEGER NOT NULL DEFAULT 0;
+
+-- Venues des clients dans leur espace (un enregistrement par client et par jour, heure de Paris)
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS first_seen_at TIMESTAMPTZ;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
+CREATE TABLE IF NOT EXISTS client_visits (
+  client_id  UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  day        DATE NOT NULL,
+  first_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  hits       INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (client_id, day)
+);
+CREATE INDEX IF NOT EXISTS client_visits_day ON client_visits (day);
 `;

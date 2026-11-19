@@ -47,7 +47,9 @@ async function fromRequest(req) {
   if (!id || !token) return null;
   const client = await get(id);
   if (!client || client.access_revoked_at || !client.access_token_hash) return null;
-  return tokensMatch(client.access_token_hash, sha256(token)) ? client : null;
+  if (!tokensMatch(client.access_token_hash, sha256(token))) return null;
+  recordVisit(client.id);
+  return client;
 }
 
 async function findByName(name) {
@@ -134,4 +136,29 @@ async function getVideo(clientId, videoId) {
   return rows[0] || null;
 }
 
-module.exports = { create, get, findByName, fromRequest, update, list, addVideo, setVideoActive, listVideos, listAllVideos, getVideo, sha256 };
+/** Client dont l'e-mail correspond, s'il n'y en a qu'un (sinon null). */
+async function findByEmail(email) {
+  const mail = String(email || '').trim().toLowerCase();
+  if (!mail || !mail.includes('@')) return null;
+  const { rows } = await db.query('SELECT * FROM clients WHERE lower(email) = $1 LIMIT 2', [mail]);
+  return rows.length === 1 ? rows[0] : null;
+}
+
+const lastVisitWrite = new Map();
+/** Note la venue du client dans son espace (jour de Paris). Sans effet sur la requête en cas d'erreur. */
+function recordVisit(clientId, { now = Date.now(), force = false } = {}) {
+  const last = lastVisitWrite.get(clientId) || 0;
+  if (!force && now - last < 10 * 60 * 1000) return Promise.resolve(false);
+  lastVisitWrite.set(clientId, now);
+  return db.query(
+    `WITH v AS (
+       INSERT INTO client_visits (client_id, day) VALUES ($1, (now() AT TIME ZONE 'Europe/Paris')::date)
+       ON CONFLICT (client_id, day) DO UPDATE SET last_at = now(), hits = client_visits.hits + 1
+       RETURNING client_id)
+     UPDATE clients SET last_seen_at = now(), first_seen_at = COALESCE(first_seen_at, now())
+     WHERE id = (SELECT client_id FROM v)`,
+    [clientId]
+  ).then(() => true, (e) => { console.error('[visites]', e.message); return false; });
+}
+
+module.exports = { recordVisit, findByEmail, create, get, findByName, fromRequest, update, list, addVideo, setVideoActive, listVideos, listAllVideos, getVideo, sha256 };
