@@ -252,7 +252,7 @@
 
   var FIELD_NAMES = {
     name: 'nom', company: 'entreprise', email: 'e-mail', broadcastDate: 'date de diffusion', packageLabel: 'package',
-    notes: 'notes', logoKey: 'logo', sector: 'secteur',
+    notes: 'notes', logoKey: 'logo', sector: 'secteur', marketingOptin: 'consentement marketing', marketingOptinSource: 'origine du consentement',
   };
 
   function describe(e) {
@@ -261,7 +261,7 @@
     if (d.email) return d.email + (d.role ? ' (' + (d.role === 'super_admin' ? 'super admin' : 'admin') + ')' : '') + (d.motif ? ' — ' + d.motif : '');
     if (d.name) return d.name;
     if (d.title) return d.title;
-    if (d.champs) return 'Modifié : ' + d.champs.map(function (k) { return FIELD_NAMES[k] || k; }).join(', ');
+    if (d.champs) return 'Modifié : ' + d.champs.map(function (k) { return FIELD_NAMES[k] || k; }).join(', ') + (d.marketing ? ' (marketing : ' + d.marketing + ')' : '');
     if (d.crees !== undefined) return d.crees + ' créé(s), ' + d.ignores + ' ignoré(s)';
     if (d.erreur && d.email) return d.email + ' — ' + d.erreur;
     if (d.erreur) return 'Erreur : ' + d.erreur;
@@ -294,13 +294,14 @@
   }
 
   var ACCESS_TAG = {
-    scheduled: 'wait', sent: 'ok', manual: 'info', failed: 'err', revoked: 'off', no_email: 'wait', no_date: 'wait',
+    scheduled: 'wait', sent: 'ok', manual: 'info', failed: 'err', revoked: 'off', no_email: 'wait', no_date: 'wait', no_video: 'wait',
   };
   var ACCESS_FILTERS = [
     ['', 'Tous les accès'],
     ['scheduled', 'Envoi programmé'],
     ['sent', 'Lien envoyé'],
     ['manual', 'Lien remis à la main'],
+    ['no_video', 'En attente de la vidéo'],
     ['todo', 'À compléter (e-mail ou date)'],
     ['failed', 'Échec d’envoi'],
     ['revoked', 'Accès coupé'],
@@ -384,8 +385,15 @@
     return '<label>Nom du client<input name="name" required maxlength="200" value="' + esc(c.name) + '" placeholder="Ex. Marie Dupont"></label>' +
       '<label>Entreprise<input name="company" maxlength="200" value="' + esc(c.company) + '" placeholder="Ex. Ecoval Industries"></label>' +
       '<label>E-mail<input name="email" type="email" maxlength="200" value="' + esc(c.email) + '" placeholder="Le lien d’accès sera envoyé à cette adresse"></label>' +
-      '<label>Date de diffusion<input name="broadcastDate" type="date" value="' + esc(c.broadcastDate || '') + '"></label>' +
+      '<label>Date de diffusion prévue<input name="broadcastDate" type="date" value="' + esc(c.broadcastDate || '') + '"></label>' +
       '<label>Package<input name="packageLabel" maxlength="200" value="' + esc(c.packageLabel) + '" placeholder="Ex. BFM Business + immersion"></label>' +
+      '<label>Campagnes marketing<select name="marketingOptin" aria-label="Accepte d’être contacté pour des campagnes marketing">' +
+      [['', 'Non renseigné'], ['oui', 'Oui, accepte d’être contacté'], ['non', 'Non, refuse']].map(function (o) {
+        var cur = c.marketing && c.marketing.optin === true ? 'oui' : c.marketing && c.marketing.optin === false ? 'non' : '';
+        return '<option value="' + o[0] + '"' + (cur === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+      }).join('') + '</select>' +
+      (c.marketing && c.marketing.at ? '<span class="small muted hint">Réponse enregistrée le ' + esc(fmtDate(c.marketing.at)) + '</span>' : '') + '</label>' +
+      '<label>Recueilli comment<input name="marketingOptinSource" maxlength="200" value="' + esc(c.marketing && c.marketing.source) + '" placeholder="Ex. bon de commande, par téléphone"></label>' +
       '<label class="wide">Notes internes <span class="muted">(jamais visibles par le client)</span><textarea name="notes" rows="3" maxlength="2000">' + esc(c.notes) + '</textarea></label>';
   }
 
@@ -396,6 +404,23 @@
       '<div class="wide"><button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Créer le client</button></div></form></div>';
   }
 
+  var ORDER_TYPES = { capsules: 'Capsules', subtitles: 'Interview sous-titrée', visuels: 'Visuels', publications: 'Publications', photo: 'Photo' };
+  var ORDER_STATUS = {
+    draft: ['Brouillon', 'off'], validated: ['Validée', 'info'], paid: ['Payée', 'info'], submitting: ['En fabrication', 'wait'],
+    processing: ['En fabrication', 'wait'], postprocessing: ['En finition', 'wait'], ready: ['Prête', 'ok'], error: ['Erreur', 'err'],
+  };
+  var MONTAGE_STATUS = { awaiting_payment: ['En attente de paiement', 'wait'], paid: ['Payée', 'ok'], to_quote: ['Devis à faire', 'info'], cancelled: ['Annulée', 'off'] };
+  var PUB_STATUS = {
+    submitting: ['Envoi', 'wait'], scheduled: ['Programmée', 'info'], in_progress: ['En cours', 'wait'], published: ['Publiée', 'ok'],
+    partial: ['En partie publiée', 'wait'], failed: ['Échec', 'err'],
+  };
+  function tag(pair, fallback) { var p = pair || [fallback, 'off']; return '<span class="tag ' + p[1] + '">' + esc(p[0]) + '</span>'; }
+  function euros(cents) { return cents == null ? '—' : (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }); }
+  function section(title, count, inner) {
+    return '<div class="card"><h2>' + esc(title) + (count !== null && count !== undefined ? ' <span class="count">' + esc(count) + '</span>' : '') + '</h2>' + inner + '</div>';
+  }
+  function emptyLine(text) { return '<p class="muted small">' + esc(text) + '</p>'; }
+
   function pageClientDetail() {
     var d = S.client;
     if (!d) return '<p><a href="#clients">← Tous les clients</a></p><div class="card empty">Chargement…</div>';
@@ -403,24 +428,49 @@
     var c = d.client;
     var a = c.access;
     var explain = {
-      scheduled: 'Le lien partira automatiquement le ' + fmtDay(a.day) + ' à partir de ' + a.hour + ' h, à ' + (c.email || '') + '.',
+      scheduled: 'Le lien partira le ' + fmtDay(a.day) + ' à partir de ' + a.hour + ' h (date de diffusion de la vidéo), à ' + (c.email || '') + '.',
       sent: 'Le client a reçu son lien par e-mail. En renvoyer un nouveau coupe l’ancien.',
       manual: 'Un lien existe et a été transmis à la main. En créer un nouveau coupe l’ancien.',
       failed: 'Dernière erreur : ' + (a.error || '') + '. Vérifiez l’adresse, puis renvoyez.',
       revoked: 'Le client ne peut plus ouvrir son espace. Envoyer ou créer un nouveau lien rétablit l’accès.',
       no_email: 'Ajoutez l’e-mail du client pour que son lien parte automatiquement.',
-      no_date: 'Ajoutez la date de diffusion pour programmer l’envoi du lien.',
+      no_video: 'Le lien partira automatiquement dès qu’une vidéo sera déposée, le jour de sa diffusion.',
+      no_date: 'Indiquez la date de diffusion de la vidéo (ou de la fiche) pour programmer l’envoi.',
     }[a.code] || '';
     var hasAccess = a.code === 'sent' || a.code === 'manual';
     var link = S.clientLink && S.clientLink.id === c.id ? '<div class="linkbox"><input readonly value="' + esc(S.clientLink.url) + '" aria-label="Lien d’accès"><button class="btn secondary" type="button" data-a="copy-link">Copier</button></div>' +
       '<p class="small muted mt">Transmettez ce lien au client vous-même. Il ne sera plus affiché ensuite.</p>' : '';
-    var videos = videoCard(d);
-    var history = d.history.length ? '<table><tbody>' + d.history.map(function (e) {
+
+    var emails = d.emails.length ? '<table class="compact"><tbody>' + d.emails.map(function (m) {
+      return '<tr><td class="small nowrap">' + esc(fmtDate(m.created_at)) + '</td><td class="small">' + esc(m.subject || 'E-mail') +
+        (m.automatic ? ' <span class="muted">(automatique)</span>' : '') +
+        (m.redirected_to ? '<br><span class="muted">Mode test : reçu par ' + esc(m.redirected_to) + '</span>' : '') +
+        (m.error ? '<br><span class="muted">' + esc(m.error) + '</span>' : '') + '</td><td>' +
+        (m.status === 'envoye' ? '<span class="tag ok">Envoyé</span>' : '<span class="tag err">Échec</span>') + '</td></tr>';
+    }).join('') + '</tbody></table>' : emptyLine('Aucun e-mail envoyé à ce client pour le moment.');
+
+    var contents = d.contents.length ? '<table><thead><tr><th>Date</th><th>Contenu</th><th>Émission</th><th>Fichiers</th><th>État</th></tr></thead><tbody>' + d.contents.map(function (o) {
+      return '<tr><td class="small nowrap">' + esc(fmtDate(o.created_at)) + '</td><td>' + esc(ORDER_TYPES[o.type] || o.type) + '</td><td class="small">' + esc(o.programme || '—') +
+        '</td><td class="small">' + esc(o.files || 0) + '</td><td>' + tag(ORDER_STATUS[o.status], o.status) + (o.error ? '<br><span class="small muted">' + esc(o.error) + '</span>' : '') + '</td></tr>';
+    }).join('') + '</tbody></table>' : emptyLine('Le client n’a encore généré aucun contenu.');
+    var pubs = d.publications.length ? '<h3>Publications sur les réseaux</h3><table class="compact"><tbody>' + d.publications.map(function (p) {
+      return '<tr><td class="small nowrap">' + esc(fmtDate(p.scheduled_at || p.created_at)) + '</td><td class="small">' + esc(p.video_title || 'Vidéo') +
+        ' <span class="muted">· ' + esc((p.platforms || []).join(', ')) + '</span></td><td>' + tag(PUB_STATUS[p.status], p.status) + '</td></tr>';
+    }).join('') + '</tbody></table>' : '';
+
+    var payments = (d.payments.length ? '<table><thead><tr><th>Date</th><th>Objet</th><th>Montant TTC</th><th>État</th></tr></thead><tbody>' + d.payments.map(function (p) {
+      return '<tr><td class="small nowrap">' + esc(fmtDate(p.paid_at || p.created_at)) + '</td><td>Montage sur mesure · ' + esc(p.offer_title) + '</td><td class="nowrap">' + esc(euros(p.amount_ttc_cents)) +
+        '</td><td>' + tag(MONTAGE_STATUS[p.status], p.status) + '</td></tr>';
+    }).join('') + '</tbody></table>' : emptyLine('Aucun paiement pour le moment.')) +
+      '<p class="small muted mt">Les factures (Pennylane) et les recharges de crédits s’ajouteront ici avec le lot 6.</p>';
+
+    var history = d.history.length ? '<table class="compact"><tbody>' + d.history.map(function (e) {
       return '<tr><td class="small nowrap">' + esc(fmtDate(e.at)) + '</td><td class="small">' + esc(e.actor_label) + '</td><td class="small">' + esc(ACTIONS[e.action] || e.action) +
         (describe(e) ? ' <span class="muted">— ' + esc(describe(e)) + '</span>' : '') + '</td></tr>';
-    }).join('') + '</tbody></table>' : '<p class="muted small">Aucune action enregistrée.</p>';
-    return '<p><a href="#clients">← Tous les clients</a></p><div class="head"><div><h1>' + esc(c.name) + '</h1><p class="muted">' +
-      esc([c.company !== c.name ? c.company : null, c.packageLabel].filter(Boolean).join(' · ') || 'Client') + '</p></div></div>' +
+    }).join('') + '</tbody></table>' : emptyLine('Aucune action enregistrée.');
+
+    var subtitle = [c.company !== c.name ? c.company : null, c.packageLabel, c.email].filter(Boolean).join(' · ') || 'Client';
+    return '<p><a href="#clients">← Tous les clients</a></p><div class="head"><div><h1>' + esc(c.name) + '</h1><p class="muted">' + esc(subtitle) + '</p></div></div>' +
       mailBanner(d.mail) + errorBox() +
       '<div class="cols"><div class="card"><h2>Informations</h2><form data-form="client-edit" class="form-2" novalidate>' + clientFields(c) +
       '<div class="wide"><button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Enregistrer</button></div></form></div>' +
@@ -430,8 +480,11 @@
       '<button class="btn secondary" type="button" data-a="client-link"' + (S.busy ? ' disabled' : '') + '>Créer un lien à transmettre</button>' +
       (hasAccess ? '<button class="btn danger" type="button" data-a="client-revoke"' + (S.busy ? ' disabled' : '') + '>Couper l’accès</button>' : '') +
       '</div>' + link + '</div>' +
-      '</div></div>' + videos +
-      '<div class="card"><h2>Historique</h2>' + history + '</div>';
+      section('E-mails envoyés', d.emails.length, emails) + '</div></div>' +
+      videoCard(d) +
+      section('Contenus générés', d.contents.length, contents + pubs) +
+      section('Paiements et factures', d.payments.length, payments) +
+      section('Historique des actions sur la fiche', null, history);
   }
 
   function fmtDuration(sec) {
@@ -443,12 +496,14 @@
   function videoCard(d) {
     var c = d.client;
     var up = S.upload && S.upload.clientId === c.id ? S.upload : null;
-    var list = d.videos.length ? '<table><thead><tr><th>Vidéo</th><th>Émission</th><th>Diffusion</th><th>Durée</th><th></th></tr></thead><tbody>' + d.videos.map(function (v) {
-      return '<tr><td><b>' + esc(v.title) + '</b><br><span class="small muted">Ajoutée le ' + esc(fmtDate(v.createdAt)) + '</span></td><td class="small">' + esc(v.programmeTitle) +
-        '</td><td class="small nowrap">' + esc(fmtDay(v.broadcastDate)) + '</td><td class="small nowrap">' + esc(fmtDuration(v.durationSec) || '—') + '</td>' +
-        '<td class="actions"><button class="btn small secondary" type="button" data-a="video-preview" data-id="' + esc(v.id) + '">Voir</button>' +
-        '<button class="btn small danger" type="button" data-a="video-remove" data-id="' + esc(v.id) + '">Retirer</button></td></tr>';
-    }).join('') + '</tbody></table>' : '<p class="muted small">Aucune vidéo pour le moment : le client verra son espace vide.</p>';
+    var active = d.videos.filter(function (v) { return v.active; });
+    var list = d.videos.length ? '<table><thead><tr><th>Émission</th><th>Diffusion</th><th>Durée</th><th>Espace client</th><th></th></tr></thead><tbody>' + d.videos.map(function (v) {
+      return '<tr class="' + (v.active ? '' : 'retired') + '"><td><b>' + esc(v.title) + '</b><br><span class="small muted">' + esc(v.programmeTitle) + ' · ajoutée le ' + esc(fmtDate(v.createdAt)) + '</span></td>' +
+        '<td class="small nowrap">' + esc(fmtDay(v.broadcastDate)) + '</td><td class="small nowrap">' + esc(fmtDuration(v.durationSec) || '—') + '</td>' +
+        '<td>' + (v.active ? '<span class="tag ok">Visible</span>' : '<span class="tag off">Retirée</span>') + '</td>' +
+        '<td class="actions">' + (v.active ? '<button class="btn small secondary" type="button" data-a="video-preview" data-id="' + esc(v.id) + '">Voir</button>' +
+        '<button class="btn small danger" type="button" data-a="video-remove" data-id="' + esc(v.id) + '">Retirer</button>' : '') + '</td></tr>';
+    }).join('') + '</tbody></table>' : '<p class="muted small">Aucune émission pour le moment : le lien d’accès partira dès qu’une vidéo sera déposée.</p>';
     var options = (d.programmes || []).map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.title) + '</option>'; }).join('');
     var form = up
       ? '<div class="upload"><p class="small"><b>Envoi de ' + esc(up.name) + '</b> — ne fermez pas cette page.</p>' +
@@ -456,10 +511,10 @@
       : '<form data-form="video-add" class="form-2 mt" novalidate>' +
         '<label class="wide">Fichier vidéo <span class="muted">(MP4, MOV… telle que reçue de la chaîne)</span><input name="file" type="file" accept="video/*,.mp4,.mov,.m4v,.webm,.mkv" required></label>' +
         '<label>Émission<select name="programmeId">' + options + '</select></label>' +
-        '<label>Date de diffusion<input name="broadcastDate" type="date" value="' + esc(c.broadcastDate || '') + '"></label>' +
+        '<label>Date de diffusion <span class="muted">(déclenche l’envoi du lien)</span><input name="broadcastDate" type="date" required value="' + esc(c.broadcastDate || '') + '"></label>' +
         '<label class="wide">Titre affiché au client <span class="muted">(facultatif : « Émission — date » par défaut)</span><input name="title" maxlength="200"></label>' +
         '<div class="wide"><button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Déposer la vidéo</button></div></form>';
-    return '<div class="card"><h2>Vidéos du package (' + esc(d.videos.length) + ')</h2>' + list +
+    return '<div class="card"><h2>Émissions du client <span class="count">' + esc(active.length) + '</span></h2>' + list +
       '<h2 class="mt">Ajouter une vidéo</h2>' + form + '</div>';
   }
 
@@ -530,6 +585,7 @@
     return {
       name: f.name.value, company: f.company.value, email: f.email.value,
       broadcastDate: f.broadcastDate.value, packageLabel: f.packageLabel.value, notes: f.notes.value,
+      marketingOptin: f.marketingOptin.value, marketingOptinSource: f.marketingOptinSource.value,
     };
   }
 
@@ -694,6 +750,7 @@
       var programmeId = f.programmeId.value;
       var programme = (S.client.programmes || []).filter(function (p) { return p.id === programmeId; })[0];
       var date = f.broadcastDate.value;
+      if (!date) return Promise.reject(new Error('Indiquez la date de diffusion de l’émission : c’est elle qui déclenche l’envoi du lien au client.'));
       var title = f.title.value.trim() || ((programme ? programme.title : 'Émission') + (date ? ' — ' + fmtDay(date) : ''));
       var key;
       var duration;

@@ -109,3 +109,16 @@ test('e-mail : réponse Mailjet en succès, puis erreur explicite', async () => 
   const ko = async () => ({ ok: false, status: 400, json: async () => ({ Messages: [{ Status: 'error', Errors: [{ ErrorMessage: 'adresse refusée' }] }] }) });
   await assert.rejects(mailer.send(MSG, { cfg: CFG, fetchImpl: ko, retries: 0 }), /adresse refusée/);
 });
+
+test('import : colonne marketing (oui / non), réponse illisible signalée', () => {
+  assert.equal(importer.parseYesNo('Oui'), true);
+  assert.equal(importer.parseYesNo('x'), true);
+  assert.equal(importer.parseYesNo('NON'), false);
+  assert.equal(importer.parseYesNo(''), null);
+  assert.equal(importer.parseYesNo('peut-être'), undefined);
+  const r = importer.analyse('nom;email;marketing\nA;a@a.fr;oui\nB;b@b.fr;\nC;c@c.fr;bof');
+  assert.equal(r.rows[0].client.marketingOptin, true);
+  assert.equal(r.rows[0].client.marketingOptinSource, 'Import CSV');
+  assert.equal(r.rows[1].client.marketingOptin, null);
+  assert.deepEqual(r.rows[2].problems, ['marketing : indiquez oui ou non']);
+});

@@ -54,8 +54,10 @@ Si l'adresse du serveur change, modifier `config.js` **et** `connect-src` dans l
 ## Clients et liens d'accès (lot 2)
 
 - Chaque client a un **lien d'accès personnel** à son espace. Le serveur n'en garde qu'une empreinte : personne, même l'équipe, ne peut relire un lien existant.
-- **Le jour de la diffusion, à partir de 8 h** (heure de Paris), le lien est créé et envoyé à l'e-mail du client. Le serveur vérifie toutes les 10 minutes, jusqu'à 20 h. En cas d'échec, il réessaie toutes les heures, 5 fois au plus.
+- **Le jour de la diffusion de l'émission, à partir de 8 h** (heure de Paris), le lien est créé et envoyé à l'e-mail du client. La date qui compte est celle **de la vidéo déposée** (à défaut, la date prévue sur la fiche) : tant qu'aucune vidéo n'est déposée, rien ne part, et le client n'arrive jamais dans un espace vide. Le serveur vérifie toutes les 10 minutes, jusqu'à 20 h. En cas d'échec, il réessaie toutes les heures, 5 fois au plus.
 - Depuis la fiche client, l'équipe peut **envoyer le lien tout de suite**, **créer un lien à transmettre elle-même** (affiché une seule fois) ou **couper l'accès**. Chaque nouveau lien rend le précédent inutilisable.
 - Un client dont le lien a été remis à la main ou coupé ne reçoit pas d'envoi automatique.
-- **Import CSV** : colonnes `nom`, `entreprise`, `email`, `date de diffusion` (JJ/MM/AAAA), `package`, `notes`. Séparateur `;` (Excel) ou `,`. Les e-mails déjà présents sont ignorés.
+- **Import CSV** : colonnes `nom`, `entreprise`, `email`, `date de diffusion` (JJ/MM/AAAA), `package`, `notes`, `marketing` (oui / non). Séparateur `;` (Excel) ou `,`. Les e-mails déjà présents sont ignorés.
 - Les clients créés avant le back-office gardent leur lien actuel.
+- **Fiche client** : informations et consentement aux campagnes marketing (réponse datée, avec son origine), accès à l'espace client, e-mails envoyés (réussis ou en échec), émissions déposées (retirées comprises), contenus générés et publications, paiements, historique des actions de l'équipe.
+- **Émissions proposées** : BFM TV, BFM Business, Capital, Le Figaro (`src/opusclip.config.js`). Le logo du Figaro reste à fournir : en attendant, ses vidéos sortent sans logo d'émission.

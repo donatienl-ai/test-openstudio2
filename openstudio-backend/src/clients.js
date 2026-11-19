@@ -18,15 +18,18 @@ const isUuid = (v) => /^[0-9a-f-]{36}$/i.test(String(v));
  * la diffusion (ou à la main depuis le back-office). keepPlainToken : client de test uniquement,
  * dont le lien est réécrit dans les logs à chaque démarrage.
  */
-async function create({ name, company, email, logoKey, broadcastDate, packageLabel, notes, keepPlainToken = false }) {
+async function create({ name, company, email, logoKey, broadcastDate, packageLabel, notes, marketingOptin, marketingOptinSource, keepPlainToken = false }) {
   const id = crypto.randomUUID();
   const token = keepPlainToken ? newAccessToken() : null;
   const { rows } = await db.query(
     `INSERT INTO clients (id, name, company, email, access_token, access_token_hash, logo_key,
-                          broadcast_date, package_label, notes, access_issued_at, access_issued_via)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+                          broadcast_date, package_label, notes, access_issued_at, access_issued_via,
+                          marketing_optin, marketing_optin_at, marketing_optin_source)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
     [id, name, company || null, email || null, token, token ? sha256(token) : null, logoKey || null,
-      broadcastDate || null, packageLabel || null, notes || null, token ? new Date().toISOString() : null, token ? 'manuel' : null]
+      broadcastDate || null, packageLabel || null, notes || null, token ? new Date().toISOString() : null, token ? 'manuel' : null,
+      typeof marketingOptin === 'boolean' ? marketingOptin : null, typeof marketingOptin === 'boolean' ? new Date().toISOString() : null,
+      marketingOptinSource || null]
   );
   return rows[0];
 }
@@ -56,6 +59,7 @@ async function update(id, fields) {
   const allowed = {
     name: 'name', company: 'company', email: 'email', logoKey: 'logo_key', sector: 'sector',
     broadcastDate: 'broadcast_date', packageLabel: 'package_label', notes: 'notes',
+    marketingOptin: 'marketing_optin', marketingOptinSource: 'marketing_optin_source',
   };
   const sets = [];
   const params = [id];
@@ -66,6 +70,8 @@ async function update(id, fields) {
     }
   }
   if (!sets.length) return get(id);
+  // Consentement marketing : on date chaque changement de réponse
+  if (fields.marketingOptin !== undefined) sets.push('marketing_optin_at = now()');
   // Nouvelle adresse ou nouvelle date : l'envoi automatique repart de zéro
   if (fields.email !== undefined || fields.broadcastDate !== undefined) {
     sets.push('access_email_attempts = 0', 'access_email_error = NULL');
@@ -79,7 +85,9 @@ async function list() {
     `SELECT c.id, c.name, c.company, c.email, c.logo_key, c.created_at, c.broadcast_date, c.package_label,
             c.access_token_hash IS NOT NULL AS has_access, c.access_issued_at, c.access_issued_via,
             c.access_revoked_at, c.access_email_sent_at, c.access_email_error, c.access_email_attempts,
-            COUNT(v.id) FILTER (WHERE v.active)::int AS videos
+            c.marketing_optin,
+            COUNT(v.id) FILTER (WHERE v.active)::int AS videos,
+            MIN(COALESCE(v.broadcast_date, c.broadcast_date)) FILTER (WHERE v.active) AS trigger_date
      FROM clients c LEFT JOIN client_videos v ON v.client_id = c.id
      GROUP BY c.id ORDER BY c.created_at DESC`
   );
@@ -107,6 +115,15 @@ async function listVideos(clientId) {
   return rows;
 }
 
+/** Toutes les vidéos du client, retirées comprises (historique des émissions dans le back-office). */
+async function listAllVideos(clientId) {
+  const { rows } = await db.query(
+    'SELECT * FROM client_videos WHERE client_id = $1 ORDER BY active DESC, broadcast_date DESC NULLS LAST, created_at DESC',
+    [clientId]
+  );
+  return rows;
+}
+
 /** Vidéo du client (null si elle n'existe pas, est désactivée ou appartient à un autre client). */
 async function getVideo(clientId, videoId) {
   if (!isUuid(videoId) || !clientId) return null;
@@ -117,4 +134,4 @@ async function getVideo(clientId, videoId) {
   return rows[0] || null;
 }
 
-module.exports = { create, get, findByName, fromRequest, update, list, addVideo, setVideoActive, listVideos, getVideo, sha256 };
+module.exports = { create, get, findByName, fromRequest, update, list, addVideo, setVideoActive, listVideos, listAllVideos, getVideo, sha256 };

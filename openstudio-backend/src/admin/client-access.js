@@ -3,7 +3,9 @@
  * Lien d'accès personnel de chaque client.
  *
  * - Le lien (…/?client=<id>&clientToken=<jeton>) n'est jamais conservé : seule son empreinte l'est.
- * - Le jour de la diffusion, à partir de 8 h (heure de Paris), il est créé et envoyé par e-mail.
+ * - Le jour de la diffusion de l'émission, à partir de 8 h (heure de Paris), il est créé et envoyé par
+ *   e-mail, à condition que la vidéo soit déposée : la date qui compte est celle de la vidéo (à défaut,
+ *   celle de la fiche client). Le client n'arrive donc jamais dans un espace vide.
  * - L'équipe peut l'envoyer plus tôt, créer un lien à transmettre elle-même, ou couper l'accès.
  * - Créer un nouveau lien rend l'ancien inutilisable.
  */
@@ -39,7 +41,10 @@ function isoDay(v) {
 /* ------------------------------------------------------------------ Statut affiché */
 
 /**
- * Où en est l'accès du client. code : revoked | sent | manual | failed | scheduled | no_email | no_date
+ * Où en est l'accès du client.
+ * code : revoked | sent | manual | failed | scheduled | no_email | no_video | no_date
+ * c.videos (nombre de vidéos actives) et c.trigger_date (date de diffusion de la première vidéo) sont
+ * fournis par clients.list() ou withAccessInfo().
  */
 function accessStatus(c, now = new Date()) {
   if (c.access_revoked_at) return { code: 'revoked', label: 'Accès coupé', at: c.access_revoked_at };
@@ -51,7 +56,7 @@ function accessStatus(c, now = new Date()) {
   }
   if (c.access_token_hash || c.has_access) return { code: 'manual', label: 'Lien existant (avant le back-office)', at: null };
   if (c.access_email_error && c.email) {
-    const automatic = Boolean(c.broadcast_date);
+    const automatic = Boolean(c.trigger_date || c.broadcast_date);
     return {
       code: 'failed',
       label: !automatic ? 'Échec d’envoi'
@@ -60,8 +65,10 @@ function accessStatus(c, now = new Date()) {
     };
   }
   if (!c.email) return { code: 'no_email', label: 'E-mail à renseigner' };
-  if (!c.broadcast_date) return { code: 'no_date', label: 'Date de diffusion à renseigner' };
-  const day = isoDay(c.broadcast_date);
+  if (c.videos !== undefined && Number(c.videos) === 0) return { code: 'no_video', label: 'En attente de la vidéo' };
+  const trigger = c.trigger_date !== undefined ? c.trigger_date : c.broadcast_date;
+  if (!trigger) return { code: 'no_date', label: 'Date de diffusion à renseigner' };
+  const day = isoDay(trigger);
   const { day: today } = parisParts(now);
   return {
     code: 'scheduled',
@@ -69,6 +76,18 @@ function accessStatus(c, now = new Date()) {
     day,
     hour: config.mail.accessSendFromHour,
   };
+}
+
+/** Ajoute à une ligne client le nombre de vidéos actives et la date qui déclenche l'envoi. */
+async function withAccessInfo(c) {
+  if (!c) return c;
+  const { rows } = await db.query(
+    `SELECT COUNT(*)::int AS videos, MIN(COALESCE(v.broadcast_date, c.broadcast_date)) AS trigger_date
+     FROM client_videos v JOIN clients c ON c.id = v.client_id
+     WHERE v.client_id = $1 AND v.active = true`,
+    [c.id]
+  );
+  return { ...c, videos: rows[0].videos, trigger_date: rows[0].trigger_date };
 }
 
 /* ------------------------------------------------------------------ Liens */
@@ -146,6 +165,7 @@ async function sendByEmail(client, { req = null, automatic = false, send = maile
   const unavailable = mailer.problem();
   if (unavailable && send === mailer.send) {
     await recordFailure(client.id, unavailable);
+    await logEmail(client, { status: 'echec', subject: 'Votre espace OpenStudio est prêt', error: unavailable, automatic });
     throw new Error(unavailable);
   }
   // État du lien actuel, rétabli si l'envoi échoue (le client garde alors son accès existant)
@@ -154,8 +174,10 @@ async function sendByEmail(client, { req = null, automatic = false, send = maile
     [client.id]
   );
   const { link } = await issue(client.id, 'email');
+  const message = accessEmail(client, link);
   try {
-    const r = await send(accessEmail(client, link));
+    const r = await send(message);
+    await logEmail(client, { status: 'envoye', subject: message.subject, providerId: r && r.messageId, redirectedTo: r && r.redirectedTo, automatic });
     const { rows } = await db.query(
       `UPDATE clients SET access_email_sent_at = now(), access_email_error = NULL,
          access_email_attempts = access_email_attempts + 1, access_email_last_try_at = now()
@@ -177,8 +199,21 @@ async function sendByEmail(client, { req = null, automatic = false, send = maile
         p.access_issued_via || null, p.access_revoked_at || null]
     );
     await recordFailure(client.id, e.message);
+    await logEmail(client, { status: 'echec', subject: message.subject, error: e.message, redirectedTo: config.mail.redirectTo || null, automatic });
     await audit.record(req, 'acces_echec_envoi', { targetType: 'client', targetId: client.id, detail: { email: client.email, erreur: e.message } });
     throw e;
+  }
+}
+
+async function logEmail(client, { status, subject, providerId = null, redirectedTo = null, error = null, automatic = false }) {
+  try {
+    await db.query(
+      `INSERT INTO client_emails (client_id, kind, to_email, redirected_to, subject, status, provider_id, error, automatic)
+       VALUES ($1, 'acces', $2, $3, $4, $5, $6, $7, $8)`,
+      [client.id, client.email, redirectedTo, subject, status, providerId, error ? String(error).slice(0, 500) : null, automatic]
+    );
+  } catch (e) {
+    console.error('[accès client] journal des e-mails', e.message);
   }
 }
 
@@ -192,11 +227,17 @@ async function recordFailure(clientId, message) {
 
 /* ------------------------------------------------------------------ Envoi automatique */
 
-/** Clients dont le lien doit partir aujourd'hui (ou avant, s'il n'est pas encore parti). */
+/**
+ * Clients dont le lien doit partir : une vidéo active est déposée et sa date de diffusion (à défaut,
+ * celle de la fiche) est aujourd'hui ou passée.
+ */
 async function dueClients(today) {
   const { rows } = await db.query(
-    `SELECT * FROM clients
-     WHERE broadcast_date IS NOT NULL AND broadcast_date <= $1::date
+    `SELECT c.* FROM clients c
+     WHERE EXISTS (
+         SELECT 1 FROM client_videos v
+         WHERE v.client_id = c.id AND v.active = true
+           AND COALESCE(v.broadcast_date, c.broadcast_date) <= $1::date)
        AND email IS NOT NULL AND email <> ''
        AND access_email_sent_at IS NULL AND access_revoked_at IS NULL AND access_token_hash IS NULL
        AND access_email_attempts < $2
@@ -228,4 +269,4 @@ async function runScheduled({ now = new Date(), send = mailer.send, log = consol
   return { sent, failed };
 }
 
-module.exports = { accessStatus, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
+module.exports = { accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
