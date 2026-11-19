@@ -411,17 +411,14 @@ router.post('/admin/broadcast/run', wrap(async (req, res) => {
   res.json(await broadcastDay.tick({ force: true }));
 }));
 
-/** « Autre destinataire » d'une diffusion (vide = revenir à l'e-mail du client). */
-router.patch('/admin/diffusions/:planningId', json, wrap(async (req, res) => {
+/** Corrige l'e-mail d'un client (c'est toujours lui qui reçoit le mail du jour de diffusion). */
+router.patch('/admin/clients/:id/email', json, wrap(async (req, res) => {
   if (!requireAdmin(req, res)) return;
-  const raw = String((req.body || {}).emailOverride || '').trim().toLowerCase();
-  if (raw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) return res.status(400).json({ error: 'Adresse e-mail invalide' });
-  const { rowCount } = await db.query(
-    'UPDATE diffusions SET email_override = $2, updated_at = now() WHERE planning_id = $1',
-    [Number(req.params.planningId), raw || null]
-  );
-  if (!rowCount) return res.status(404).json({ error: 'Diffusion introuvable' });
-  res.json({ ok: true, emailOverride: raw || null });
+  const email = String((req.body || {}).email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Adresse e-mail invalide' });
+  const c = await clients.update(req.params.id, { email });
+  if (!c) return res.status(404).json({ error: 'Client introuvable' });
+  res.json({ ok: true, email: c.email });
 }));
 
 /** Crée les dossiers Drive et importe une vidéo déposée tout de suite (sans attendre le passage automatique). */

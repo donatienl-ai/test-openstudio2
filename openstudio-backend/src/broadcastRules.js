@@ -14,8 +14,11 @@ function parisParts(now = new Date()) {
   return { today: `${p.year}-${p.month}-${p.day}`, hour: Number(p.hour) };
 }
 
-/** Destinataire : « autre destinataire » saisi par l'équipe, sinon e-mail du client, sinon signataire du BDC. */
-const recipientOf = (d) => d.emailOverride || d.clientEmail || d.contactEmail || null;
+/**
+ * Destinataire : l'e-mail du client (fiche client, rempli depuis le signataire du BDC ou le contact Salesforce) ;
+ * à défaut, celui du contact de la diffusion. Pas d'autre destinataire possible.
+ */
+const recipientOf = (d) => d.clientEmail || d.contactEmail || null;
 
 function missingOf(d) {
   const m = [];
@@ -25,7 +28,7 @@ function missingOf(d) {
 }
 
 /**
- * Que faire maintenant ? diffusions = lignes avec : id, clientId, state, dateDiffusion, videoId, emailOverride,
+ * Que faire maintenant ? diffusions = lignes avec : id, clientId, state, dateDiffusion, videoId,
  * clientEmail, contactEmail, mailSentAt, clientMailed (le client a déjà reçu un mail), alertJ2On, alertDayJOn.
  */
 function planDay(diffusions, { today, hour, sendHour = 8 }) {

@@ -129,12 +129,12 @@ Toutes les 10 minutes, OpenStudio regarde les diffusions actives (`src/broadcast
 
 | Situation | Ce qui se passe |
 |---|---|
-| Jour J, vidéo + e-mail présents, à partir de `MAIL_SEND_HOUR` (8 h, Paris) | **Premier mail** du client : code de connexion, vidéo disponible, arguments, crédits valables 30 jours. Le code n'est ensuite plus lisible par l'équipe (un nouveau peut être généré). |
+| Jour J, vidéo + e-mail présents, à partir de `MAIL_SEND_HOUR` (8 h, Paris) | **Premier mail** du client : code de connexion, arguments, crédits valables 30 jours (la vidéo n'est pas dans le mail : le client la trouve dans son espace). Le code n'est ensuite plus lisible par l'équipe (un nouveau peut être généré). |
 | Client déjà prévenu pour une diffusion précédente | Mail « votre nouvelle émission est en ligne » (même code, pas de nouveaux crédits) |
 | Jour J incomplet (vidéo ou e-mail manquant) | Pas de mail ; alerte à `TEAM_ALERT_EMAIL`. Le mail part dès que l'élément arrive (jusqu'à 7 jours après la date). |
 | J-2 / J-1 incomplet | Alerte à l'équipe, une fois par diffusion |
 
-Destinataire : « autre destinataire » de la diffusion, sinon e-mail du client, sinon signataire du BDC.
+Destinataire : toujours l'e-mail du client (rempli depuis le signataire du BDC ou le contact Salesforce, corrigeable par l'équipe).
 Pas de mail client avant 8 h ni après 20 h. Une diffusion n'est jamais envoyée deux fois (réservation avant envoi).
 
 **Tests :** tant que `MAIL_ALLOW_REAL_RECIPIENTS` n'est pas à `1`, tout part vers `MAIL_REDIRECT_TO` avec `[TEST]`
@@ -143,8 +143,8 @@ dans le sujet. Les modèles Mailjet de l'équipe communication (`MJ_TPL_*`) reç
 
 ```bash
 curl -X POST $API/api/admin/broadcast/run -H "$AUTH"                     # passage immédiat
-curl -X PATCH $API/api/admin/diffusions/1234 -H "$AUTH" -H 'Content-Type: application/json' \
-     -d '{"emailOverride":"com@entreprise.fr"}'                          # autre destinataire
+curl -X PATCH $API/api/admin/clients/<CLIENT_ID>/email -H "$AUTH" -H 'Content-Type: application/json' \
+     -d '{"email":"claire@entreprise.fr"}'                               # corriger l'e-mail du client
 ```
 
 ## Mode test : dépôt de vidéo par le client

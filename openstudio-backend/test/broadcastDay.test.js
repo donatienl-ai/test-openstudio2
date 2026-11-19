@@ -8,7 +8,7 @@ const { createMailjet } = require('../src/mail/mailjet');
 const TODAY = '2026-12-03';
 const d = (o) => ({
   id: 'd1', planningId: 1, clientId: 'c1', state: 'active', dateDiffusion: TODAY, videoId: 'v1',
-  emailOverride: null, clientEmail: 'claire@ecoval.fr', contactEmail: null, mailSentAt: null,
+  clientEmail: 'claire@ecoval.fr', contactEmail: null, mailSentAt: null,
   clientMailed: false, alertJ2On: null, alertDayJOn: null, ...o,
 });
 const plan = (list, o = {}) => rules.planDay(list, { today: TODAY, hour: 9, sendHour: 8, ...o });
@@ -31,8 +31,8 @@ test('client déjà prévenu pour une autre diffusion : mail « nouvelle émissi
   assert.equal(plan([d({ clientMailed: true })]).toSend[0].kind, 'next');
 });
 
-test('destinataire : autre destinataire, sinon e-mail du client, sinon signataire du BDC', () => {
-  assert.equal(rules.recipientOf(d({ emailOverride: 'com@ecoval.fr' })), 'com@ecoval.fr');
+test('destinataire : toujours l’e-mail du client (à défaut, le contact de la diffusion)', () => {
+  assert.equal(rules.recipientOf(d({ contactEmail: 'autre@ecoval.fr' })), 'claire@ecoval.fr');
   assert.equal(rules.recipientOf(d({ clientEmail: null, contactEmail: 'bdc@ecoval.fr' })), 'bdc@ecoval.fr');
   assert.equal(rules.recipientOf(d({ clientEmail: null })), null);
 });
@@ -64,11 +64,12 @@ test('jamais deux mails : déjà envoyé, annulée, date à fixer, deux diffusio
   assert.equal(plan([d({ id: 'a' }), d({ id: 'b', planningId: 2 })]).toSend.length, 1);
 });
 
-test('contenu du premier mail : code, émission, lien, expiration des crédits', () => {
+test('contenu du premier mail : code, arguments, expiration des crédits, sans la vidéo', () => {
   const m = tpl.diffusionFirst({ prenom: 'Claire', nom_emission: 'BFM Business', code: 'OM-7KX4-M9', lien: 'https://openstudio.fr', date_expiration: tpl.dateFr(tpl.addDays('2026-12-03', 30)) });
   assert.equal(m.subject, 'Votre émission est diffusée aujourd’hui');
   for (const s of ['Bonjour Claire', 'OM-7KX4-M9', 'BFM Business', 'https://openstudio.fr', '2 janvier 2027']) assert.ok(m.text.includes(s), s);
   assert.ok(m.html.includes('OM-7KX4-M9'));
+  assert.ok(!/vidéo vous attend|télécharg/i.test(m.text)); // la vidéo n'est pas dans le mail
   assert.ok(!tpl.diffusionFirst({ prenom: '<b>', code: 'x' }).html.includes('<b>,')); // caractères échappés
   assert.equal(tpl.firstName('Claire Dumas'), 'Claire');
   assert.ok(tpl.diffusionNext({ nom_emission: 'Capital' }).text.startsWith('Bonjour,'));

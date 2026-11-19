@@ -4,7 +4,8 @@
  *
  * - Le jour J, à partir de MAIL_SEND_HOUR (8 h, heure de Paris), chaque diffusion active, datée du jour, avec sa
  *   vidéo et un e-mail, déclenche le mail au client :
- *     · premier mail du client : code de connexion + vidéo + arguments + crédits valables 30 jours ;
+ *     · premier mail du client : code de connexion + arguments + crédits valables 30 jours (la vidéo n'est pas
+ *       envoyée : le client la trouve dans son espace) ;
  *     · diffusions suivantes : « votre nouvelle émission est en ligne » (même code, pas de nouveaux crédits).
  * - Une diffusion du jour incomplète (vidéo ou e-mail manquant) ne part pas : l'équipe reçoit une alerte. Si la
  *   vidéo arrive en retard, le mail part dès qu'elle est là (jusqu'à 7 jours après la date).
@@ -28,7 +29,7 @@ const getMailer = () => (mailer ||= createMailjet(config.mail));
 async function loadDiffusions(today) {
   const { rows } = await db.query(
     `SELECT d.id, d.planning_id, d.client_id, d.state, to_char(d.date_diffusion, 'YYYY-MM-DD') AS date_diffusion,
-            d.video_id, d.email_override, d.contact_email, d.contact_name, d.media, d.sous_media, d.format, d.entreprise,
+            d.video_id, d.contact_email, d.contact_name, d.media, d.sous_media, d.format, d.entreprise,
             d.mail_sent_at, to_char(d.alert_j2_on, 'YYYY-MM-DD') AS alert_j2_on, to_char(d.alert_dayj_on, 'YYYY-MM-DD') AS alert_dayj_on,
             c.email AS client_email, c.name AS client_name,
             EXISTS (SELECT 1 FROM diffusions o WHERE o.client_id = d.client_id AND o.mail_sent_at IS NOT NULL) AS client_mailed
@@ -40,7 +41,7 @@ async function loadDiffusions(today) {
   );
   return rows.map((r) => ({
     id: r.id, planningId: r.planning_id, clientId: r.client_id, state: r.state, dateDiffusion: r.date_diffusion,
-    videoId: r.video_id, emailOverride: r.email_override, contactEmail: r.contact_email, contactName: r.contact_name,
+    videoId: r.video_id, contactEmail: r.contact_email, contactName: r.contact_name,
     media: r.media, sousMedia: r.sous_media, format: r.format, entreprise: r.entreprise || r.client_name,
     mailSentAt: r.mail_sent_at, alertJ2On: r.alert_j2_on, alertDayJOn: r.alert_dayj_on,
     clientEmail: r.client_email, clientMailed: r.client_mailed,

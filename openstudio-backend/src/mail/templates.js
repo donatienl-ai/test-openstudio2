@@ -38,11 +38,11 @@ function layout(inner) {
 
 const hello = (v) => (v.prenom ? `Bonjour ${esc(v.prenom)},` : 'Bonjour,');
 
-/** Premier mail : diffusion du jour, vidéo disponible, code de connexion, arguments, expiration des crédits. */
+/** Premier mail : code de connexion, arguments, crédits valables 30 jours (pas de vidéo dans le mail). */
 function diffusionFirst(v) {
   const subject = 'Votre émission est diffusée aujourd’hui';
   const html = layout(`<p>${hello(v)}</p>
-<p>C’est le grand jour : votre passage dans <strong>${esc(v.nom_emission)}</strong> est diffusé aujourd’hui, et votre vidéo vous attend dès maintenant dans votre espace OpenStudio.</p>
+<p>C’est le grand jour : votre passage dans <strong>${esc(v.nom_emission)}</strong> est diffusé aujourd’hui. Votre espace OpenStudio est maintenant ouvert.</p>
 <p style="background:#eef2ff;border-radius:6px;padding:14px 16px;font-size:16px">Votre code de connexion : <strong style="letter-spacing:1px">${esc(v.code)}</strong></p>
 <p><a href="${esc(v.lien)}" style="display:inline-block;background:#0f1f3d;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold">Accéder à mon espace</a></p>
 <p><strong>Pourquoi utiliser OpenStudio ?</strong></p>
@@ -54,7 +54,7 @@ function diffusionFirst(v) {
 <p>Vos crédits inclus sont valables jusqu’au <strong>${esc(v.date_expiration)}</strong> (30 jours à partir d’aujourd’hui). Profitez-en pour créer vos premières vidéos.</p>`);
   const text = `${v.prenom ? `Bonjour ${v.prenom},` : 'Bonjour,'}
 
-C'est le grand jour : votre passage dans ${v.nom_emission} est diffusé aujourd'hui, et votre vidéo vous attend dès maintenant dans votre espace OpenStudio.
+C'est le grand jour : votre passage dans ${v.nom_emission} est diffusé aujourd'hui. Votre espace OpenStudio est maintenant ouvert.
 
 Votre code de connexion : ${v.code}
 Connectez-vous sur ${v.lien}
