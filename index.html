@@ -1967,6 +1967,9 @@ function bkPlayer(v, { big } = {}) {
 }
 /** « BFM TV — 19 nov. 2026 » plutôt que « BFM TV · BFM TV — 19 nov. 2026 » quand le titre contient déjà l'émission. */
 function bkLabel(v, sep) { return v.media && String(v.title || '').startsWith(v.media) ? v.title : [v.media, v.title].filter(Boolean).join(sep); }
+function bkSoonBanner() {
+  return `<div role="status" style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:12px;background:#F2F3F8;border:1px dashed #C9CDE0;color:#1C1C62"><span aria-hidden="true" style="flex:none;width:10px;height:10px;border-radius:50%;border:1.5px solid #F2B654"></span><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><b style="font-size:15px">Votre vidéo sera bientôt disponible</b><span style="font-size:13px;opacity:.75">Elle apparaîtra ici dès que l'équipe OpenMedias l'aura déposée.</span></div></div>`;
+}
 function bkSoon(big) {
   return `<div style="width:100%;aspect-ratio:16/9;border-radius:${big ? 14 : 10}px;background:#F2F3F8;border:1px dashed #C9CDE0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:20px;color:#1C1C62"><b style="font-size:16px">Votre vidéo sera bientôt disponible</b><span style="font-size:13px;opacity:.75">Elle apparaîtra ici dès que l'équipe OpenMedias l'aura déposée.</span></div>`;
 }
@@ -2967,12 +2970,12 @@ function osEmissions(c) {
   return `<header class="os-head"><div style="display:flex;flex-direction:column;gap:6px"><span class="kick">${today} — ${esc(c.name)}</span><h1>Vos passages à l'antenne</h1></div>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="os-out" data-a="nav" data-arg="access">Mon package</button><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></div></header>
     ${osLive() && BK.videos ? `<section aria-labelledby="mavideo" style="display:flex;flex-direction:column;gap:14px"><h2 id="mavideo" class="os-h2">${vids.length > 1 ? 'Vos émissions' : 'Votre émission'}</h2>
-      ${vids.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px">${vids.map(v => `<figure style="margin:0;display:flex;flex-direction:column;gap:8px">${bkPlayer(v)}<figcaption style="font-size:14px"><b>${esc(bkLabel(v, ' — '))}</b>${v.date ? `<span class="mut"> · diffusée le ${fmtD(v.date)}</span>` : ''}</figcaption></figure>`).join('')}</div>` : bkSoon(true)}</section>` : ''}
+      ${vids.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px">${vids.map(v => `<figure style="margin:0;display:flex;flex-direction:column;gap:8px">${bkPlayer(v)}<figcaption style="font-size:14px"><b>${esc(bkLabel(v, ' — '))}</b>${v.date ? `<span class="mut"> · diffusée le ${fmtD(v.date)}</span>` : ''}</figcaption></figure>`).join('')}</div>` : bkSoonBanner()}</section>` : ''}
     <section aria-labelledby="grille" style="display:flex;flex-direction:column;gap:14px">
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:baseline"><h2 id="grille" class="os-h2">Grille de vos émissions</h2><span class="mut" style="font-size:13px">${vids.length ? `${vids.length} émission${vids.length > 1 ? 's' : ''} dans votre package` : ''}</span></div>
       ${!osLive() ? `<div class="os-empty">Ouvrez le lien d'accès envoyé par l'équipe OpenMedias pour retrouver vos émissions.</div>` : BK.loading || !BK.videos ? `<div class="os-empty">Chargement de vos émissions…</div>` : BK.err ? `<div class="os-empty">${esc(BK.err)}</div>`
         : vids.length ? `<div class="os-tbl em"><div style="min-width:760px"><div class="os-tr h" style="${cols}"><span>Diffusion</span><span>Émission</span><span>Durée</span><span>État du rush</span><span></span></div>${rows}</div></div>`
-        : `<div class="os-empty">Votre vidéo sera bientôt disponible : elle apparaîtra ici dès que l'équipe OpenMedias l'aura déposée.</div>`}
+        : `<div class="os-empty">Aucune émission dans votre package pour le moment.</div>`}
     </section>
     <section aria-labelledby="sorties" style="display:flex;flex-direction:column;gap:14px">
       <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 id="sorties" class="os-h2">Dernières sorties</h2><a href="#" data-a="nav" data-arg="medias" style="font-size:13px">Toutes mes créations</a></div>
