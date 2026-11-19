@@ -70,6 +70,25 @@ const config = {
     settleMin: num(process.env.DRIVE_SETTLE_MIN, 2), // délai sans modification avant d'importer un fichier
   },
 
+  // E-mails du jour de diffusion (src/broadcastDay.js), via Mailjet. Tant que MAIL_ALLOW_REAL_RECIPIENTS n'est pas à 1,
+  // tout part vers MAIL_REDIRECT_TO.
+  mail: {
+    apiKey: (process.env.MAILJET_API_KEY || '').trim(),
+    secretKey: (process.env.MAILJET_SECRET_KEY || '').trim(),
+    fromEmail: (process.env.MAILJET_FROM_EMAIL || '').trim(),
+    fromName: process.env.MAILJET_FROM_NAME || 'OpenMedias',
+    redirectTo: (process.env.MAIL_REDIRECT_TO || '').trim(),
+    allowRealRecipients: process.env.MAIL_ALLOW_REAL_RECIPIENTS === '1',
+    teamEmail: (process.env.TEAM_ALERT_EMAIL || '').trim(),
+    sendHour: num(process.env.MAIL_SEND_HOUR, 8),
+    siteUrl: (process.env.CLIENT_SITE_URL || (process.env.FRONTEND_ORIGIN || '').split(',')[0] || '').trim(),
+    templates: {
+      first: (process.env.MJ_TPL_DIFFUSION_FIRST || '').trim() || null,
+      next: (process.env.MJ_TPL_DIFFUSION_NEXT || '').trim() || null,
+      alert: (process.env.MJ_TPL_TEAM_ALERT || '').trim() || null,
+    },
+  },
+
   // Codes de connexion des espaces clients (src/loginCodes.js). Secret propre aux codes : le changer rend
   // tous les codes existants invalides. Essais ratés limités par adresse IP.
   loginCodes: {

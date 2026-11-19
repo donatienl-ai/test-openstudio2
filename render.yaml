@@ -88,6 +88,22 @@ services:
         sync: false
       - key: DRIVE_ROOT_FOLDER_ID
         sync: false
+      # E-mails du jour de diffusion (Mailjet, expéditeur communication@openmedias.fr). Tant que
+      # MAIL_ALLOW_REAL_RECIPIENTS n'est pas à 1, tout part vers MAIL_REDIRECT_TO (adresse de test).
+      - key: MAILJET_API_KEY
+        sync: false
+      - key: MAILJET_SECRET_KEY
+        sync: false
+      - key: MAILJET_FROM_EMAIL
+        value: communication@openmedias.fr
+      - key: MAIL_REDIRECT_TO
+        sync: false
+      - key: MAIL_ALLOW_REAL_RECIPIENTS
+        value: "0"
+      - key: TEAM_ALERT_EMAIL
+        sync: false
+      - key: CLIENT_SITE_URL
+        sync: false
       # Publication sur les réseaux sociaux (Upload-Post) : clé API et secret des notifications (webhook).
       # À saisir dans Render ; ne jamais les mettre dans le dépôt ni dans le site.
       - key: UPLOAD_POST_API_KEY

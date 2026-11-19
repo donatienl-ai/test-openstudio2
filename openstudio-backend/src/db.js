@@ -242,6 +242,16 @@ ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS drive_folder_parent TEXT;   -- c
 ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS video_file_id TEXT;         -- fichier Drive importé
 ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS video_imported_at TIMESTAMPTZ;
 ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS video_import_error TEXT;
+-- Jour de diffusion (src/broadcastDay.js) : mail au client et alertes à l'équipe
+ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS mail_claim_at TIMESTAMPTZ;   -- réservation pendant l'envoi
+ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS mail_kind TEXT;              -- first | next
+ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS mail_to TEXT;
+ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS mail_message_id TEXT;
+ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS mail_error TEXT;
+ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS alert_j2_on DATE;
+ALTER TABLE diffusions ADD COLUMN IF NOT EXISTS alert_dayj_on DATE;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS code_sent_at TIMESTAMPTZ;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS credits_expire_at DATE;          -- crédits inclus : 30 jours après la 1re diffusion
 `;
 
 async function migrate() {

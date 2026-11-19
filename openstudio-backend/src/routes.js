@@ -20,6 +20,7 @@ const { MockPaymentProvider } = require('./payment');
 const loginCodes = require('./loginCodes');
 const diffusions = require('./diffusions');
 const driveSync = require('./driveSync');
+const broadcastDay = require('./broadcastDay');
 
 const router = express.Router();
 const json = express.json({ limit: '200kb' });
@@ -125,6 +126,13 @@ router.get('/catalog', (req, res) => {
 // ---------------------------------------------------------------------------
 // Connexion par code (écran de connexion du site)
 // ---------------------------------------------------------------------------
+// Colonne DATE (lue par pg comme une date locale) → « AAAA-MM-JJ »
+const dayOf = (v) => {
+  if (!v) return null;
+  if (!(v instanceof Date)) return String(v).slice(0, 10);
+  return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`;
+};
+
 const loginLimiter = loginCodes.createRateLimiter({
   max: config.loginCodes.maxFails,
   windowMs: config.loginCodes.windowMin * 60 * 1000,
@@ -155,6 +163,7 @@ router.post('/login', json, wrap(async (req, res) => {
     clientToken: client.access_token,
     firstLogin: Boolean(login && login.firstLogin),
     activatedAt: login && login.activatedAt,
+    creditsExpireAt: dayOf(client.credits_expire_at), // crédits inclus : 30 jours après la 1re diffusion
   });
 }));
 
@@ -394,6 +403,25 @@ router.post('/admin/planning/sync', wrap(async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const r = await diffusions.runSync();
   res.status(r.ok ? 200 : 503).json(r);
+}));
+
+/** Mails du jour de diffusion et alertes : passage immédiat (sans attendre les 10 minutes). */
+router.post('/admin/broadcast/run', wrap(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.json(await broadcastDay.tick({ force: true }));
+}));
+
+/** « Autre destinataire » d'une diffusion (vide = revenir à l'e-mail du client). */
+router.patch('/admin/diffusions/:planningId', json, wrap(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const raw = String((req.body || {}).emailOverride || '').trim().toLowerCase();
+  if (raw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) return res.status(400).json({ error: 'Adresse e-mail invalide' });
+  const { rowCount } = await db.query(
+    'UPDATE diffusions SET email_override = $2, updated_at = now() WHERE planning_id = $1',
+    [Number(req.params.planningId), raw || null]
+  );
+  if (!rowCount) return res.status(404).json({ error: 'Diffusion introuvable' });
+  res.json({ ok: true, emailOverride: raw || null });
 }));
 
 /** Crée les dossiers Drive et importe une vidéo déposée tout de suite (sans attendre le passage automatique). */

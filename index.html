@@ -2441,7 +2441,8 @@ async function doLoginServer(code) {
   let c = CLIENTS.find(x => x.id === sc.id);
   if (!c) { c = mkClient(sc.id, sc.company || sc.name || 'Mon entreprise', sc.sector || '', '', sc.email || '', code, 0, 0, { videos: [], last: null }); CLIENTS.push(c); }
   c.name = sc.company || sc.name || c.name; c.email = sc.email || c.email; c.code = code;
-  c.activatedAt = act; c.expiresAt = addDays(act, c.duration); c.disabled = false;
+  /* Crédits inclus : 30 jours après la 1re diffusion (date donnée par le serveur), sinon 30 jours après la connexion */
+  c.activatedAt = act; c.expiresAt = d.creditsExpireAt ? new Date(d.creditsExpireAt + 'T23:59:59') : addDays(act, c.duration); c.disabled = false;
   S.clientId = c.id; S.asAdmin = false;
   if (d.firstLogin) { S.modal = { type: 'onboarding' }; S.onb = 0; }
   c.lastLogin = new Date(TODAY); c.stats.logins++;

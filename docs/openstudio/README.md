@@ -123,6 +123,30 @@ Annulées/                                         ← dossiers des diffusions a
 - `POST /api/admin/drive/sync` lance un passage tout de suite.
 - Médias sans logo configuré (Le Figaro, TIME…) : à ajouter dans `programmes` de `src/opusclip.config.js`.
 
+## Jour de diffusion : mail au client et alertes à l'équipe
+
+Toutes les 10 minutes, OpenStudio regarde les diffusions actives (`src/broadcastDay.js`) :
+
+| Situation | Ce qui se passe |
+|---|---|
+| Jour J, vidéo + e-mail présents, à partir de `MAIL_SEND_HOUR` (8 h, Paris) | **Premier mail** du client : code de connexion, vidéo disponible, arguments, crédits valables 30 jours. Le code n'est ensuite plus lisible par l'équipe (un nouveau peut être généré). |
+| Client déjà prévenu pour une diffusion précédente | Mail « votre nouvelle émission est en ligne » (même code, pas de nouveaux crédits) |
+| Jour J incomplet (vidéo ou e-mail manquant) | Pas de mail ; alerte à `TEAM_ALERT_EMAIL`. Le mail part dès que l'élément arrive (jusqu'à 7 jours après la date). |
+| J-2 / J-1 incomplet | Alerte à l'équipe, une fois par diffusion |
+
+Destinataire : « autre destinataire » de la diffusion, sinon e-mail du client, sinon signataire du BDC.
+Pas de mail client avant 8 h ni après 20 h. Une diffusion n'est jamais envoyée deux fois (réservation avant envoi).
+
+**Tests :** tant que `MAIL_ALLOW_REAL_RECIPIENTS` n'est pas à `1`, tout part vers `MAIL_REDIRECT_TO` avec `[TEST]`
+dans le sujet. Les modèles Mailjet de l'équipe communication (`MJ_TPL_*`) reçoivent les variables `prenom`,
+`entreprise`, `nom_emission`, `code`, `lien`, `date_expiration` ; sans eux, un contenu de secours est utilisé.
+
+```bash
+curl -X POST $API/api/admin/broadcast/run -H "$AUTH"                     # passage immédiat
+curl -X PATCH $API/api/admin/diffusions/1234 -H "$AUTH" -H 'Content-Type: application/json' \
+     -d '{"emailOverride":"com@entreprise.fr"}'                          # autre destinataire
+```
+
 ## Mode test : dépôt de vidéo par le client
 
 Deux variables, à retirer en production (voir `render.yaml`) :
