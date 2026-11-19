@@ -280,6 +280,7 @@
     acces_echec_envoi: 'Échec d’envoi du code d’accès',
     acces_lien_cree: 'Code d’accès généré à la main',
     client_connexion: 'Connexion du client avec son code',
+    acces_retabli: 'Accès rétabli',
     acces_coupe: 'Accès coupé',
     marketing_reponse: 'Réponse sur les campagnes marketing',
   };
@@ -330,13 +331,12 @@
   }
 
   var ACCESS_TAG = {
-    scheduled: 'wait', sent: 'ok', manual: 'info', failed: 'err', revoked: 'off', no_email: 'wait', no_date: 'wait', no_video: 'wait',
+    scheduled: 'wait', sent: 'ok', failed: 'err', revoked: 'off', no_email: 'wait', no_date: 'wait', no_video: 'wait',
   };
   var ACCESS_FILTERS = [
     ['', 'Tous les accès'],
     ['scheduled', 'Envoi programmé'],
-    ['sent', 'Lien envoyé'],
-    ['manual', 'Lien remis à la main'],
+    ['sent', 'Code envoyé'],
     ['no_video', 'En attente de la vidéo'],
     ['todo', 'À compléter (e-mail ou date)'],
     ['failed', 'Échec d’envoi'],
@@ -467,23 +467,14 @@
     if (d.missing) return '<p><a href="#clients">← Tous les clients</a></p>' + errorBox();
     var c = d.client;
     var a = c.access;
-    var explain = {
-      scheduled: 'Le code partira le ' + fmtDay(a.day) + ' à partir de ' + a.hour + ' h (date de diffusion de la vidéo), à ' + (c.email || '') + '.',
-      sent: 'Le client a reçu son code par e-mail. Un nouveau code remplace l’ancien pour se connecter ; les navigateurs déjà connectés le restent.',
-      manual: 'Un code a été remis à la main. Un nouveau code remplace l’ancien pour se connecter ; les navigateurs déjà connectés le restent.',
-      failed: 'Dernière erreur : ' + (a.error || '') + '. Vérifiez l’adresse, puis renvoyez.',
-      revoked: 'Le client ne peut plus ouvrir son espace, sur aucun appareil. Envoyer ou générer un nouveau code rétablit l’accès.',
-      no_email: 'Ajoutez l’e-mail du client pour que son code parte automatiquement.',
-      no_video: 'Le code partira automatiquement dès qu’une vidéo sera déposée, le jour de sa diffusion.',
-      no_date: 'Indiquez la date de diffusion de la vidéo (ou de la fiche) pour programmer l’envoi.',
+    var mailLine = {
+      scheduled: 'Le code partira par e-mail le ' + fmtDay(a.day) + ' à ' + a.hour + ' h, jour de diffusion de la vidéo.',
+      sent: 'Code envoyé par e-mail le ' + fmtDate(a.at) + '.',
+      failed: 'Envoi du code par e-mail en échec : ' + (a.error || '') + '.',
+      no_email: 'Ajoutez l’e-mail du client pour que ce code lui parte automatiquement.',
+      no_video: 'Le code partira par e-mail le jour de diffusion de la vidéo, une fois celle-ci déposée.',
+      no_date: 'Indiquez la date de diffusion de la vidéo pour programmer l’envoi du code par e-mail.',
     }[a.code] || '';
-    var hasAccess = a.code === 'sent' || a.code === 'manual';
-    var link = d.accessCode
-      ? '<div class="codebox"><span class="small muted">Code de connexion</span><b class="access-code">' + esc(d.accessCode) + '</b>' +
-        '<button class="btn small secondary" type="button" data-a="copy-code">Copier</button></div>'
-      : (a.code === 'sent' || a.code === 'manual')
-        ? '<p class="small muted mt">Code non affichable (créé avant l’affichage des codes) : générez un nouveau code pour le voir ici.</p>'
-        : '';
 
     var emails = d.emails.length ? '<table class="compact"><tbody>' + d.emails.map(function (m) {
       return '<tr><td class="small nowrap">' + esc(fmtDate(m.created_at)) + '</td><td class="small">' + esc(m.subject || 'E-mail') +
@@ -522,12 +513,15 @@
       mailBanner(d.mail) + errorBox() +
       '<div class="cols"><div class="card"><h2>Informations</h2><form data-form="client-edit" class="form-2" novalidate>' + clientFields(c) +
       '<div class="wide"><button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Enregistrer</button></div></form></div>' +
-      '<div><div class="card"><h2>Accès à l’espace client</h2><p>' + accessTag(a) + '</p><p class="small">' + esc(explain) + '</p>' +
-      '<div class="btns left">' +
-      (c.email ? '<button class="btn" type="button" data-a="client-send"' + (S.busy ? ' disabled' : '') + '>' + (hasAccess || a.code === 'revoked' ? 'Renvoyer un code par e-mail' : 'Envoyer le code maintenant') + '</button>' : '') +
-      '<button class="btn secondary" type="button" data-a="client-link"' + (S.busy ? ' disabled' : '') + '>' + (d.accessCode ? 'Générer un nouveau code' : 'Générer un code') + '</button>' +
-      (hasAccess ? '<button class="btn danger" type="button" data-a="client-revoke"' + (S.busy ? ' disabled' : '') + '>Couper l’accès</button>' : '') +
-      '</div>' + link + marketingLine(c) + '</div>' +
+      '<div><div class="card"><h2>Accès à l’espace client</h2>' +
+      (d.accessCode ? '<div class="codebox' + (a.code === 'revoked' ? ' off' : '') + '"><span class="small muted">Code de connexion</span><b class="access-code">' + esc(d.accessCode) + '</b>' +
+        '<button class="btn small secondary" type="button" data-a="copy-code">Copier</button></div>' : '<p class="small muted">Code en cours de création…</p>') +
+      (a.code === 'revoked'
+        ? '<p class="mt"><span class="tag off">Accès coupé</span> <span class="small muted">depuis le ' + esc(fmtDate(a.at)) + ' : le code ne permet plus de se connecter.</span></p>' +
+          '<div class="btns left"><button class="btn" type="button" data-a="client-restore"' + (S.busy ? ' disabled' : '') + '>Rétablir l’accès</button></div>'
+        : '<p class="small muted mt">' + esc(mailLine) + '</p>' +
+          '<div class="btns left"><button class="btn danger" type="button" data-a="client-revoke"' + (S.busy ? ' disabled' : '') + '>Couper l’accès</button></div>') +
+      marketingLine(c) + '</div>' +
       section('E-mails envoyés', d.emails.length, emails) + '</div></div>' +
       videoCard(d) +
       section('Contenus générés', d.contents.length, contents + pubs) +
@@ -903,31 +897,16 @@
     },
     'reload-audit': function () { loadPage(); },
     'reload-dash': function () { S.dash = null; loadPage(); },
-    'client-send': function () {
+    'client-restore': function () {
       var c = S.client.client;
-      var replacing = c.access.code === 'sent' || c.access.code === 'manual';
-      if (replacing && !window.confirm('Un nouveau code va être envoyé à ' + c.email + '. L’ancien code ne permettra plus de se connecter. Continuer ?')) return;
-      withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/access/send').then(function (d) {
-        toast(d.redirectedTo ? 'Code envoyé (mode test : à ' + d.redirectedTo + ')' : 'Code envoyé à ' + c.email);
-        return loadClients();
-      }, function (e) {
-        // L'échec est enregistré sur la fiche : on la recharge pour l'afficher, puis on montre l'erreur
-        return loadClients().then(function () { throw e; });
-      }));
-    },
-    'client-link': function () {
-      if (!S.client || !S.client.client || S.client.client.id !== S.sub) return;
-      var c = S.client.client;
-      var replacing = c.access.code === 'sent' || c.access.code === 'manual';
-      if (replacing && !window.confirm('Générer un nouveau code ? L’ancien code ne permettra plus de se connecter.')) return;
-      withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/access/link').then(function (d) {
-        toast('Code de connexion : ' + d.code);
+      withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/access/restore').then(function () {
+        toast('Accès rétabli : le même code fonctionne à nouveau');
         return loadClients();
       }));
     },
     'client-revoke': function () {
       var c = S.client.client;
-      if (!window.confirm('Couper l’accès de ' + c.name + ' ? Son code ne fonctionnera plus et il sera déconnecté de tous ses appareils.')) return;
+      if (!window.confirm('Couper l’accès de ' + c.name + ' ? Son code ne fonctionnera plus et il sera déconnecté de tous ses appareils. Vous pourrez le rétablir.')) return;
       withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/access/revoke').then(function () {
         S.clientLink = null;
         toast('Accès coupé');

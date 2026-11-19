@@ -22,7 +22,7 @@ function sealCode(code) {
 }
 /** Code lisible d'un client, pour la fiche du back-office (null si absent ou illisible). */
 function readableCode(c) {
-  if (!c || !c.access_code_enc || c.access_revoked_at || !c.access_code_hash) return null;
+  if (!c || !c.access_code_enc || !c.access_code_hash) return null;
   try { return secretbox.open(c.access_code_enc, config.admin.encryptionKey); } catch { return null; }
 }
 
@@ -52,20 +52,15 @@ function isoDay(v) {
 
 /**
  * Où en est l'accès du client.
- * code : revoked | sent | manual | failed | scheduled | no_email | no_video | no_date
+ * code : revoked | sent | failed | scheduled | no_email | no_video | no_date
  * c.videos (nombre de vidéos actives) et c.trigger_date (date de diffusion de la première vidéo) sont
  * fournis par clients.list() ou withAccessInfo().
  */
 function accessStatus(c, now = new Date()) {
   if (c.access_revoked_at) return { code: 'revoked', label: 'Accès coupé', at: c.access_revoked_at };
-  if (c.access_email_sent_at && c.access_issued_via === 'email') {
+  if (c.access_email_sent_at) {
     return { code: 'sent', label: 'Code envoyé par e-mail', at: c.access_email_sent_at };
   }
-  const hasAccess = c.access_token_hash || c.access_code_hash || c.has_access;
-  if (hasAccess && c.access_issued_at) {
-    return { code: 'manual', label: 'Code remis à la main', at: c.access_issued_at };
-  }
-  if (hasAccess) return { code: 'manual', label: 'Lien existant (avant le back-office)', at: null };
   if (c.access_email_error && c.email) {
     const automatic = Boolean(c.trigger_date || c.broadcast_date);
     return {
@@ -115,9 +110,25 @@ function loginUrlFor(code) {
 }
 
 /**
- * Crée un nouveau code d'accès : l'ancien code et l'ancien lien cessent de fonctionner pour se
- * connecter. Les navigateurs déjà connectés le restent (sauf accès coupé).
+ * Code de connexion du client : créé une fois pour toutes, puis toujours le même.
+ * (Un code créé avant l'affichage des codes, donc illisible, est remplacé une fois.)
  */
+async function ensureCode(clientId) {
+  const { rows } = await db.query('SELECT * FROM clients WHERE id = $1', [clientId]);
+  if (!rows[0]) throw new Error('Client introuvable');
+  const existing = readableCode(rows[0]);
+  if (existing) return existing;
+  return (await issue(clientId, 'auto')).code;
+}
+
+/** Donne un code aux clients qui n'en ont pas encore (au démarrage du serveur). */
+async function ensureAllCodes() {
+  const { rows } = await db.query('SELECT id FROM clients WHERE access_code_hash IS NULL OR access_code_enc IS NULL LIMIT 1000');
+  for (const r of rows) await ensureCode(r.id);
+  return rows.length;
+}
+
+/** Crée le code d'accès d'un client (utilisé par ensureCode). */
 async function issue(clientId, via) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = newAccessCode();
@@ -137,14 +148,16 @@ async function issue(clientId, via) {
   throw new Error('Impossible de générer un code unique, réessayez.');
 }
 
-/** Coupe l'accès : plus de code, plus de lien, tous les navigateurs du client sont déconnectés. */
+/** Coupe l'accès : le code ne permet plus de se connecter et tous les navigateurs du client sont déconnectés. */
 async function revoke(clientId) {
-  const { rows } = await db.query(
-    `UPDATE clients SET access_token = NULL, access_token_hash = NULL, access_code_hash = NULL, access_code_enc = NULL, access_revoked_at = now()
-     WHERE id = $1 RETURNING *`,
-    [clientId]
-  );
+  const { rows } = await db.query('UPDATE clients SET access_revoked_at = now() WHERE id = $1 RETURNING *', [clientId]);
   if (rows[0]) await db.query('DELETE FROM client_sessions WHERE client_id = $1', [clientId]);
+  return rows[0] || null;
+}
+
+/** Rétablit l'accès : le même code fonctionne à nouveau. */
+async function restore(clientId) {
+  const { rows } = await db.query('UPDATE clients SET access_revoked_at = NULL WHERE id = $1 RETURNING *', [clientId]);
   return rows[0] || null;
 }
 
@@ -200,13 +213,8 @@ async function sendByEmail(client, { req = null, automatic = false, send = maile
     await logEmail(client, { status: 'echec', subject: 'Votre espace OpenStudio est prêt', error: unavailable, automatic });
     throw new Error(unavailable);
   }
-  // État du lien actuel, rétabli si l'envoi échoue (le client garde alors son accès existant)
-  const { rows: before } = await db.query(
-    'SELECT access_token, access_token_hash, access_code_hash, access_code_enc, access_issued_at, access_issued_via, access_revoked_at FROM clients WHERE id = $1',
-    [client.id]
-  );
-  const { link, code } = await issue(client.id, 'email');
-  const message = accessEmail(client, link, code);
+  const code = await ensureCode(client.id);
+  const message = accessEmail(client, loginUrlFor(code), code);
   try {
     const r = await send(message);
     await logEmail(client, { status: 'envoye', subject: message.subject, providerId: r && r.messageId, redirectedTo: r && r.redirectedTo, automatic });
@@ -222,14 +230,6 @@ async function sendByEmail(client, { req = null, automatic = false, send = maile
     });
     return { client: rows[0], redirectedTo: r && r.redirectedTo };
   } catch (e) {
-    // Le nouveau code n'a pas été transmis : on rétablit l'accès précédent (ou aucun accès)
-    const p = before[0] || {};
-    await db.query(
-      `UPDATE clients SET access_token = $2, access_token_hash = $3, access_issued_at = $4, access_issued_via = $5,
-         access_revoked_at = $6, access_code_hash = $7, access_code_enc = $8 WHERE id = $1`,
-      [client.id, p.access_token || null, p.access_token_hash || null, p.access_issued_at || null,
-        p.access_issued_via || null, p.access_revoked_at || null, p.access_code_hash || null, p.access_code_enc || null]
-    );
     await recordFailure(client.id, e.message);
     await logEmail(client, { status: 'echec', subject: message.subject, error: e.message, redirectedTo: config.mail.redirectTo || null, automatic });
     await audit.record(req, 'acces_echec_envoi', { targetType: 'client', targetId: client.id, detail: { email: client.email, erreur: e.message } });
@@ -271,7 +271,7 @@ async function dueClients(today) {
          WHERE v.client_id = c.id AND v.active = true
            AND COALESCE(v.broadcast_date, c.broadcast_date) <= $1::date)
        AND email IS NOT NULL AND email <> ''
-       AND access_email_sent_at IS NULL AND access_revoked_at IS NULL AND access_token_hash IS NULL AND access_code_hash IS NULL
+       AND access_email_sent_at IS NULL AND access_revoked_at IS NULL
        AND access_email_attempts < $2
        AND (access_email_last_try_at IS NULL OR access_email_last_try_at < now() - make_interval(mins => $3))
      ORDER BY broadcast_date, created_at
@@ -301,4 +301,4 @@ async function runScheduled({ now = new Date(), send = mailer.send, log = consol
   return { sent, failed };
 }
 
-module.exports = { readableCode, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
+module.exports = { readableCode, ensureCode, ensureAllCodes, restore, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };

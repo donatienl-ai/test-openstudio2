@@ -161,3 +161,4 @@ a.tile:hover { border-color: #c9d0db; }
 @media (max-width: 860px) { .tiles { grid-template-columns: 1fr 1fr; } }
 .codebox { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding: 12px 14px; background: var(--bg); border: 1px dashed #c9d0db; border-radius: var(--radius); }
 .access-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 22px; letter-spacing: 0.08em; }
+.codebox.off .access-code { color: var(--muted); text-decoration: line-through; }
