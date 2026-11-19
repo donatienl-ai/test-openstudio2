@@ -11,6 +11,7 @@ const mailer = require('./mailer');
 const audit = require('./admin/audit');
 const access = require('./admin/client-access');
 const credits = require('./credits/service');
+const tracking = require('./payments/tracking');
 const importer = require('./admin/client-import');
 const { requireTeam } = require('./admin/session');
 const mapping = require('./opusclip.config');
@@ -136,13 +137,18 @@ router.post('/admin/clients/import', requireTeam, bigJson, wrap(async (req, res)
 
 /* ------------------------------------------------------------------ Fiche client */
 
+async function withEvents(payments) {
+  const ev = await tracking.eventsFor(payments.map((p) => p.id));
+  return payments.map((p) => ({ ...p, events: ev[p.id] || [] }));
+}
+
 // Paiements du client : montages sur mesure et recharges de crédits
 const PAY_ALL = `(SELECT id, 'montage' AS kind, offer_title, status, amount_ttc_cents, paid_at, created_at, stripe_session_id,
-           last_payment_error, payment_failed_at, payment_failures, client_id, contact->>'company' AS company
+           last_payment_error, payment_failed_at, payment_failures, failure_origin, abandoned_at, client_id, contact->>'company' AS company
     FROM montage_requests
     UNION ALL
     SELECT id, 'recharge', pack_label || ' (' || credits || ' crédits)', status, amount_ttc_cents, paid_at, created_at, stripe_session_id,
-           last_payment_error, payment_failed_at, payment_failures, client_id, NULL
+           last_payment_error, payment_failed_at, payment_failures, failure_origin, abandoned_at, client_id, NULL
     FROM credit_purchases)`;
 
 router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
@@ -161,7 +167,7 @@ router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
        FROM orders o WHERE o.client_id = $1 ORDER BY o.created_at DESC LIMIT 100`, [c.id]),
     db.query(
       `SELECT id, kind, offer_title, status, amount_ttc_cents, paid_at, created_at, stripe_session_id IS NOT NULL AS has_invoice,
-              last_payment_error, payment_failed_at, payment_failures
+              last_payment_error, payment_failed_at, payment_failures, failure_origin, abandoned_at
        FROM ${PAY_ALL} p WHERE client_id = $1 ORDER BY created_at DESC LIMIT 100`, [c.id]),
     db.query(
       `SELECT id, video_title, platforms, status, scheduled_at, created_at
@@ -173,7 +179,7 @@ router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
     accessCode: access.readableCode(c),
     emails: emails.rows,
     contents: contents.rows.map((o) => ({ ...o, programme: o.programme_id ? programmeTitle(o.programme_id) : null })),
-    payments: montage.rows,
+    payments: await withEvents(montage.rows),
     credits: await credits.account(c.id, { historyLimit: 200 }),
     publications: publications.rows,
     videos: videos.map((v) => ({
@@ -224,14 +230,19 @@ router.get('/admin/dashboard', requireTeam, wrap(async (req, res) => {
               COUNT(*) FILTER (WHERE status = 'awaiting_payment')::int AS awaiting,
               COUNT(*) FILTER (WHERE status = 'to_quote')::int AS to_quote,
               COUNT(*) FILTER (WHERE status <> 'paid' AND payment_failed_at > now() - interval '30 days')::int AS failed,
+              COUNT(*) FILTER (WHERE status = 'abandoned' AND abandoned_at > now() - interval '30 days')::int AS abandoned,
               COUNT(*) FILTER (WHERE kind = 'recharge' AND status = 'paid' AND paid_at > now() - interval '30 days')::int AS recharges
        FROM ${PAY_ALL} p`),
     db.query(
-      `SELECT m.id, m.kind, m.offer_title, m.last_payment_error, m.payment_failed_at, m.payment_failures, m.status,
-              m.company, c.id AS client_id, c.name AS client_name
-       FROM ${PAY_ALL} m LEFT JOIN clients c ON c.id = m.client_id
-       WHERE m.status <> 'paid' AND m.payment_failed_at > now() - interval '30 days'
-       ORDER BY m.payment_failed_at DESC LIMIT 20`),
+      // À relancer : montages sur mesure non payés (refus ou abandon) des 7 derniers jours ; les recharges ne sont pas relancées
+      `SELECT m.id, 'montage' AS kind, m.offer_title, m.last_payment_error, m.failure_origin, m.payment_failed_at, m.payment_failures, m.status,
+              m.abandoned_at, GREATEST(m.payment_failed_at, m.abandoned_at) AS at,
+              m.contact->>'company' AS company, m.contact->>'name' AS contact_name, m.contact->>'email' AS contact_email, m.contact->>'phone' AS contact_phone,
+              c.id AS client_id, c.name AS client_name
+       FROM montage_requests m LEFT JOIN clients c ON c.id = m.client_id
+       WHERE m.status IN ('awaiting_payment', 'abandoned', 'error')
+         AND GREATEST(m.payment_failed_at, m.abandoned_at) > now() - interval '7 days'
+       ORDER BY at DESC LIMIT 30`),
     db.query("SELECT COUNT(*)::int AS n FROM montage_requests WHERE client_id IS NULL AND status = 'paid'"),
     db.query(
       `SELECT COUNT(*) FILTER (WHERE (access_token_hash IS NOT NULL OR access_code_hash IS NOT NULL) AND access_revoked_at IS NULL)::int AS active,

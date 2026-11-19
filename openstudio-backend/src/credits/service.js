@@ -14,6 +14,7 @@ const config = require('../config');
 const db = require('../db');
 const mailer = require('../mailer');
 const settings = require('./settings');
+const tracking = require('../payments/tracking');
 
 class CreditError extends Error {
   constructor(message, status = 400, extra = {}) {
@@ -277,11 +278,12 @@ async function createPurchase(client, packId, { returnOrigin, stripe } = {}) {
       });
     } catch (e) {
       console.error('[crédits] Stripe :', e.message);
-      await db.query("UPDATE credit_purchases SET status = 'cancelled', last_payment_error = $2, updated_at = now() WHERE id = $1", [id, `Stripe : ${e.message}`.slice(0, 300)]);
+      await tracking.recordTechnical('recharge', id, `ouverture de la page de paiement impossible (${e.message})`, { fail: true });
       throw new CreditError('Le paiement n’a pas pu être préparé. Réessayez dans quelques minutes.', 502);
     }
   }
   await db.query('UPDATE credit_purchases SET stripe_session_id = $2, updated_at = now() WHERE id = $1', [id, session.id]);
+  await tracking.record('recharge', id, 'page_ouverte', { message: `Page de paiement ouverte : ${pack.label}, ${(ttc / 100).toFixed(2).replace('.', ',')} € TTC` });
   return { id, checkoutUrl: session.url };
 }
 
@@ -297,6 +299,7 @@ async function markPurchasePaid(purchaseId, paymentIntent = null, { send = maile
   );
   const p = rows[0];
   if (!p) return null;
+  await tracking.record('recharge', p.id, 'paye', { message: `Payé : ${(p.amount_ttc_cents / 100).toFixed(2).replace('.', ',')} € TTC, +${p.credits} crédits` });
   const s = await settings.get();
   await expireIfDue(p.client_id); // un solde déjà échu n'est pas prolongé
   await db.query(
@@ -381,18 +384,9 @@ async function handleStripeEvent(event, purchaseId) {
   const s = event.data && event.data.object;
   if (event.type === 'checkout.session.completed' && s.payment_status === 'paid') await markPurchasePaid(purchaseId, s.payment_intent || null);
   if (event.type === 'checkout.session.async_payment_succeeded') await markPurchasePaid(purchaseId, s.payment_intent || null);
-  if (event.type === 'payment_intent.payment_failed') {
-    const err = s.last_payment_error || {};
-    const reason = err.message || err.decline_code || err.code || 'Paiement refusé';
-    await db.query(
-      `UPDATE credit_purchases SET last_payment_error = $2, payment_failed_at = now(), payment_failures = payment_failures + 1, updated_at = now()
-       WHERE id = $1 AND status <> 'paid'`,
-      [purchaseId, String(reason).slice(0, 300)]
-    );
-  }
-  if (event.type === 'checkout.session.expired') {
-    await db.query("UPDATE credit_purchases SET status = 'cancelled', updated_at = now() WHERE id = $1 AND status = 'awaiting_payment'", [purchaseId]);
-  }
+  if (event.type === 'payment_intent.payment_failed') await tracking.recordFailure('recharge', purchaseId, s.last_payment_error);
+  if (event.type === 'checkout.session.async_payment_failed') await tracking.recordFailure('recharge', purchaseId, { code: 'processing_error', message: 'Paiement différé refusé' });
+  if (event.type === 'checkout.session.expired') await tracking.markAbandoned('recharge', purchaseId, 'Page de paiement expirée chez Stripe sans paiement');
   return { status: 200 };
 }
 

@@ -40,8 +40,11 @@ async function stripeRequest(method, path, body, { fetchImpl = fetch } = {}) {
  */
 async function createCheckoutSession(p) {
   const metadata = p.metadata || { montage_request_id: p.requestId };
+  // Validité minimale imposée par Stripe (30 min) ; notre serveur ferme la page au bout de 15 min sans paiement
+  const expiresAt = Math.floor(Date.now() / 1000) + 31 * 60;
   const s = await stripeRequest('POST', '/checkout/sessions', {
     mode: 'payment',
+    expires_at: expiresAt,
     client_reference_id: p.requestId,
     customer_email: p.email,
     locale: 'fr',
