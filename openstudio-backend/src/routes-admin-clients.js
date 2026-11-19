@@ -154,6 +154,7 @@ router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
   const programmeTitle = (id) => (mapping.programmes[id] || {}).title || id;
   res.json({
     client: await fresh(c.id),
+    accessCode: access.readableCode(c),
     emails: emails.rows,
     contents: contents.rows.map((o) => ({ ...o, programme: o.programme_id ? programmeTitle(o.programme_id) : null })),
     payments: montage.rows,
@@ -290,7 +291,7 @@ router.post('/admin/clients/:id/access/link', requireTeam, wrap(async (req, res)
   if (!config.clientSiteUrl) return res.status(503).json({ error: 'Adresse de l’espace client non configurée (CLIENT_SITE_URL).' });
   const r = await access.issue(c.id, 'manuel');
   await audit.record(req, 'acces_lien_cree', { targetType: 'client', targetId: c.id });
-  res.json({ client: await fresh(c.id), code: r.code, link: r.link });
+  res.json({ client: await fresh(c.id), code: r.code });
 }));
 
 router.post('/admin/clients/:id/access/revoke', requireTeam, wrap(async (req, res) => {

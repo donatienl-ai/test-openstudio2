@@ -169,6 +169,16 @@ router.post('/client/logout', wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+/** Lecture d'une vidéo de son package dans l'espace client (adresse valable 1 heure). */
+router.get('/me/videos/:videoId/stream', wrap(async (req, res) => {
+  const client = await requireClient(req, res);
+  if (!client) return;
+  const v = await clients.getVideo(client.id, req.params.videoId);
+  if (!v) return res.status(404).json({ error: 'Vidéo introuvable' });
+  const ext = path.extname(v.source_key) || '.mp4';
+  res.json({ url: await storage.presignDownload(v.source_key, `${v.title}${ext}`, 'inline', 3600) });
+}));
+
 /** Le client accepte ou refuse d'être contacté pour des campagnes marketing (modifiable ensuite). */
 router.post('/me/marketing', json, wrap(async (req, res) => {
   const client = await requireClient(req, res);

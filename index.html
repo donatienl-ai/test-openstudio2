@@ -1954,6 +1954,22 @@ async function bkLoadVideos(force) {
   BK.loading = false;
   if (S.view === 'client' && S.page === 'capsules') { S.keepScroll = true; render(); }
 }
+// Vidéo de l'émission déposée par l'équipe : lue directement depuis le stockage (adresse temporaire)
+BK.streams = BK.streams || {};
+function bkPlayer(v, { big } = {}) {
+  if (!v || !v.bkId) return '';
+  const st = BK.streams[v.bkId];
+  if (!st) { BK.streams[v.bkId] = { loading: true }; OpenStudio.videoStreamUrl(v.bkId).then(url => { BK.streams[v.bkId] = { url }; S.keepScroll = true; render(); }, () => { BK.streams[v.bkId] = { err: true }; S.keepScroll = true; render(); }); }
+  const box = `width:100%;aspect-ratio:16/9;border-radius:${big ? 14 : 10}px;background:#0A0A2A;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px`;
+  if (!st || st.loading) return `<div style="${box}">Chargement de la vidéo…</div>`;
+  if (st.err) return `<div style="${box}">La vidéo n'a pas pu être chargée. Rechargez la page.</div>`;
+  return `<video data-vid="${esc(v.bkId)}" controls preload="metadata" playsinline src="${esc(st.url)}" style="${box};display:block;object-fit:contain"></video>`;
+}
+/** « BFM TV — 19 nov. 2026 » plutôt que « BFM TV · BFM TV — 19 nov. 2026 » quand le titre contient déjà l'émission. */
+function bkLabel(v, sep) { return v.media && String(v.title || '').startsWith(v.media) ? v.title : [v.media, v.title].filter(Boolean).join(sep); }
+function bkSoon(big) {
+  return `<div style="width:100%;aspect-ratio:16/9;border-radius:${big ? 14 : 10}px;background:#F2F3F8;border:1px dashed #C9CDE0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:20px;color:#1C1C62"><b style="font-size:16px">Votre vidéo sera bientôt disponible</b><span style="font-size:13px;opacity:.75">Elle apparaîtra ici dès que l'équipe OpenMedias l'aura déposée.</span></div>`;
+}
 // Première connexion : le client accepte ou refuse les campagnes marketing (question posée une fois par visite
 // tant qu'il n'a pas répondu ; sa réponse est enregistrée sur sa fiche, dans le back-office).
 function bkAskMarketing() {
@@ -1968,6 +1984,8 @@ async function bkAnswerMarketing(optin) {
 }
 // Mode test (CLIENT_UPLOADS_ENABLED côté serveur) : le client dépose lui-même sa vidéo. En production, l'équipe la dépose.
 function bkUploadBox() {
+  return ''; // Interface réelle : seule l'équipe OpenMedias dépose les vidéos (back-office)
+  // eslint-disable-next-line no-unreachable
   if (!BK.clientUploads) return '';
   const opts = BK_PROGRAMMES.map(([id, l]) => `<option value="${id}">${l}</option>`).join('');
   return `<div class="panel stack" style="gap:12px;margin-bottom:20px"><div><b>Déposer une vidéo</b> <span class="tag">Mode test</span><p class="small muted" style="margin-top:4px;max-width:62ch">En production, les vidéos sont déposées par l'équipe OpenStudio et apparaissent directement ici.</p></div>
@@ -2331,7 +2349,9 @@ function render() {
   else if (S.view === 'adminLogin') h += viewAdminLogin();
   else if (S.view === 'admin') h += viewAdmin();
   if (S.modal) h += modalHtml();
+  const playing = [...root.querySelectorAll('video[data-vid]')].map(v => ({ id: v.dataset.vid, t: v.currentTime, paused: v.paused }));
   root.innerHTML = h;
+  playing.forEach(p => { const v = root.querySelector(`video[data-vid="${CSS.escape(p.id)}"]`); if (!v) return; const go = () => { try { v.currentTime = p.t; if (!p.paused) v.play().catch(() => {}); } catch (e) {} }; if (v.readyState >= 1) go(); else v.addEventListener('loadedmetadata', go, { once: true }); });
   after();
   if (S.keepScroll) { window.scrollTo(0, scrollY); S.keepScroll = false; }
 }
@@ -2915,14 +2935,14 @@ function osHome(c) {
     <div class="os-bandnav"><button class="brand" data-a="nav" data-arg="dashboard">OPENSTUDIO</button>
       <nav aria-label="Navigation principale"><a href="#" data-a="nav" data-arg="emissions">Mes émissions</a><a href="#" data-a="nav" data-arg="medias">Mes créations</a><a href="mailto:contact@openmedias.fr">Aide</a><button class="who" data-a="nav" data-arg="access">${esc(c.name)}</button></nav></div>
     <div class="os-hero"><div class="txt">
-      ${hv ? `<span class="os-badge"><i aria-hidden="true"></i>${hv.media ? `Votre interview ${esc(hv.media)} est prête` : 'Votre interview est prête'}</span>` : `<span class="os-badge wait"><i aria-hidden="true"></i>${BK.loading ? 'Chargement de vos émissions…' : 'Votre interview arrive bientôt'}</span>`}
+      ${hv ? `<span class="os-badge"><i aria-hidden="true"></i>${hv.media ? `Votre interview ${esc(hv.media)} est prête` : 'Votre interview est prête'}</span>` : `<span class="os-badge wait"><i aria-hidden="true"></i>${BK.loading ? 'Chargement de vos émissions…' : 'Votre vidéo sera bientôt disponible'}</span>`}
       <h1 id="accroche">Vous êtes passés à la télé.<span>Faites-le savoir.</span></h1>
       <p>Choisissez ce que vous voulez en tirer. On s'occupe du découpage, des sous-titres et de vos logos.</p>
       <div class="os-choices" role="group" aria-label="Que voulez-vous créer ?">${kinds.map(k => `<button type="button" class="os-choice" data-a="home-pick" data-arg="${k.id}" aria-pressed="${k.id === cur.id}"><span class="t">${esc(k.tag)}<span class="r" aria-hidden="true"></span></span><b>${esc(k.label)}</b><span class="d">${esc(k.desc)}</span></button>`).join('')}</div>
       <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center"><button class="os-cta big" data-a="flow-go" data-arg="${cur.id}|4" ${hv ? '' : 'disabled'}>${cur.cta}</button><button class="os-link" data-a="flow-go" data-arg="${cur.id}|3" ${hv ? '' : 'disabled'}>Changer le format ou la durée</button></div>
       ${!osLive() ? `<p style="font-size:14px">Pour retrouver vos émissions, ouvrez le lien d'accès envoyé par l'équipe OpenMedias.</p>` : ''}
     </div>
-    ${hv ? `<figure>${thumb(hv)}<figcaption>${esc([hv.media, hv.title].filter(Boolean).join(' · '))}${hv.date ? ` · diffusé le ${fmtD(hv.date)}` : ''}</figcaption></figure>` : ''}
+    ${hv ? `<figure>${osLive() && hv.bkId ? bkPlayer(hv, { big: true }) : thumb(hv)}<figcaption>${esc(bkLabel(hv, ' · '))}${hv.date ? ` · diffusé le ${fmtD(hv.date)}` : ''}</figcaption></figure>` : (osLive() && BK.videos ? `<figure>${bkSoon(true)}</figure>` : '')}
     </div></div></section>
   <main class="os-home">
     <section aria-labelledby="biblio" style="flex:999 1 600px;min-width:0;display:flex;flex-direction:column;gap:20px">
@@ -2946,11 +2966,13 @@ function osEmissions(c) {
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="os-pillbtn p" data-a="em-go" data-arg="capsules|${esc(v.bkId)}">Faire des capsules</button><button class="os-pillbtn s" data-a="em-go" data-arg="subtitles|${esc(v.bkId)}">Sous-titrer</button></div></div>`).join('');
   return `<header class="os-head"><div style="display:flex;flex-direction:column;gap:6px"><span class="kick">${today} — ${esc(c.name)}</span><h1>Vos passages à l'antenne</h1></div>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="os-out" data-a="nav" data-arg="access">Mon package</button><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></div></header>
+    ${osLive() && BK.videos ? `<section aria-labelledby="mavideo" style="display:flex;flex-direction:column;gap:14px"><h2 id="mavideo" class="os-h2">${vids.length > 1 ? 'Vos émissions' : 'Votre émission'}</h2>
+      ${vids.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px">${vids.map(v => `<figure style="margin:0;display:flex;flex-direction:column;gap:8px">${bkPlayer(v)}<figcaption style="font-size:14px"><b>${esc(bkLabel(v, ' — '))}</b>${v.date ? `<span class="mut"> · diffusée le ${fmtD(v.date)}</span>` : ''}</figcaption></figure>`).join('')}</div>` : bkSoon(true)}</section>` : ''}
     <section aria-labelledby="grille" style="display:flex;flex-direction:column;gap:14px">
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:baseline"><h2 id="grille" class="os-h2">Grille de vos émissions</h2><span class="mut" style="font-size:13px">${vids.length ? `${vids.length} émission${vids.length > 1 ? 's' : ''} dans votre package` : ''}</span></div>
       ${!osLive() ? `<div class="os-empty">Ouvrez le lien d'accès envoyé par l'équipe OpenMedias pour retrouver vos émissions.</div>` : BK.loading || !BK.videos ? `<div class="os-empty">Chargement de vos émissions…</div>` : BK.err ? `<div class="os-empty">${esc(BK.err)}</div>`
         : vids.length ? `<div class="os-tbl em"><div style="min-width:760px"><div class="os-tr h" style="${cols}"><span>Diffusion</span><span>Émission</span><span>Durée</span><span>État du rush</span><span></span></div>${rows}</div></div>`
-        : `<div class="os-empty">${bkUploadBox()}Vos émissions apparaîtront ici dès que l'équipe OpenMedias les aura déposées.</div>`}
+        : `<div class="os-empty">Votre vidéo sera bientôt disponible : elle apparaîtra ici dès que l'équipe OpenMedias l'aura déposée.</div>`}
     </section>
     <section aria-labelledby="sorties" style="display:flex;flex-direction:column;gap:14px">
       <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 id="sorties" class="os-h2">Dernières sorties</h2><a href="#" data-a="nav" data-arg="medias" style="font-size:13px">Toutes mes créations</a></div>

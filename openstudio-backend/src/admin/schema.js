@@ -112,6 +112,8 @@ CREATE INDEX IF NOT EXISTS client_visits_day ON client_visits (day);
 -- Code d'accès du client (format OM-XXXX-XX), conservé uniquement sous forme d'empreinte
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_code_hash TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS clients_access_code ON clients (access_code_hash) WHERE access_code_hash IS NOT NULL;
+-- Le même code, chiffré (ADMIN_ENCRYPTION_KEY), pour l'afficher sur la fiche du back-office
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_code_enc TEXT;
 -- Sessions ouvertes avec le code : le client reste connecté sur son navigateur
 CREATE TABLE IF NOT EXISTS client_sessions (
   token_hash    TEXT PRIMARY KEY,

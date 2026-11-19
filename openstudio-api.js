@@ -140,6 +140,8 @@
   const getMyVideos = () => call('GET', '/api/me');
   /** Réponse du client sur les campagnes marketing (true : accepte, false : refuse). */
   const setMarketing = (optin) => call('POST', '/api/me/marketing', { body: { optin: Boolean(optin) } });
+  /** Adresse de lecture d'une vidéo du package (valable 1 heure). */
+  const videoStreamUrl = (videoId) => call('GET', `/api/me/videos/${encodeURIComponent(videoId)}/stream`).then((d) => d.url);
   /** Connexion avec le code d'accès (OM-XXXX-XX) : la session est gardée dans ce navigateur. */
   const loginWithCode = async (code) => {
     try { localStorage.removeItem(CLIENT_KEY); } catch { /* ignoré */ }
@@ -219,6 +221,7 @@
     getMyVideos,
     setMarketing,
     loginWithCode,
+    videoStreamUrl,
     hasCodeSession,
     logoutClient,
     addMyVideo,

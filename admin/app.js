@@ -364,13 +364,15 @@
   function loadClients() {
     if (S.sub && S.sub !== 'nouveau' && S.sub !== 'import') {
       if (!S.client || S.client.client.id !== S.sub) S.client = null;
-      return api('GET', '/admin/clients/' + encodeURIComponent(S.sub))
-        .then(function (d) { S.client = d; S.mail = d.mail; render(); })
-        .catch(function (e) { S.error = e.message; S.client = { missing: true }; render(); });
+      var wanted = S.sub;
+      // Une réponse arrivée après un changement de page est ignorée : elle ne doit jamais remplacer la fiche affichée
+      return api('GET', '/admin/clients/' + encodeURIComponent(wanted))
+        .then(function (d) { if (S.page !== 'clients' || S.sub !== wanted) return; S.client = d; S.mail = d.mail; render(); })
+        .catch(function (e) { if (S.page !== 'clients' || S.sub !== wanted) return; S.error = e.message; S.client = { missing: true }; render(); });
     }
     if (!S.sub) {
       return api('GET', '/admin/clients')
-        .then(function (d) { S.clients = d.clients; S.mail = d.mail; render(); })
+        .then(function (d) { if (S.page !== 'clients' || S.sub) return; S.clients = d.clients; S.mail = d.mail; render(); })
         .catch(function (e) { S.error = e.message; S.clients = []; render(); });
     }
   }
@@ -476,10 +478,12 @@
       no_date: 'Indiquez la date de diffusion de la vidéo (ou de la fiche) pour programmer l’envoi.',
     }[a.code] || '';
     var hasAccess = a.code === 'sent' || a.code === 'manual';
-    var link = S.clientLink && S.clientLink.id === c.id ? '<div class="codebox"><span class="small muted">Code d’accès</span><b class="access-code">' + esc(S.clientLink.code) + '</b>' +
-      '<button class="btn small secondary" type="button" data-a="copy-code">Copier le code</button></div>' +
-      '<div class="linkbox"><input readonly value="' + esc(S.clientLink.url) + '" aria-label="Adresse de connexion avec le code"><button class="btn secondary" type="button" data-a="copy-link">Copier le lien</button></div>' +
-      '<p class="small muted mt">Transmettez ce code au client vous-même (il le saisit sur la page de connexion, ou ouvre le lien qui le remplit pour lui). Il ne sera plus affiché ensuite.</p>' : '';
+    var link = d.accessCode
+      ? '<div class="codebox"><span class="small muted">Code de connexion</span><b class="access-code">' + esc(d.accessCode) + '</b>' +
+        '<button class="btn small secondary" type="button" data-a="copy-code">Copier</button></div>'
+      : (a.code === 'sent' || a.code === 'manual')
+        ? '<p class="small muted mt">Code non affichable (créé avant l’affichage des codes) : générez un nouveau code pour le voir ici.</p>'
+        : '';
 
     var emails = d.emails.length ? '<table class="compact"><tbody>' + d.emails.map(function (m) {
       return '<tr><td class="small nowrap">' + esc(fmtDate(m.created_at)) + '</td><td class="small">' + esc(m.subject || 'E-mail') +
@@ -521,7 +525,7 @@
       '<div><div class="card"><h2>Accès à l’espace client</h2><p>' + accessTag(a) + '</p><p class="small">' + esc(explain) + '</p>' +
       '<div class="btns left">' +
       (c.email ? '<button class="btn" type="button" data-a="client-send"' + (S.busy ? ' disabled' : '') + '>' + (hasAccess || a.code === 'revoked' ? 'Renvoyer un code par e-mail' : 'Envoyer le code maintenant') + '</button>' : '') +
-      '<button class="btn secondary" type="button" data-a="client-link"' + (S.busy ? ' disabled' : '') + '>Générer un code</button>' +
+      '<button class="btn secondary" type="button" data-a="client-link"' + (S.busy ? ' disabled' : '') + '>' + (d.accessCode ? 'Générer un nouveau code' : 'Générer un code') + '</button>' +
       (hasAccess ? '<button class="btn danger" type="button" data-a="client-revoke"' + (S.busy ? ' disabled' : '') + '>Couper l’accès</button>' : '') +
       '</div>' + link + marketingLine(c) + '</div>' +
       section('E-mails envoyés', d.emails.length, emails) + '</div></div>' +
@@ -912,11 +916,12 @@
       }));
     },
     'client-link': function () {
+      if (!S.client || !S.client.client || S.client.client.id !== S.sub) return;
       var c = S.client.client;
       var replacing = c.access.code === 'sent' || c.access.code === 'manual';
       if (replacing && !window.confirm('Générer un nouveau code ? L’ancien code ne permettra plus de se connecter.')) return;
       withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/access/link').then(function (d) {
-        S.clientLink = { id: c.id, url: d.link, code: d.code };
+        toast('Code de connexion : ' + d.code);
         return loadClients();
       }));
     },
