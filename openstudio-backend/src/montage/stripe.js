@@ -18,8 +18,8 @@ function form(obj, prefix = '', out = new URLSearchParams()) {
   return out;
 }
 
-async function stripeRequest(method, path, body) {
-  const res = await fetch(`https://api.stripe.com/v1${path}`, {
+async function stripeRequest(method, path, body, { fetchImpl = fetch } = {}) {
+  const res = await fetchImpl(`https://api.stripe.com/v1${path}`, {
     method,
     headers: { Authorization: `Bearer ${config.stripe.secretKey}`, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body ? form(body).toString() : undefined,
@@ -48,6 +48,12 @@ async function createCheckoutSession(p) {
     cancel_url: p.cancelUrl,
     metadata: { montage_request_id: p.requestId },
     payment_intent_data: { metadata: { montage_request_id: p.requestId }, description: p.title },
+    // Facture Stripe générée après le paiement (numérotée, PDF) : affichée dans le back-office.
+    // Les mentions légales (raison sociale, SIRET, TVA) se règlent dans Stripe → Paramètres → Factures.
+    invoice_creation: {
+      enabled: true,
+      invoice_data: { description: p.title, metadata: { montage_request_id: p.requestId } },
+    },
     line_items: [{
       quantity: 1,
       price_data: { currency: 'eur', unit_amount: p.amountTtcCents, product_data: { name: p.title, description: p.description } },
@@ -73,4 +79,22 @@ function verifyWebhook(rawBody, header, secret = config.stripe.webhookSecret, to
   }
 }
 
-module.exports = { createCheckoutSession, verifyWebhook, form };
+/**
+ * Facture d'un paiement Checkout : la facture Stripe si elle existe, sinon le reçu de paiement
+ * (paiements faits avant l'activation des factures). null si rien n'est disponible.
+ */
+async function invoiceForSession(sessionId, opts) {
+  const q = new URLSearchParams([['expand[]', 'invoice'], ['expand[]', 'payment_intent.latest_charge']]);
+  const s = await stripeRequest('GET', `/checkout/sessions/${encodeURIComponent(sessionId)}?${q}`, null, opts);
+  const inv = s.invoice && typeof s.invoice === 'object' ? s.invoice : null;
+  if (inv && (inv.hosted_invoice_url || inv.invoice_pdf)) {
+    return { kind: 'facture', number: inv.number || null, url: inv.hosted_invoice_url || inv.invoice_pdf, pdf: inv.invoice_pdf || null };
+  }
+  const charge = s.payment_intent && s.payment_intent.latest_charge;
+  if (charge && typeof charge === 'object' && charge.receipt_url) {
+    return { kind: 'recu', number: charge.receipt_number || null, url: charge.receipt_url, pdf: null };
+  }
+  return null;
+}
+
+module.exports = { createCheckoutSession, verifyWebhook, form, invoiceForSession };

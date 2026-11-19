@@ -129,10 +129,27 @@ router.get('/me', wrap(async (req, res) => {
   if (!client) return;
   const videos = await clients.listVideos(client.id);
   res.json({
-    client: { id: client.id, name: client.name, company: client.company, hasLogo: Boolean(client.logo_key) },
+    client: {
+      id: client.id, name: client.name, company: client.company, hasLogo: Boolean(client.logo_key),
+      // null : pas encore répondu → l'espace client pose la question (fenêtre à la première connexion)
+      marketing: client.marketing_optin === undefined ? null : client.marketing_optin,
+    },
     videos: videos.map(publicVideo),
     clientUploads: config.clientUploadsEnabled,
   });
+}));
+
+/** Le client accepte ou refuse d'être contacté pour des campagnes marketing (modifiable ensuite). */
+router.post('/me/marketing', json, wrap(async (req, res) => {
+  const client = await requireClient(req, res);
+  if (!client) return;
+  const optin = (req.body || {}).optin;
+  if (typeof optin !== 'boolean') return res.status(400).json({ error: 'Réponse attendue : oui ou non.' });
+  await clients.update(client.id, { marketingOptin: optin, marketingOptinSource: 'Espace client' });
+  await audit.record({ ip: req.ip, auditActorLabel: `Client (${client.name})` }, 'marketing_reponse', {
+    targetType: 'client', targetId: client.id, detail: { marketing: optin ? 'oui' : 'non' },
+  });
+  res.json({ marketing: optin });
 }));
 
 /** Mode test : le client ajoute lui-même une vidéo (déjà envoyée via /api/uploads) à son package. */
@@ -145,6 +162,10 @@ router.post('/me/videos', json, wrap(async (req, res) => {
   if (!h.exists) return res.status(400).json({ error: 'Vidéo introuvable dans le stockage : l’envoi n’est peut-être pas terminé.' });
   if (h.contentType && !/^video\//.test(h.contentType)) return res.status(400).json({ error: 'Ce fichier n’est pas une vidéo.' });
   const v = await clients.addVideo(client.id, r.value);
+  await audit.record({ ip: req.ip, auditActorLabel: `Client (${client.name})` }, 'video_ajoutee', {
+    targetType: 'client', targetId: client.id,
+    detail: { videoId: v.id, title: v.title, programmeId: v.programme_id, programme: (mapping.programmes[v.programme_id] || {}).title },
+  });
   res.status(201).json({ video: publicVideo(v) });
 }));
 
@@ -371,7 +392,10 @@ router.post('/admin/clients/:id/videos', json, wrap(async (req, res) => {
   if (!h.exists) return res.status(400).json({ error: 'Fichier introuvable dans le stockage : l’envoi n’est peut-être pas terminé.' });
   if (h.contentType && !/^video\//.test(h.contentType)) return res.status(400).json({ error: 'Ce fichier n’est pas une vidéo.' });
   const v = await clients.addVideo(client.id, { programmeId, title, sourceKey, broadcastDate, durationSec });
-  await audit.record(req, 'video_ajoutee', { targetType: 'client', targetId: client.id, detail: { videoId: v.id, title, programmeId } });
+  await audit.record(req, 'video_ajoutee', {
+    targetType: 'client', targetId: client.id,
+    detail: { videoId: v.id, title, programmeId, programme: mapping.programmes[programmeId].title, date: broadcastDate },
+  });
   res.status(201).json({ video: publicVideo(v) });
 }));
 
@@ -392,8 +416,12 @@ router.get('/admin/clients/:id/videos/:videoId/preview', wrap(async (req, res) =
 /** Retirer une vidéo du package (elle reste en base mais n'est plus proposée). */
 router.post('/admin/clients/:id/videos/:videoId/disable', wrap(async (req, res) => {
   if (!requireAdmin(req, res)) return;
+  const removed = await clients.getVideo(req.params.id, req.params.videoId);
   await clients.setVideoActive(req.params.id, req.params.videoId, false);
-  await audit.record(req, 'video_retiree', { targetType: 'client', targetId: req.params.id, detail: { videoId: req.params.videoId } });
+  await audit.record(req, 'video_retiree', {
+    targetType: 'client', targetId: req.params.id,
+    detail: { videoId: req.params.videoId, title: removed && removed.title, programme: removed && (mapping.programmes[removed.programme_id] || {}).title },
+  });
   res.json({ ok: true });
 }));
 

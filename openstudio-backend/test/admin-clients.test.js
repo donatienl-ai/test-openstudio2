@@ -110,15 +110,31 @@ test('e-mail : réponse Mailjet en succès, puis erreur explicite', async () => 
   await assert.rejects(mailer.send(MSG, { cfg: CFG, fetchImpl: ko, retries: 0 }), /adresse refusée/);
 });
 
-test('import : colonne marketing (oui / non), réponse illisible signalée', () => {
-  assert.equal(importer.parseYesNo('Oui'), true);
-  assert.equal(importer.parseYesNo('x'), true);
-  assert.equal(importer.parseYesNo('NON'), false);
-  assert.equal(importer.parseYesNo(''), null);
-  assert.equal(importer.parseYesNo('peut-être'), undefined);
-  const r = importer.analyse('nom;email;marketing\nA;a@a.fr;oui\nB;b@b.fr;\nC;c@c.fr;bof');
-  assert.equal(r.rows[0].client.marketingOptin, true);
-  assert.equal(r.rows[0].client.marketingOptinSource, 'Import CSV');
-  assert.equal(r.rows[1].client.marketingOptin, null);
-  assert.deepEqual(r.rows[2].problems, ['marketing : indiquez oui ou non']);
+test('import : le consentement marketing n’est pas importé (le client le donne lui-même)', () => {
+  const r = importer.analyse('nom;email;marketing\nA;a@a.fr;oui');
+  assert.deepEqual(r.rows[0].problems, []);
+  assert.equal(r.rows[0].client.marketingOptin, undefined);
+});
+
+/* ---------------------------------------------------------------- Factures Stripe */
+
+const stripe = require('../src/montage/stripe');
+const stripeReply = (body) => async (url) => ({ ok: true, status: 200, json: async () => ({ ...body, _url: url }) });
+
+test('facture : facture Stripe quand elle existe', async () => {
+  let called;
+  const inv = await stripe.invoiceForSession('cs_123', { fetchImpl: async (url) => { called = url; return stripeReply({ invoice: { number: 'OM-0001', hosted_invoice_url: 'https://invoice.stripe.com/i/x', invoice_pdf: 'https://pay.stripe.com/x.pdf' } })(url); } });
+  assert.match(called, /\/checkout\/sessions\/cs_123\?expand%5B%5D=invoice&expand%5B%5D=payment_intent.latest_charge$/);
+  assert.deepEqual(inv, { kind: 'facture', number: 'OM-0001', url: 'https://invoice.stripe.com/i/x', pdf: 'https://pay.stripe.com/x.pdf' });
+});
+
+test('facture : reçu de paiement pour les paiements faits avant les factures', async () => {
+  const inv = await stripe.invoiceForSession('cs_1', { fetchImpl: stripeReply({ invoice: null, payment_intent: { latest_charge: { receipt_url: 'https://pay.stripe.com/receipts/r', receipt_number: '1234' } } }) });
+  assert.deepEqual(inv, { kind: 'recu', number: '1234', url: 'https://pay.stripe.com/receipts/r', pdf: null });
+  assert.equal(await stripe.invoiceForSession('cs_2', { fetchImpl: stripeReply({ invoice: null, payment_intent: null }) }), null);
+});
+
+test('paiement : la facture Stripe est demandée à la création du paiement', () => {
+  const src = require('fs').readFileSync(require.resolve('../src/montage/stripe.js'), 'utf8');
+  assert.match(src, /invoice_creation: \{\s*enabled: true/);
 });

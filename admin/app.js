@@ -248,6 +248,7 @@
     acces_echec_envoi: 'Échec d’envoi du lien d’accès',
     acces_lien_cree: 'Lien d’accès créé à la main',
     acces_coupe: 'Accès coupé',
+    marketing_reponse: 'Réponse sur les campagnes marketing',
   };
 
   var FIELD_NAMES = {
@@ -259,6 +260,8 @@
     var d = e.detail || {};
     if (d.identifiant && !d.email) return d.identifiant + (d.motif ? ' — ' + d.motif : '');
     if (d.email) return d.email + (d.role ? ' (' + (d.role === 'super_admin' ? 'super admin' : 'admin') + ')' : '') + (d.motif ? ' — ' + d.motif : '');
+    if (d.marketing && !d.champs) return d.marketing === 'oui' ? 'accepte d’être contacté' : 'refuse d’être contacté';
+    if (d.title && d.programme) return d.title + ' (' + d.programme + ')';
     if (d.name) return d.name;
     if (d.title) return d.title;
     if (d.champs) return 'Modifié : ' + d.champs.map(function (k) { return FIELD_NAMES[k] || k; }).join(', ') + (d.marketing ? ' (marketing : ' + d.marketing + ')' : '');
@@ -387,13 +390,6 @@
       '<label>E-mail<input name="email" type="email" maxlength="200" value="' + esc(c.email) + '" placeholder="Le lien d’accès sera envoyé à cette adresse"></label>' +
       '<label>Date de diffusion prévue<input name="broadcastDate" type="date" value="' + esc(c.broadcastDate || '') + '"></label>' +
       '<label>Package<input name="packageLabel" maxlength="200" value="' + esc(c.packageLabel) + '" placeholder="Ex. BFM Business + immersion"></label>' +
-      '<label>Campagnes marketing<select name="marketingOptin" aria-label="Accepte d’être contacté pour des campagnes marketing">' +
-      [['', 'Non renseigné'], ['oui', 'Oui, accepte d’être contacté'], ['non', 'Non, refuse']].map(function (o) {
-        var cur = c.marketing && c.marketing.optin === true ? 'oui' : c.marketing && c.marketing.optin === false ? 'non' : '';
-        return '<option value="' + o[0] + '"' + (cur === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
-      }).join('') + '</select>' +
-      (c.marketing && c.marketing.at ? '<span class="small muted hint">Réponse enregistrée le ' + esc(fmtDate(c.marketing.at)) + '</span>' : '') + '</label>' +
-      '<label>Recueilli comment<input name="marketingOptinSource" maxlength="200" value="' + esc(c.marketing && c.marketing.source) + '" placeholder="Ex. bon de commande, par téléphone"></label>' +
       '<label class="wide">Notes internes <span class="muted">(jamais visibles par le client)</span><textarea name="notes" rows="3" maxlength="2000">' + esc(c.notes) + '</textarea></label>';
   }
 
@@ -420,6 +416,15 @@
     return '<div class="card"><h2>' + esc(title) + (count !== null && count !== undefined ? ' <span class="count">' + esc(count) + '</span>' : '') + '</h2>' + inner + '</div>';
   }
   function emptyLine(text) { return '<p class="muted small">' + esc(text) + '</p>'; }
+
+  function marketingLine(c) {
+    var m = c.marketing || {};
+    var answer = m.optin === true ? '<span class="tag ok">Accepte</span>' : m.optin === false ? '<span class="tag off">Refuse</span>' : '<span class="tag wait">Pas encore répondu</span>';
+    var detail = m.optin === null || m.optin === undefined
+      ? 'La question lui sera posée dans son espace, à sa première connexion.'
+      : 'Réponse donnée le ' + fmtDate(m.at) + (m.source ? ' (' + m.source.toLowerCase() + ')' : '') + '.';
+    return '<div class="sub"><h3>Campagnes marketing</h3><p>' + answer + '</p><p class="small muted">' + esc(detail) + '</p></div>';
+  }
 
   function pageClientDetail() {
     var d = S.client;
@@ -460,7 +465,9 @@
 
     var payments = (d.payments.length ? '<table><thead><tr><th>Date</th><th>Objet</th><th>Montant TTC</th><th>État</th></tr></thead><tbody>' + d.payments.map(function (p) {
       return '<tr><td class="small nowrap">' + esc(fmtDate(p.paid_at || p.created_at)) + '</td><td>Montage sur mesure · ' + esc(p.offer_title) + '</td><td class="nowrap">' + esc(euros(p.amount_ttc_cents)) +
-        '</td><td>' + tag(MONTAGE_STATUS[p.status], p.status) + '</td></tr>';
+        '</td><td>' + (p.status === 'paid' && p.has_invoice
+          ? '<button class="tag ok linkish" type="button" data-a="payment-invoice" data-id="' + esc(p.id) + '" title="Voir la facture">Payée · voir la facture</button>'
+          : tag(MONTAGE_STATUS[p.status], p.status)) + '</td></tr>';
     }).join('') + '</tbody></table>' : emptyLine('Aucun paiement pour le moment.')) +
       '<p class="small muted mt">Les factures (Pennylane) et les recharges de crédits s’ajouteront ici avec le lot 6.</p>';
 
@@ -479,7 +486,7 @@
       (c.email ? '<button class="btn" type="button" data-a="client-send"' + (S.busy ? ' disabled' : '') + '>' + (hasAccess || a.code === 'revoked' ? 'Renvoyer un lien par e-mail' : 'Envoyer le lien maintenant') + '</button>' : '') +
       '<button class="btn secondary" type="button" data-a="client-link"' + (S.busy ? ' disabled' : '') + '>Créer un lien à transmettre</button>' +
       (hasAccess ? '<button class="btn danger" type="button" data-a="client-revoke"' + (S.busy ? ' disabled' : '') + '>Couper l’accès</button>' : '') +
-      '</div>' + link + '</div>' +
+      '</div>' + link + marketingLine(c) + '</div>' +
       section('E-mails envoyés', d.emails.length, emails) + '</div></div>' +
       videoCard(d) +
       section('Contenus générés', d.contents.length, contents + pubs) +
@@ -585,7 +592,6 @@
     return {
       name: f.name.value, company: f.company.value, email: f.email.value,
       broadcastDate: f.broadcastDate.value, packageLabel: f.packageLabel.value, notes: f.notes.value,
-      marketingOptin: f.marketingOptin.value, marketingOptinSource: f.marketingOptinSource.value,
     };
   }
 
@@ -873,6 +879,15 @@
         toast('Accès coupé');
         return loadClients();
       }));
+    },
+    'payment-invoice': function (id) {
+      var w = window.open('', '_blank');
+      api('GET', '/admin/clients/' + encodeURIComponent(S.client.client.id) + '/payments/' + encodeURIComponent(id) + '/invoice')
+        .then(function (d) {
+          if (w) w.location = d.url; else window.location.href = d.url;
+          if (d.kind === 'recu') toast('Paiement antérieur aux factures : reçu de paiement Stripe affiché');
+        })
+        .catch(function (e) { if (w) w.close(); S.error = e.message; render(); window.scrollTo(0, 0); });
     },
     'video-preview': function (id) {
       var w = window.open('', '_blank');

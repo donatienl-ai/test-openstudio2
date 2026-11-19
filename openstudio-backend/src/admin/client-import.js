@@ -2,7 +2,8 @@
 /**
  * Import de clients depuis un fichier CSV (export Excel ou Google Sheets, séparateur ; ou ,).
  * Colonnes reconnues (l'ordre n'a pas d'importance, majuscules et accents indifférents) :
- *   nom | entreprise | email | date de diffusion | package | notes | marketing (oui / non)
+ *   nom | entreprise | email | date de diffusion | package | notes
+ * Le consentement marketing n'est pas importé : le client le donne lui-même dans son espace.
  */
 
 const HEADERS = {
@@ -12,7 +13,6 @@ const HEADERS = {
   broadcastDate: ['date de diffusion', 'date diffusion', 'date_diffusion', 'diffusion', 'date'],
   packageLabel: ['package', 'formule', 'offre', 'pack'],
   notes: ['notes', 'note', 'commentaire', 'commentaires', 'remarques'],
-  marketing: ['marketing', 'optin', 'opt-in', 'consentement marketing', 'campagnes marketing', 'accepte marketing'],
 };
 
 /** « oui », « x », « 1 »… → true ; « non », « 0 »… → false ; vide → null ; autre → undefined (illisible). */
@@ -100,8 +100,6 @@ function analyse(text, { existingEmails = new Set() } = {}) {
     if (!name) problems.push('nom manquant');
     if (email && !isEmail(email)) problems.push('e-mail invalide');
     if (date === false) problems.push('date illisible (format attendu : JJ/MM/AAAA)');
-    const marketing = parseYesNo(get('marketing'));
-    if (marketing === undefined) problems.push('marketing : indiquez oui ou non');
     if (email && existingEmails.has(email)) problems.push('déjà présent dans le back-office');
     if (email && seen.has(email)) problems.push('en double dans le fichier');
     if (email) seen.add(email);
@@ -114,8 +112,6 @@ function analyse(text, { existingEmails = new Set() } = {}) {
         broadcastDate: date || null,
         packageLabel: get('packageLabel') || null,
         notes: get('notes') || null,
-        marketingOptin: marketing === undefined ? null : marketing,
-        marketingOptinSource: typeof marketing === 'boolean' ? 'Import CSV' : null,
       },
       warnings: [!email ? 'pas d’e-mail : le lien ne pourra pas partir automatiquement' : null, !date && date !== false ? 'pas de date de diffusion' : null].filter(Boolean),
       problems,

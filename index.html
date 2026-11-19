@@ -1804,7 +1804,7 @@ function opusMore(j) {
    Les fichiers finaux se retrouvent dans mes-commandes.html. Sans OPENSTUDIO_API : mode démonstration inchangé. */
 const bkOn = () => !!(window.OPENSTUDIO_API && window.OpenStudio);
 const BK = { videos: null, loading: false, err: '', client: null, submitting: false, prog: '', clientUploads: false, uploading: false, upProg: '' };
-const BK_PROGRAMMES = [['bfm-business', 'BFM Business'], ['bfm', 'BFM'], ['capital', 'Capital']];
+const BK_PROGRAMMES = [['bfm', 'BFM TV'], ['bfm-business', 'BFM Business'], ['capital', 'Capital'], ['le-figaro', 'Le Figaro']];
 const bkVideo = x => ({ id: 'bk-' + x.id, bkId: x.id, title: x.title || 'Vidéo', media: x.programme || '', programmeId: x.programmeId || '', kind: x.programme || '', type: 'plateau', duration: 0, date: x.broadcastDate ? new Date(x.broadcastDate) : null, pal: ['#1C1C62', '#3B3BFA'], highlights: [] });
 const bkMedia = v => MEDIAS.find(m => v && m.name.toLowerCase() === String(v.media).toLowerCase()) || mediaById('openmedias');
 const bkContact = () => { const c = client(); return c ? { name: c.contact, email: c.email, company: c.name } : undefined; };
@@ -1949,10 +1949,22 @@ function bkAfterSubmit(order) {
 async function bkLoadVideos(force) {
   if (!bkOn() || BK.loading || (BK.videos && !force)) return;
   BK.loading = true; BK.err = '';
-  try { const r = await OpenStudio.getMyVideos(); BK.client = r.client || null; BK.clientUploads = !!r.clientUploads; BK.videos = (r.videos || []).map(bkVideo); }
+  try { const r = await OpenStudio.getMyVideos(); BK.client = r.client || null; BK.clientUploads = !!r.clientUploads; BK.videos = (r.videos || []).map(bkVideo); bkAskMarketing(); }
   catch (e) { BK.videos = []; BK.err = e.status === 401 ? "Votre espace n'est pas encore relié aux vidéos de votre package : ouvrez le lien d'accès envoyé par l'équipe OpenMedias." : e.message; }
   BK.loading = false;
   if (S.view === 'client' && S.page === 'capsules') { S.keepScroll = true; render(); }
+}
+// Première connexion : le client accepte ou refuse les campagnes marketing (question posée une fois par visite
+// tant qu'il n'a pas répondu ; sa réponse est enregistrée sur sa fiche, dans le back-office).
+function bkAskMarketing() {
+  if (!BK.client || BK.client.marketing !== null || BK.mkAsked || S.modal || S.view !== 'client') return;
+  BK.mkAsked = true; S.modal = { type: 'os-marketing' }; S.keepScroll = true; render();
+}
+async function bkAnswerMarketing(optin) {
+  BK.mkSaving = true; render();
+  try { await OpenStudio.setMarketing(optin); BK.client.marketing = optin; S.modal = null; toast(optin ? 'Merci ! Vous recevrez nos actualités.' : 'C’est noté : vous ne recevrez pas nos campagnes.'); }
+  catch (e) { toast(e.message || 'Réponse non enregistrée, réessayez.'); }
+  BK.mkSaving = false; S.keepScroll = true; render();
 }
 // Mode test (CLIENT_UPLOADS_ENABLED côté serveur) : le client dépose lui-même sa vidéo. En production, l'équipe la dépose.
 function bkUploadBox() {
@@ -2474,7 +2486,7 @@ const osInitials = n => String(n || '').split(/\s+/).filter(Boolean).slice(0, 2)
 const osDate = d => d ? new Date(d).toLocaleDateString('fr-FR') : '';
 const osShort = d => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
 const osMMSS = ms => ms ? `${String(Math.floor(ms / 60000)).padStart(2, '0')}:${String(Math.round(ms / 1000) % 60).padStart(2, '0')}` : '';
-function osPkgVideos() { if (osLive()) { if (!BK.videos && !BK.loading) setTimeout(bkLoadVideos, 0); return BK.videos || []; } return []; }
+function osPkgVideos() { if (osLive()) { if (!BK.videos && !BK.loading) setTimeout(bkLoadVideos, 0); else if (BK.client && BK.client.marketing === null && !BK.mkAsked) setTimeout(bkAskMarketing, 0); return BK.videos || []; } return []; }
 function osOrders() {
   if (osLive() && !BKO.list && !BKO.loading) setTimeout(bkLoadOrders, 0);
   return (BKO.list || []).map(id => BKO.byId[id]).filter(o => o && o.status !== 'draft');
@@ -5014,6 +5026,10 @@ function modalHtml() {
     title = 'Confier ma vidéo à un monteur';
     h = mtDoneHtml(m);
     foot = `<button class="os-cta" data-a="close">Fermer</button>`;
+  } else if (m.type === 'os-marketing') {
+    title = 'Restons en contact';
+    h = `<p>OpenMedias peut vous envoyer de temps en temps ses actualités et ses offres : nouvelles émissions, formats vidéo, événements.</p><p class="small muted" style="margin-top:10px">Vous pourrez changer d'avis à tout moment en nous écrivant. Votre réponse ne change rien à votre espace ni à vos vidéos.</p>`;
+    foot = `<button class="btn btn-ghost" data-a="os-mk-no" ${BK.mkSaving ? 'disabled' : ''}>Non merci</button><button class="btn btn-primary" data-a="os-mk-yes" ${BK.mkSaving ? 'disabled' : ''}>Oui, j'accepte</button>`;
   } else if (m.type === 'opus-more') { /* OpusClip */
     title = "Proposer d'autres extraits";
     h = `<p>Vous avez vu toutes les propositions de cette analyse. Vous pouvez les revoir, ou lancer une nouvelle analyse de la vidéo : elle prend plusieurs minutes.</p>`;
@@ -5397,6 +5413,8 @@ const A = {
   'opus-retry': () => { const j = curJob(); if (!j) return; const all = jobsAll(); delete all[j.key]; try { localStorage.setItem(JOBS_KEY, JSON.stringify(all)); } catch (e) {} runAnalysis(); },
   'opus-check': () => { const j = curJob(); if (!j) return; jobSet(j.key, { status: 'running', startedAt: Date.now(), error: null }); S.keepScroll = true; render(); pollOpus(j.key, 500); },
   'opus-reset': () => { S.cap.opusKey = null; S.cap.results = null; S.cap.step = 2; S.keepScroll = true; render(); },
+  'os-mk-yes': () => bkAnswerMarketing(true),
+  'os-mk-no': () => bkAnswerMarketing(false),
   'opus-first': () => { const j = curJob(); S.modal = null; if (j) showOpusResults(j, 0); },
   'opus-relaunch': () => { S.modal = null; S.cap.oseed = (S.cap.oseed || 0) + 1; runAnalysis(); },
   'oplay': a => oPlay(+a),
