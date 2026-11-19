@@ -14,6 +14,17 @@ const config = require('../config');
 const mailer = require('../mailer');
 const audit = require('./audit');
 const { sha256, newAccessCode } = require('../clients');
+const secretbox = require('./secretbox');
+
+/** Code chiffré pour la fiche (null si la clé de chiffrement manque : le code ne sera alors pas réaffichable). */
+function sealCode(code) {
+  try { return secretbox.seal(code, config.admin.encryptionKey); } catch { return null; }
+}
+/** Code lisible d'un client, pour la fiche du back-office (null si absent ou illisible). */
+function readableCode(c) {
+  if (!c || !c.access_code_enc || c.access_revoked_at || !c.access_code_hash) return null;
+  try { return secretbox.open(c.access_code_enc, config.admin.encryptionKey); } catch { return null; }
+}
 
 const MAX_AUTO_ATTEMPTS = 5;
 const RETRY_AFTER_MINUTES = 60;
@@ -112,10 +123,10 @@ async function issue(clientId, via) {
     const code = newAccessCode();
     try {
       const { rows } = await db.query(
-        `UPDATE clients SET access_token = NULL, access_token_hash = NULL, access_code_hash = $2,
+        `UPDATE clients SET access_token = NULL, access_token_hash = NULL, access_code_hash = $2, access_code_enc = $4,
            access_issued_at = now(), access_issued_via = $3, access_revoked_at = NULL
          WHERE id = $1 RETURNING *`,
-        [clientId, sha256(code), via]
+        [clientId, sha256(code), via, sealCode(code)]
       );
       if (!rows[0]) throw new Error('Client introuvable');
       return { client: rows[0], code, link: loginUrlFor(code) };
@@ -129,7 +140,7 @@ async function issue(clientId, via) {
 /** Coupe l'accès : plus de code, plus de lien, tous les navigateurs du client sont déconnectés. */
 async function revoke(clientId) {
   const { rows } = await db.query(
-    `UPDATE clients SET access_token = NULL, access_token_hash = NULL, access_code_hash = NULL, access_revoked_at = now()
+    `UPDATE clients SET access_token = NULL, access_token_hash = NULL, access_code_hash = NULL, access_code_enc = NULL, access_revoked_at = now()
      WHERE id = $1 RETURNING *`,
     [clientId]
   );
@@ -191,7 +202,7 @@ async function sendByEmail(client, { req = null, automatic = false, send = maile
   }
   // État du lien actuel, rétabli si l'envoi échoue (le client garde alors son accès existant)
   const { rows: before } = await db.query(
-    'SELECT access_token, access_token_hash, access_code_hash, access_issued_at, access_issued_via, access_revoked_at FROM clients WHERE id = $1',
+    'SELECT access_token, access_token_hash, access_code_hash, access_code_enc, access_issued_at, access_issued_via, access_revoked_at FROM clients WHERE id = $1',
     [client.id]
   );
   const { link, code } = await issue(client.id, 'email');
@@ -215,9 +226,9 @@ async function sendByEmail(client, { req = null, automatic = false, send = maile
     const p = before[0] || {};
     await db.query(
       `UPDATE clients SET access_token = $2, access_token_hash = $3, access_issued_at = $4, access_issued_via = $5,
-         access_revoked_at = $6, access_code_hash = $7 WHERE id = $1`,
+         access_revoked_at = $6, access_code_hash = $7, access_code_enc = $8 WHERE id = $1`,
       [client.id, p.access_token || null, p.access_token_hash || null, p.access_issued_at || null,
-        p.access_issued_via || null, p.access_revoked_at || null, p.access_code_hash || null]
+        p.access_issued_via || null, p.access_revoked_at || null, p.access_code_hash || null, p.access_code_enc || null]
     );
     await recordFailure(client.id, e.message);
     await logEmail(client, { status: 'echec', subject: message.subject, error: e.message, redirectedTo: config.mail.redirectTo || null, automatic });
@@ -290,4 +301,4 @@ async function runScheduled({ now = new Date(), send = mailer.send, log = consol
   return { sent, failed };
 }
 
-module.exports = { accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
+module.exports = { readableCode, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };

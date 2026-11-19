@@ -53,12 +53,13 @@ Si l'adresse du serveur change, modifier `config.js` **et** `connect-src` dans l
 
 ## Clients et codes d'accès
 
-- Chaque client a un **code d'accès** personnel au format `OM-XXXX-XX` (6 caractères tirés au hasard, sans O, I, L, 0 ni 1). Le serveur n'en garde qu'une empreinte : personne ne peut relire un code existant.
+- Chaque client a un **code d'accès** personnel au format `OM-XXXX-XX` (6 caractères tirés au hasard, sans O, I, L, 0 ni 1). Il s'affiche en permanence sur la fiche client. Le serveur le garde chiffré (`ADMIN_ENCRYPTION_KEY`) pour l'afficher, et vérifie les connexions avec son empreinte.
 - Le client saisit son code sur la page de connexion de l'espace client (ou ouvre le lien de l'e-mail, qui le remplit pour lui). Son navigateur reste ensuite connecté 180 jours : il n'a pas à ressaisir le code à chaque visite.
 - **Le jour de la diffusion de la vidéo, à partir de 8 h** (heure de Paris), un code est créé et envoyé à l'e-mail du client. Tant qu'aucune vidéo n'est déposée, rien ne part. En cas d'échec, nouvel essai toutes les heures, 5 fois au plus.
-- Depuis la fiche client : **envoyer le code tout de suite**, **générer un code** à transmettre soi-même (affiché une seule fois), ou **couper l'accès**. Un nouveau code remplace l'ancien pour se connecter ; les navigateurs déjà connectés le restent, sauf si l'accès est coupé (tous sont alors déconnectés).
+- Depuis la fiche client : **envoyer le code tout de suite**, **générer un nouveau code** à transmettre soi-même, ou **couper l'accès**. Un nouveau code remplace l'ancien pour se connecter ; les navigateurs déjà connectés le restent, sauf si l'accès est coupé (tous sont alors déconnectés).
 - Connexion par code limitée à 10 essais par quart d'heure et par adresse IP.
 - Les anciens liens (`?client=…&clientToken=…`) des clients créés avant les codes restent valables jusqu'au premier code généré.
 - **Import CSV** : colonnes `nom`, `entreprise`, `email`, `date de diffusion` (JJ/MM/AAAA), `package`, `notes`. Séparateur `;` (Excel) ou `,`. Les e-mails déjà présents sont ignorés. Le consentement marketing n'est pas importé : le client le donne lui-même.
 - **Fiche client** : informations, réponse du client sur les campagnes marketing (posée dans son espace à la première connexion), e-mails envoyés, émissions (retirées comprises), contenus générés et publications, paiements et factures, historique des actions.
 - **Émissions proposées** : BFM TV, BFM Business, Capital, Le Figaro (`src/opusclip.config.js`). Le logo du Figaro reste à fournir.
+- **Espace client** : le client voit et lit la vidéo de son émission déposée par l'équipe ; sans vidéo, « Votre vidéo sera bientôt disponible ». Il ne peut pas déposer de vidéo lui-même (mettre `CLIENT_UPLOADS_ENABLED=false` sur le serveur).
