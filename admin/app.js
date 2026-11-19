@@ -200,7 +200,7 @@
       tile('Comptes actifs', a.active, a.everConnected + ' se sont déjà connectés, sur ' + a.total + ' clients', '', '#clients') +
       tile('Connectés aujourd’hui', a.connectedToday, a.returningToday ? a.returningToday + ' revenus (déjà venus un autre jour)' : 'aucun retour aujourd’hui', '') +
       tile('Paiements reçus · 30 jours', p.paid, euros(p.paid_cents) + ' TTC' + (p.recharges ? ' · dont ' + p.recharges + ' recharge' + (p.recharges > 1 ? 's' : '') + ' de crédits' : ''), 'ok') +
-      tile('Paiements en échec · 30 jours', p.failed, p.awaiting + ' en attente de paiement', p.failed ? 'err' : '') +
+      tile('Paiements non aboutis · 30 jours', p.failed + p.abandoned, p.abandoned + ' abandonné' + (p.abandoned > 1 ? 's' : '') + ', ' + p.failed + ' refusé' + (p.failed > 1 ? 's' : '') + ' · ' + p.awaiting + ' en cours', (p.failed + p.abandoned) ? 'err' : '') +
       '</div>';
     var max = Math.max.apply(null, a.days.map(function (x) { return x.connected; }).concat([1]));
     var week = '<div class="card"><h2>Connexions des 7 derniers jours</h2><p class="small muted">Un client compte une fois par jour. En foncé : les clients qui reviennent (déjà venus un jour précédent).</p><div class="bars">' +
@@ -211,17 +211,22 @@
           '<span class="bar-n">' + esc(x.connected) + '</span><div class="bar-track"><div class="bar-fill" data-h="' + h + '"><div class="bar-ret" data-h="' + r + '"></div></div></div>' +
           '<span class="bar-d">' + esc(fmtDay(x.day).replace(/ \d{4}$/, '')) + '</span></div>';
       }).join('') + '</div></div>';
-    var fails = p.failures.length ? '<table><thead><tr><th>Date</th><th>Client</th><th>Objet</th><th>Raison donnée par la banque</th><th>État</th></tr></thead><tbody>' + p.failures.map(function (f) {
-      return '<tr><td class="small nowrap">' + esc(fmtDate(f.payment_failed_at)) + '</td><td>' + (f.client_id ? '<a href="#clients/' + esc(f.client_id) + '"><b>' + esc(f.client_name) + '</b></a>' : esc(f.company || 'Non rattaché')) +
-        '</td><td class="small">' + esc(f.offer_title) + (f.payment_failures > 1 ? ' <span class="muted">(' + esc(f.payment_failures) + ' essais)</span>' : '') + '</td><td class="small">' + esc(f.last_payment_error) +
+    var fails = p.failures.length ? '<table><thead><tr><th>Date</th><th>Client à relancer</th><th>Montage</th><th>Ce qui s’est passé</th><th>État</th></tr></thead><tbody>' + p.failures.map(function (f) {
+      var contact = [f.contact_name, f.contact_email, f.contact_phone].filter(Boolean).join(' · ');
+      var why = f.status === 'abandoned'
+        ? 'Page de paiement fermée sans payer' + (f.last_payment_error ? ' après un refus : ' + f.last_payment_error : '')
+        : (f.last_payment_error || 'Paiement refusé');
+      return '<tr><td class="small nowrap">' + esc(fmtDate(f.at)) + '</td><td>' + (f.client_id ? '<a href="#clients/' + esc(f.client_id) + '"><b>' + esc(f.client_name) + '</b></a>' : '<b>' + esc(f.company || 'Non rattaché') + '</b>') +
+        (contact ? '<br><span class="small muted">' + esc(contact) + '</span>' : '') +
+        '</td><td class="small">' + esc(f.offer_title) + (f.payment_failures > 1 ? ' <span class="muted">(' + esc(f.payment_failures) + ' essais)</span>' : '') + '</td><td class="small">' + esc(why) + originTag(f.status === 'abandoned' && !f.failure_origin ? 'client' : f.failure_origin) +
         '</td><td>' + tag(MONTAGE_STATUS[f.status], f.status) + '</td></tr>';
-    }).join('') + '</tbody></table>' : emptyLine('Aucun paiement en échec ces 30 derniers jours.');
+    }).join('') + '</tbody></table>' : emptyLine('Aucun paiement de montage à relancer ces 7 derniers jours.');
     var alerts = [];
     if (p.unattached) alerts.push(p.unattached + ' paiement' + (p.unattached > 1 ? 's' : '') + ' reçu' + (p.unattached > 1 ? 's' : '') + ' sans client rattaché (demande faite hors espace client, e-mail inconnu).');
     if (d.accessEmailFailures7d) alerts.push(d.accessEmailFailures7d + ' envoi' + (d.accessEmailFailures7d > 1 ? 's' : '') + ' de code d’accès en échec ces 7 derniers jours (voir les fiches concernées).');
     if (p.to_quote) alerts.push(p.to_quote + ' demande' + (p.to_quote > 1 ? 's' : '') + ' de montage à chiffrer.');
     return head + errorBox() + tiles + (alerts.length ? '<div class="warn mb">' + alerts.map(esc).join('<br>') + '</div>' : '') +
-      week + section('Paiements en échec', p.failures.length, fails);
+      week + section('Montages à relancer · paiement non abouti (7 jours)', p.failures.length, fails);
   }
 
   function nb(n) { return Number(n || 0).toLocaleString('fr-FR').replace(/\u202f/g, '\u00a0'); }
@@ -638,7 +643,18 @@
     draft: ['Brouillon', 'off'], validated: ['Validée', 'info'], paid: ['Payée', 'info'], submitting: ['En fabrication', 'wait'],
     processing: ['En fabrication', 'wait'], postprocessing: ['En finition', 'wait'], ready: ['Prête', 'ok'], error: ['Erreur', 'err'],
   };
-  var MONTAGE_STATUS = { awaiting_payment: ['En attente de paiement', 'wait'], paid: ['Payée', 'ok'], to_quote: ['Devis à faire', 'info'], cancelled: ['Annulée', 'off'] };
+  var MONTAGE_STATUS = { awaiting_payment: ['En cours de paiement', 'wait'], paid: ['Payée', 'ok'], to_quote: ['Devis à faire', 'info'], cancelled: ['Annulée', 'off'], abandoned: ['Abandonné', 'off'], error: ['Erreur technique', 'err'] };
+  var PAY_ORIGINS = { client: 'Côté client', banque: 'Banque / Stripe', openmedias: 'Technique OpenMedias' };
+  var PAY_EVENTS = { page_ouverte: 'Page de paiement ouverte', refus: 'Paiement refusé', erreur_technique: 'Erreur technique', paye: 'Payé', abandonne: 'Abandonné' };
+  function originTag(o) { return o ? ' <span class="tag ' + (o === 'openmedias' ? 'err' : o === 'client' ? 'info' : 'wait') + '">' + esc(PAY_ORIGINS[o] || o) + '</span>' : ''; }
+  /** Chronologie d'un paiement (fiche client). */
+  function payTimeline(p) {
+    if (!p.events || !p.events.length) return '';
+    return '<details class="paytl"><summary class="small">Suivi du paiement (' + p.events.length + ')</summary><ol>' + p.events.map(function (e) {
+      return '<li><span class="small nowrap muted">' + esc(fmtDate(e.at)) + '</span><span class="small"><b>' + esc(PAY_EVENTS[e.event] || e.event) + '</b>' + originTag(e.origin) +
+        (e.message ? '<br><span class="muted">' + esc(e.message) + '</span>' : '') + '</span></li>';
+    }).join('') + '</ol></details>';
+  }
   var PUB_STATUS = {
     submitting: ['Envoi', 'wait'], scheduled: ['Programmée', 'info'], in_progress: ['En cours', 'wait'], published: ['Publiée', 'ok'],
     partial: ['En partie publiée', 'wait'], failed: ['Échec', 'err'],
@@ -693,11 +709,11 @@
 
     var payments = (d.payments.length ? '<table><thead><tr><th>Date</th><th>Objet</th><th>Montant TTC</th><th>État</th></tr></thead><tbody>' + d.payments.map(function (p) {
       return '<tr><td class="small nowrap">' + esc(fmtDate(p.paid_at || p.created_at)) + '</td><td>' + (p.kind === 'recharge' ? 'Recharge de crédits · ' : 'Montage sur mesure · ') + esc(p.offer_title) + '</td><td class="nowrap">' + esc(euros(p.amount_ttc_cents)) +
-        '</td><td>' + (p.status !== 'paid' && p.payment_failures
-          ? '<span class="tag err">Échec de paiement</span><br><span class="small muted">' + esc(p.last_payment_error) + (p.payment_failures > 1 ? ' (' + p.payment_failures + ' essais)' : '') + '</span>'
-          : p.status === 'paid' && p.has_invoice
+        '</td><td>' + (p.status === 'paid' && p.has_invoice
           ? '<button class="tag ok linkish" type="button" data-a="payment-invoice" data-id="' + esc(p.id) + '" title="Voir la facture">Payée · voir la facture</button>'
-          : tag(MONTAGE_STATUS[p.status], p.status)) + '</td></tr>';
+          : tag(MONTAGE_STATUS[p.status], p.status) + (p.status !== 'paid' && p.last_payment_error
+            ? '<br><span class="small">' + esc(p.last_payment_error) + '</span>' + originTag(p.failure_origin) + (p.payment_failures > 1 ? ' <span class="small muted">(' + p.payment_failures + ' essais)</span>' : '')
+            : '')) + payTimeline(p) + '</td></tr>';
     }).join('') + '</tbody></table>' : emptyLine('Aucun paiement pour le moment.')) +
       '';
 

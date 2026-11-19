@@ -8,6 +8,7 @@ const config = require('../config');
 const db = require('../db');
 const { byId, ttcCents } = require('./offers');
 const stripe = require('./stripe');
+const tracking = require('../payments/tracking');
 
 class MontageError extends Error {
   constructor(message, status = 400) {
@@ -77,11 +78,12 @@ async function createRequest(client, body, { returnOrigin } = {}) {
       });
     } catch (e) {
       console.error('[montage] Stripe :', e.message);
-      await db.query("UPDATE montage_requests SET status = 'cancelled', updated_at = now() WHERE id = $1", [id]);
+      await tracking.recordTechnical('montage', id, `ouverture de la page de paiement impossible (${e.message})`, { fail: true });
       throw new MontageError('Le paiement n’a pas pu être préparé. Réessayez dans quelques minutes.', 502);
     }
   }
   await db.query('UPDATE montage_requests SET stripe_session_id = $2, updated_at = now() WHERE id = $1', [id, session.id]);
+  await tracking.record('montage', id, 'page_ouverte', { message: `Page de paiement ouverte : ${(ttc / 100).toFixed(2).replace('.', ',')} € TTC` });
   return { id, status: 'awaiting_payment', checkoutUrl: session.url, successUrl, cancelUrl };
 }
 
@@ -89,10 +91,11 @@ async function createRequest(client, body, { returnOrigin } = {}) {
 async function markPaid(requestId, paymentIntent = null) {
   const { rows } = await db.query(
     `UPDATE montage_requests SET status = 'paid', paid_at = now(), stripe_payment_intent = COALESCE($2, stripe_payment_intent), updated_at = now()
-     WHERE id = $1 AND status = 'awaiting_payment' RETURNING *`,
+     WHERE id = $1 AND status IN ('awaiting_payment', 'abandoned', 'error') RETURNING *`,
     [requestId, paymentIntent]
   );
   if (rows[0]) {
+    await tracking.record('montage', requestId, 'paye', { message: `Payé : ${(rows[0].amount_ttc_cents / 100).toFixed(2).replace('.', ',')} € TTC` });
     // TODO (back-office P1) : e-mail à l'équipe communication et facture automatique (Pennylane).
     console.log(`[montage] demande ${requestId.slice(0, 8)} payée : ${rows[0].offer_title} — ${rows[0].contact.company} <${rows[0].contact.email}>`);
   }
@@ -106,6 +109,19 @@ async function handleStripeWebhook(rawBody, signatureHeader) {
   const r = await db.query('INSERT INTO stripe_events (id) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id', [String(event.id)]);
   if (!r.rowCount) return { status: 200, duplicate: true };
   const s = event.data && event.data.object;
+  try {
+    return await processEvent(event, s);
+  } catch (e) {
+    // Erreur de notre côté : on la trace, et Stripe renverra la notification (elle n'est pas marquée traitée)
+    await db.query('DELETE FROM stripe_events WHERE id = $1', [String(event.id)]).catch(() => null);
+    const purchaseId = s && s.metadata && s.metadata.credit_purchase_id;
+    const requestId = s && ((s.metadata && s.metadata.montage_request_id) || s.client_reference_id);
+    if (purchaseId || requestId) await tracking.recordTechnical(purchaseId ? 'recharge' : 'montage', purchaseId || requestId, `traitement de la notification Stripe « ${event.type} » interrompu (${e.message})`);
+    throw e;
+  }
+}
+
+async function processEvent(event, s) {
   // Recharge de crédits : traitée par le module crédits
   const purchaseId = s && s.metadata && s.metadata.credit_purchase_id;
   if (purchaseId) return require('../credits/service').handleStripeEvent(event, purchaseId);
@@ -113,19 +129,9 @@ async function handleStripeWebhook(rawBody, signatureHeader) {
   if (!requestId) return { status: 200, ignored: true };
   if (event.type === 'checkout.session.completed' && s.payment_status === 'paid') await markPaid(requestId, s.payment_intent || null);
   if (event.type === 'checkout.session.async_payment_succeeded') await markPaid(requestId, s.payment_intent || null);
-  if (event.type === 'payment_intent.payment_failed') {
-    const err = s.last_payment_error || {};
-    const reason = err.message || err.decline_code || err.code || 'Paiement refusé';
-    await db.query(
-      `UPDATE montage_requests SET last_payment_error = $2, payment_failed_at = now(),
-         payment_failures = payment_failures + 1, updated_at = now()
-       WHERE id = $1 AND status <> 'paid'`,
-      [requestId, String(reason).slice(0, 300)]
-    );
-  }
-  if (event.type === 'checkout.session.expired') {
-    await db.query("UPDATE montage_requests SET status = 'cancelled', updated_at = now() WHERE id = $1 AND status = 'awaiting_payment'", [requestId]);
-  }
+  if (event.type === 'payment_intent.payment_failed') await tracking.recordFailure('montage', requestId, s.last_payment_error);
+  if (event.type === 'checkout.session.async_payment_failed') await tracking.recordFailure('montage', requestId, { code: 'processing_error', message: 'Paiement différé refusé' });
+  if (event.type === 'checkout.session.expired') await tracking.markAbandoned('montage', requestId, 'Page de paiement expirée chez Stripe sans paiement');
   return { status: 200 };
 }
 

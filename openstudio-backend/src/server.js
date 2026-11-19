@@ -85,6 +85,10 @@ async function main() {
   const runExpiry = () => credits.expireAll().then((n) => { if (n) console.log(`[crédits] ${n} solde(s) arrivé(s) à échéance`); })
     .catch((e) => console.error('[crédits] échéances', e.message));
   setTimeout(runExpiry, 20000).unref();
+  // Paiements : page de paiement fermée et paiement « Abandonné » après 15 minutes sans règlement
+  const tracking = require('./payments/tracking');
+  setInterval(() => tracking.abandonStale().then((n) => { if (n) console.log(`[paiements] ${n} paiement(s) abandonné(s)`); })
+    .catch((e) => console.error('[paiements] abandons', e.message)), 60 * 1000).unref();
   setInterval(runExpiry, 60 * 60 * 1000).unref();
   // Codes d'accès des clients : envoyés le jour de la diffusion (vérification toutes les 10 minutes)
   if (!config.clientSiteUrl) console.error('[accès client] CLIENT_SITE_URL et FRONTEND_ORIGIN vides : impossible de créer les liens d\'accès des clients.');

@@ -167,6 +167,22 @@ CREATE TABLE IF NOT EXISTS credit_purchases (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS credit_purchases_client ON credit_purchases (client_id, created_at DESC);
+-- Suivi des paiements par carte : chronologie, origine des refus, abandons
+CREATE TABLE IF NOT EXISTS payment_events (
+  id          BIGSERIAL PRIMARY KEY,
+  kind        TEXT NOT NULL,   -- montage | recharge
+  payment_id  UUID NOT NULL,
+  event       TEXT NOT NULL,   -- page_ouverte | refus | erreur_technique | paye | abandonne
+  origin      TEXT,            -- client | banque | openmedias
+  message     TEXT,
+  detail      JSONB,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS payment_events_payment ON payment_events (payment_id, created_at);
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS failure_origin TEXT;
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS abandoned_at TIMESTAMPTZ;
+ALTER TABLE credit_purchases ADD COLUMN IF NOT EXISTS failure_origin TEXT;
+ALTER TABLE credit_purchases ADD COLUMN IF NOT EXISTS abandoned_at TIMESTAMPTZ;
 -- Réglages modifiables depuis le back-office (barème des crédits, packs de recharge)
 CREATE TABLE IF NOT EXISTS app_settings (
   key         TEXT PRIMARY KEY,
