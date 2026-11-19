@@ -89,6 +89,21 @@ services:
         value: communication@openmedias.fr
       - key: MAIL_REDIRECT_TO
         sync: false
+      # Alertes « diffusion incomplète » (vidéo ou e-mail manquant) : J-2, avancé au vendredi si week-end, et jour J
+      - key: TEAM_ALERT_EMAIL
+        value: communication@openmedias.fr
+      # Planning de diffusion (dashboard) : https://openmedias-sales-dashboard.onrender.com/planning/api/openstudio/diffusions
+      # et la clé = OPENSTUDIO_EXPORT_KEY du dashboard. Vides : pas de lecture du planning.
+      - key: PLANNING_EXPORT_URL
+        value: https://openmedias-sales-dashboard.onrender.com/planning/api/openstudio/diffusions
+      - key: PLANNING_EXPORT_KEY
+        sync: false
+      # Google Drive : contenu du fichier de clé JSON du compte de service, et identifiant du dossier
+      # (ou Drive partagé) partagé avec lui. Vides : Drive désactivé.
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: DRIVE_ROOT_FOLDER_ID
+        sync: false
       # Publication sur les réseaux sociaux (Upload-Post) : clé API et secret des notifications (webhook).
       # À saisir dans Render ; ne jamais les mettre dans le dépôt ni dans le site.
       - key: UPLOAD_POST_API_KEY

@@ -39,6 +39,7 @@ app.get('/health', (req, res) => res.json({ ok: true, dryRun: config.opus.dryRun
 app.use('/api', adminSession.attach);
 app.use('/api', adminRoutes);
 app.use('/api', adminClientRoutes);
+app.use('/api', require('./routes-admin-diffusions'));
 app.use('/api', socialRoutes);
 app.use('/api', montageRoutes);
 app.use('/api', creditRoutes);
@@ -93,6 +94,21 @@ async function main() {
   const runAccess = () => clientAccess.runScheduled().catch((e) => console.error('[accès client]', e.message));
   setTimeout(runAccess, 15000).unref();
   setInterval(runAccess, 10 * 60 * 1000).unref();
+  // Planning de diffusion (dashboard), dossiers et vidéos Google Drive, alertes « diffusion incomplète »
+  const diffusions = require('./diffusions');
+  const driveSync = require('./driveSync');
+  const diffusionAlerts = require('./diffusionAlerts');
+  console.log(config.planning.exportUrl && config.planning.exportKey ? `[planning] lecture du planning toutes les ${config.planning.syncMinutes} min.`
+    : '[planning] lecture du planning non configurée (PLANNING_EXPORT_URL, PLANNING_EXPORT_KEY).');
+  console.log(driveSync.enabled() ? `[drive] dossiers et vidéos Google Drive vérifiés toutes les ${config.drive.intervalMin} min.`
+    : '[drive] Google Drive non configuré (GOOGLE_SERVICE_ACCOUNT_JSON, DRIVE_ROOT_FOLDER_ID).');
+  const runDiffusions = () => {
+    diffusions.tick();
+    driveSync.tick().catch((e) => console.error('[drive]', e.message)); // un import long ne bloque rien d'autre
+    diffusionAlerts.tick().catch((e) => console.error('[alertes]', e.message));
+  };
+  setTimeout(runDiffusions, 25000).unref();
+  setInterval(runDiffusions, 60 * 1000).unref();
   setInterval(() => accounts.purgeExpiredSessions().catch((e) => console.error('[back-office] purge des sessions', e.message)), 60 * 60 * 1000).unref();
   if (config.testClientName) {
     // Tests uniquement : espace client prêt à l'emploi, sans passer par les routes admin.

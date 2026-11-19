@@ -35,6 +35,25 @@ const config = {
     // Envoi automatique du lien d'accès le jour de la diffusion, entre ces heures (heure de Paris)
     accessSendFromHour: num(process.env.CLIENT_ACCESS_SEND_HOUR, 8),
     accessSendUntilHour: 20,
+    // Alertes « diffusion incomplète » (vidéo ou e-mail manquant) : J-2 (vendredi si week-end) et jour J
+    teamAlertEmail: (process.env.TEAM_ALERT_EMAIL || '').trim(),
+  },
+
+  // Planning de diffusion (dashboard) : route d'export en lecture seule + clé partagée
+  // (= OPENSTUDIO_EXPORT_KEY côté dashboard). Vides : pas de lecture du planning.
+  planning: {
+    exportUrl: (process.env.PLANNING_EXPORT_URL || '').trim(),
+    exportKey: (process.env.PLANNING_EXPORT_KEY || '').trim(),
+    syncMinutes: num(process.env.PLANNING_SYNC_MIN, 60),
+  },
+
+  // Google Drive : un dossier par client et par diffusion, vidéos déposées par les monteurs importées
+  // automatiquement (src/driveSync.js). Vides : désactivé.
+  drive: {
+    credentialsJson: (process.env.GOOGLE_SERVICE_ACCOUNT_JSON || '').trim(),
+    rootFolderId: (process.env.DRIVE_ROOT_FOLDER_ID || '').trim(),
+    intervalMin: num(process.env.DRIVE_SYNC_MIN, 5),
+    settleMin: num(process.env.DRIVE_SETTLE_MIN, 2), // délai sans modification avant d'importer un fichier
   },
 
   // Back-office de l'équipe (application séparée du site client)

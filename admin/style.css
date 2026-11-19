@@ -180,3 +180,5 @@ div.form-2 { display: grid; gap: 14px 20px; align-items: end; }
 div.form-2 label { display: flex; flex-direction: column; gap: 6px; }
 .ok-box { background: var(--green-soft); color: var(--green); padding: 12px; border-radius: var(--radius); font-size: 14px; }
 table.edit td:first-child { min-width: 220px; }
+.text-err { color: var(--red); }
+td a.ext { color: var(--blue); text-decoration: underline; }

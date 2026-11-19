@@ -37,7 +37,10 @@ Si l'adresse du serveur change, modifier `config.js` **et** `connect-src` dans l
 | `MAILJET_FROM_EMAIL` | Expéditeur, `communication@openmedias.fr` par défaut. |
 | `MAIL_REDIRECT_TO` | **Tests** : tous les e-mails partent vers cette adresse au lieu des clients. |
 | `MAIL_ALLOW_REAL_RECIPIENTS` | `1` pour envoyer réellement aux clients (au lancement). Sans cette valeur ni `MAIL_REDIRECT_TO`, rien ne part. |
-| `MJ_TPL_CLIENT_ACCESS` | Identifiant du modèle Mailjet du lien d'accès (variables `nom`, `entreprise`, `lien`, `date_diffusion`). Vide : e-mail texte simple. |
+| `MJ_TPL_CLIENT_ACCESS` | Identifiant du modèle Mailjet du code d'accès (variables `nom`, `entreprise`, `lien`, `code`, `date_diffusion`, `credits_jusqu_au`). Vide : e-mail texte simple. |
+| `TEAM_ALERT_EMAIL` | Adresse qui reçoit les alertes « diffusion incomplète » (`communication@openmedias.fr`). |
+| `PLANNING_EXPORT_URL`, `PLANNING_EXPORT_KEY` | Lecture du planning du dashboard (rubrique Diffusions). La clé est la même que `OPENSTUDIO_EXPORT_KEY` sur le dashboard. |
+| `GOOGLE_SERVICE_ACCOUNT_JSON`, `DRIVE_ROOT_FOLDER_ID` | Dossiers Google Drive des diffusions et import des vidéos déposées par les monteurs. |
 | `MJ_TPL_CREDITS_RECHARGE` | Identifiant du modèle Mailjet de la confirmation de recharge (variables `nom`, `entreprise`, `pack`, `credits`, `montant_ttc`, `solde`, `valable_jusqu_au`, `lien`). Vide : e-mail texte simple. |
 | `ADMIN_TOKEN` | Ancien jeton technique, encore accepté pendant la transition (droits admin, pas super admin). **À supprimer avant la mise en production.** |
 
@@ -64,3 +67,13 @@ Si l'adresse du serveur change, modifier `config.js` **et** `connect-src` dans l
 - **Fiche client** : informations, réponse du client sur les campagnes marketing (posée dans son espace à la première connexion), e-mails envoyés, émissions (retirées comprises), contenus générés et publications, paiements et factures, historique des actions.
 - **Émissions proposées** : BFM TV, BFM Business, Capital, Le Figaro (`src/opusclip.config.js`). Le logo du Figaro reste à fournir.
 - **Espace client** : le client voit et lit la vidéo de son émission déposée par l'équipe ; sans vidéo, « Votre vidéo sera bientôt disponible ». Il ne peut pas déposer de vidéo lui-même (mettre `CLIENT_UPLOADS_ENABLED=false` sur le serveur).
+
+## Diffusions (planning, Google Drive, alertes)
+
+La rubrique **Diffusions** montre les diffusions vidéo du planning du dashboard (formats Plateau TV et Immersion), relues toutes les heures (bouton « Relire le planning » pour ne pas attendre).
+
+- **Diffusion confirmée dans le planning** : la fiche client est créée si l'entreprise n'en a pas encore (même entreprise = même fiche, accents, casse et forme juridique ignorés), avec son code d'accès et ses crédits offerts. L'e-mail vient du signataire du bon de commande DocuSign, à défaut du contact de l'opportunité Salesforce ; il complète la fiche s'il manquait, sans jamais remplacer un e-mail existant. La date de la fiche suit la première diffusion tant que le code n'est pas parti.
+- **Report ou annulation dans le planning** : la diffusion, son dossier Drive et sa vidéo suivent. Un BDC envoyé mais pas signé ne crée rien.
+- **Google Drive** : un dossier par client et un sous-dossier par diffusion (`2026-12-03 – BFM Business 1&2 – Plateau TV`, « date à fixer » sinon, « Annulées » pour les annulations). La vidéo déposée par le monteur est importée dès que l'envoi est terminé et rattachée à la fiche avec sa date de diffusion. Une vidéo déposée à la main sur la fiche, à la même date, compte aussi.
+- **Code d'accès** : il part le jour de la diffusion à partir de 8 h, à l'e-mail du client, seulement si la vidéo est là. L'e-mail contient le code, les raisons d'utiliser OpenStudio et la date de fin de validité des crédits (30 jours), pas la vidéo.
+- **Alertes** à `TEAM_ALERT_EMAIL` quand une diffusion est incomplète (vidéo ou e-mail manquant) : à J-2, avancé au vendredi si J-2 tombe un week-end (J-3 pour un lundi), puis le jour J si rien n'a bougé. Rien n'est envoyé quand tout est en ordre.
