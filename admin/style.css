@@ -184,3 +184,5 @@ table.edit td:first-child { min-width: 220px; }
 .paytl summary { cursor: pointer; color: var(--muted); }
 .paytl ol { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .paytl li { display: grid; grid-template-columns: 120px 1fr; gap: 10px; }
+.text-err { color: var(--red); }
+td a.ext { color: var(--blue); text-decoration: underline; }

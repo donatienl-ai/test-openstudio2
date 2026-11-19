@@ -28,6 +28,8 @@
     importPreview: null,
     importCsv: '',
     upload: null,           // dépôt de vidéo en cours : { clientId, name, pct }
+    diff: null,             // rubrique Diffusions : { diffusions, lastSync, lastDrive, setup }
+    diffFilter: { q: '', view: 'avenir' },
   };
 
   /* ------------------------------------------------------------ Outils */
@@ -153,6 +155,7 @@
   var NAV = [
     ['accueil', 'Accueil', null],
     ['clients', 'Clients', null],
+    ['diffusions', 'Diffusions', null],
     ['emissions', 'Émissions et vidéos', 'lot 3'],
     ['commandes', 'Commandes', 'lot 3'],
     ['tarifs', 'Tarifs', null],
@@ -171,6 +174,7 @@
     }).join('') : '';
     var page;
     if (S.page === 'clients') page = pageClients();
+    else if (S.page === 'diffusions') page = pageDiffusions();
     else if (S.page === 'equipe' && isSuper()) page = pageTeam();
     else if (S.page === 'journal' && isSuper()) page = pageAudit();
     else if (S.page === 'accueil') page = pageHome();
@@ -511,6 +515,112 @@
       '<div class="card flush">' + table + '</div>';
   }
 
+  /* ------------------------------------------------------------ Diffusions */
+
+  var DIFF_VIEWS = [
+    ['avenir', 'À venir'],
+    ['completer', 'À compléter'],
+    ['passees', 'Passées'],
+    ['annulees', 'Annulées'],
+    ['toutes', 'Toutes'],
+  ];
+
+  /** Date du jour à Paris, « AAAA-MM-JJ ». */
+  function parisToday() {
+    var p = {};
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' })
+      .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+    return p.year + '-' + p.month + '-' + p.day;
+  }
+
+  function loadDiffusions() {
+    return api('GET', '/admin/diffusions')
+      .then(function (d) { if (S.page !== 'diffusions') return; S.diff = d; render(); })
+      .catch(function (e) { if (S.page !== 'diffusions') return; S.error = e.message; S.diff = S.diff || { diffusions: [], setup: {} }; render(); });
+  }
+
+  function filteredDiffusions() {
+    var today = parisToday();
+    var q = S.diffFilter.q.trim().toLowerCase();
+    var v = S.diffFilter.view;
+    return (S.diff.diffusions || []).filter(function (d) {
+      if (q && [d.client.company, d.client.name, d.entreprise, d.client.email, d.media, d.format].join(' ').toLowerCase().indexOf(q) === -1) return false;
+      var cancelled = d.state === 'cancelled';
+      var pending = d.state === 'date_pending' || !d.dateDiffusion; // date à fixer : toujours « à venir »
+      var past = !pending && d.dateDiffusion < today;
+      if (v === 'annulees') return cancelled;
+      if (v === 'toutes') return true;
+      if (cancelled) return false;
+      if (v === 'passees') return past;
+      if (v === 'completer') return d.status.tone === 'wait' || d.status.tone === 'err';
+      return !past; // à venir : aujourd'hui, plus tard ou date à fixer
+    }).sort(function (a, b) {
+      var pa = a.state === 'date_pending' || !a.dateDiffusion;
+      var pb = b.state === 'date_pending' || !b.dateDiffusion;
+      if (pa !== pb) return pa ? 1 : -1; // dates à fixer en fin de liste
+      var cmp = String(a.dateDiffusion).localeCompare(String(b.dateDiffusion));
+      return v === 'passees' || v === 'annulees' ? -cmp : cmp; // passées : la plus récente d'abord
+    });
+  }
+
+  function diffSetupNotes(st, last) {
+    var out = '';
+    if (!st.planning) out += '<div class="warn mb"><b>Lecture du planning pas encore branchée.</b> Renseignez PLANNING_EXPORT_URL et PLANNING_EXPORT_KEY sur le serveur : les diffusions du dashboard apparaîtront ici automatiquement.</div>';
+    else if (last && !last.ok) out += '<div class="error mb">Dernière lecture du planning en échec : ' + esc(last.error) + '</div>';
+    if (!st.drive) out += '<div class="note mb"><b>Google Drive pas encore branché.</b> En attendant, déposez les vidéos depuis la fiche du client : elles sont reconnues ici si leur date de diffusion est la même.</div>';
+    if (st.redirectTo) out += '<div class="note mb"><b>Mode test :</b> les codes d’accès et les alertes partent vers ' + esc(st.redirectTo) + ', pas vers les clients.</div>';
+    else if (st.mailProblem) out += '<div class="warn mb"><b>Aucun e-mail ne partira.</b> ' + esc(st.mailProblem) + '</div>';
+    return out;
+  }
+
+  function videoCell(d) {
+    var drive = d.driveUrl ? '<br><a class="small ext" href="' + esc(d.driveUrl) + '" target="_blank" rel="noopener">Dossier Drive</a>' : '';
+    if (d.state === 'cancelled') return '<span class="small muted">—</span>' + drive;
+    if (d.videoId) return '<span class="tag ok">Reçue</span>' + drive;
+    if (d.videoImportError) return '<span class="tag err">Import en échec</span><br><span class="small muted">' + esc(d.videoImportError) + '</span>' + drive;
+    return '<span class="tag ' + (d.status.tone === 'err' ? 'err' : 'wait') + '">Manquante</span>' + drive;
+  }
+
+  function pageDiffusions() {
+    var head = '<div class="head"><div><h1>Diffusions</h1><p class="muted">Les diffusions vidéo du planning : vidéo reçue des monteurs et envoi du code d’accès au client, le jour J à partir de ' +
+      esc((S.diff && S.diff.setup && S.diff.setup.sendHour) || 8) + ' h.</p></div><div class="btns">' +
+      (S.diff && S.diff.setup && S.diff.setup.drive ? '<button type="button" class="btn secondary" data-a="diff-drive"' + (S.busy ? ' disabled' : '') + '>Vérifier le Drive</button>' : '') +
+      '<button type="button" class="btn secondary" data-a="diff-sync"' + (S.busy ? ' disabled' : '') + '>Relire le planning</button></div></div>';
+    if (!S.diff) return head + errorBox() + '<div class="card empty">Chargement…</div>';
+    var st = S.diff.setup || {};
+    var last = S.diff.lastSync;
+    var lastLine = last && last.ok ? '<p class="small muted">Planning relu le ' + esc(fmtDate(last.at)) + ' : ' + esc(last.received) + ' diffusion' + (last.received > 1 ? 's' : '') + ' vidéo lue' + (last.received > 1 ? 's' : '') +
+      (last.created || last.updated ? ', ' + esc(last.created) + ' ajoutée' + (last.created > 1 ? 's' : '') + ', ' + esc(last.updated) + ' mise' + (last.updated > 1 ? 's' : '') + ' à jour' : ', rien de nouveau') +
+      '. Relecture automatique toutes les ' + esc(st.planningEveryMin || 60) + ' min.</p>' : '';
+    var list = filteredDiffusions();
+    var all = S.diff.diffusions || [];
+    var todo = all.filter(function (d) { return d.state !== 'cancelled' && (d.status.tone === 'wait' || d.status.tone === 'err'); }).length;
+    var table;
+    if (!all.length) table = '<div class="empty">Aucune diffusion pour le moment.' + (st.planning ? ' Les diffusions vidéo confirmées dans le planning apparaîtront ici.' : '') + '</div>';
+    else if (!list.length) table = '<div class="empty">Aucune diffusion dans cette vue.</div>';
+    else {
+      table = '<table class="rows"><thead><tr><th>Diffusion</th><th>Client</th><th>Émission</th><th>Vidéo</th><th>Code d’accès</th></tr></thead><tbody>' +
+        list.map(function (d) {
+          var c = d.client;
+          var email = c.email ? '<span class="small">' + esc(c.email) + '</span>'
+            : (d.accessSentAt ? '' : '<span class="small text-err">E-mail à renseigner</span>');
+          return '<tr data-href="#clients/' + esc(c.id) + '"><td class="nowrap">' + (d.state === 'date_pending' || !d.dateDiffusion ? '<span class="muted">Date à fixer</span>' : esc(fmtDay(d.dateDiffusion))) + '</td>' +
+            '<td><a href="#clients/' + esc(c.id) + '"><b>' + esc(c.company || d.entreprise) + '</b></a>' + (c.name && c.name !== c.company ? '<br><span class="small muted">' + esc(c.name) + '</span>' : '') + '<br>' + email + '</td>' +
+            '<td class="small">' + esc([d.media, d.sousMedia].filter(Boolean).join(' ')) + '<br><span class="muted">' + esc(d.format || '') + '</span></td>' +
+            '<td>' + videoCell(d) + '</td>' +
+            '<td><span class="tag ' + esc(d.status.tone) + '">' + esc(d.status.label) + '</span></td></tr>';
+        }).join('') + '</tbody></table>';
+    }
+    var views = DIFF_VIEWS.map(function (v) {
+      return '<option value="' + v[0] + '"' + (S.diffFilter.view === v[0] ? ' selected' : '') + '>' + esc(v[1] + (v[0] === 'completer' && todo ? ' (' + todo + ')' : '')) + '</option>';
+    }).join('');
+    return head + diffSetupNotes(st, last) + errorBox() + lastLine +
+      '<form data-form="diff-filter" class="filters" novalidate><input name="q" type="search" placeholder="Rechercher une entreprise, un e-mail, une émission…" aria-label="Rechercher" value="' + esc(S.diffFilter.q) + '">' +
+      '<select name="view" aria-label="Diffusions affichées">' + views + '</select><span class="small muted">' + esc(list.length + ' diffusion' + (list.length > 1 ? 's' : '')) + '</span></form>' +
+      '<div class="card flush">' + table + '</div>' +
+      '<p class="small muted">Pour corriger un e-mail ou envoyer le code plus tôt, ouvrez la fiche du client. Les dates et les annulations se modifient dans le planning du dashboard.</p>';
+  }
+
   function clientFields(c) {
     c = c || {};
     return '<label>Nom du client<input name="name" required maxlength="200" value="' + esc(c.name) + '" placeholder="Ex. Marie Dupont"></label>' +
@@ -799,6 +909,7 @@
   function loadPage() {
     S.error = '';
     if (S.page === 'clients') loadClients();
+    if (S.page === 'diffusions') loadDiffusions();
     if (S.page === 'accueil') loadDashboard();
     if (S.page === 'tarifs' || S.page === 'credits') {
       S.creditSettings = null;
@@ -886,6 +997,7 @@
         });
     },
     'client-filter': function () { return Promise.resolve(); },
+    'diff-filter': function () { return Promise.resolve(); },
     'client-new': function (f) {
       return api('POST', '/admin/clients', readClientForm(f)).then(function (d) {
         S.client = null;
@@ -969,6 +1081,7 @@
 
   app.addEventListener('input', function (ev) {
     var f = ev.target.form;
+    if (f && f.dataset.form === 'diff-filter') { S.diffFilter = { q: f.q.value, view: f.view.value }; return render(); }
     if (!f || f.dataset.form !== 'client-filter') return;
     S.clientFilter = { q: f.q.value, status: f.status.value };
     render();
@@ -1020,6 +1133,20 @@
         .then(function () { toast('Lien copié'); }, function () { input.select(); toast('Sélectionnez le lien et copiez-le (Ctrl+C)'); });
     },
     'reload-audit': function () { loadPage(); },
+    'diff-sync': function () {
+      withBusy(api('POST', '/admin/diffusions/sync').then(function (d) {
+        var r = d.lastSync;
+        toast(r.created || r.updated ? 'Planning relu : ' + r.created + ' ajoutée(s), ' + r.updated + ' mise(s) à jour' : 'Planning relu : rien de nouveau');
+        return loadDiffusions();
+      }));
+    },
+    'diff-drive': function () {
+      withBusy(api('POST', '/admin/diffusions/drive').then(function (d) {
+        var r = d.lastDrive || {};
+        toast(r.imported ? 'Une vidéo a été importée' : 'Drive vérifié : aucune nouvelle vidéo');
+        return loadDiffusions();
+      }));
+    },
     'reload-dash': function () { S.dash = null; loadPage(); },
     'tarifs-add': function () {
       var f = document.querySelector('form[data-form="credit-settings"]');

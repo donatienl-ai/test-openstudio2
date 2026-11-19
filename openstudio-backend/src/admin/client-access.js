@@ -169,17 +169,36 @@ function frenchDate(day) {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
-function accessEmail(client, link, code) {
+/**
+ * E-mail du jour de diffusion, envoyé à l'e-mail du client : code d'accès, raisons d'utiliser OpenStudio et
+ * validité des crédits offerts (30 jours après la diffusion). La vidéo n'est pas dans l'e-mail : le client la
+ * retrouve dans son espace. creditsUntil : fin de validité des crédits (Date, chaîne ISO ou null).
+ */
+function accessEmail(client, link, code, creditsUntil = null) {
   const hello = client.name ? `Bonjour ${client.name},` : 'Bonjour,';
+  const until = creditsUntil ? new Date(creditsUntil).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' }) : '';
+  // Envoi à la main avant la diffusion (« envoyer le code tout de suite ») : pas de « diffusé aujourd'hui »
+  const broadcast = isoDay(client.broadcast_date);
+  const today = broadcast === parisParts().day;
   const text = [
     hello,
     '',
-    `Votre espace OpenStudio est prêt${client.company ? ` pour ${client.company}` : ''}. Vous y retrouvez la vidéo de votre passage à l’antenne, et vous pouvez en tirer vous-même des capsules pour vos réseaux sociaux et votre site.`,
+    today
+      ? `C’est le grand jour : votre passage à l’antenne est diffusé aujourd’hui, et votre espace OpenStudio est ouvert${client.company ? ` pour ${client.company}` : ''}.`
+      : `Votre espace OpenStudio est ouvert${client.company ? ` pour ${client.company}` : ''}.`,
     '',
     `Votre code d’accès personnel : ${code}`,
     '',
     'Pour vous connecter, ouvrez ce lien (le code est déjà rempli) :',
     link,
+    '',
+    'Pourquoi utiliser OpenStudio ?',
+    '- Transformez votre émission en capsules courtes, prêtes pour LinkedIn, Instagram ou TikTok, en quelques clics.',
+    '- Vos logos et vos sous-titres sont intégrés automatiquement, pour un rendu professionnel sans monteur.',
+    '- Prolongez l’effet de votre passage TV : publiez des extraits sur vos réseaux et votre site pour renforcer votre crédibilité.',
+    '',
+    until ? `Vos crédits offerts sont valables 30 jours, jusqu’au ${until}. Profitez-en pour créer vos premières vidéos.`
+      : 'Vos crédits offerts sont valables 30 jours. Profitez-en pour créer vos premières vidéos.',
     '',
     'Ce code vous est réservé : ne le transmettez pas. Si vous le perdez, répondez simplement à cet e-mail.',
     '',
@@ -187,7 +206,7 @@ function accessEmail(client, link, code) {
   ].join('\n');
   return {
     to: { email: client.email, name: client.name || undefined },
-    subject: 'Votre espace OpenStudio est prêt',
+    subject: today ? 'Votre émission est diffusée aujourd’hui : votre espace OpenStudio est ouvert' : 'Votre espace OpenStudio est ouvert',
     text,
     templateId: config.mail.templateClientAccess || null,
     variables: {
@@ -196,6 +215,7 @@ function accessEmail(client, link, code) {
       lien: link,
       code: code || '',
       date_diffusion: frenchDate(isoDay(client.broadcast_date)),
+      credits_jusqu_au: until,
     },
     customId: `acces-client-${client.id}`,
   };
@@ -210,11 +230,12 @@ async function sendByEmail(client, { req = null, automatic = false, send = maile
   const unavailable = mailer.problem();
   if (unavailable && send === mailer.send) {
     await recordFailure(client.id, unavailable);
-    await logEmail(client, { status: 'echec', subject: 'Votre espace OpenStudio est prêt', error: unavailable, automatic });
+    await logEmail(client, { status: 'echec', subject: 'Votre émission est diffusée aujourd’hui : votre espace OpenStudio est ouvert', error: unavailable, automatic });
     throw new Error(unavailable);
   }
   const code = await ensureCode(client.id);
-  const message = accessEmail(client, loginUrlFor(code), code);
+  const creditsUntil = await require('../credits/service').expiryOf(client.id).catch(() => null);
+  const message = accessEmail(client, loginUrlFor(code), code, creditsUntil);
   try {
     const r = await send(message);
     await logEmail(client, { status: 'envoye', subject: message.subject, providerId: r && r.messageId, redirectedTo: r && r.redirectedTo, automatic });
