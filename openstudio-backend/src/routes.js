@@ -18,6 +18,10 @@ const { verifyOpusWebhook } = require('./opusclip/webhook');
 const { validateSubtitleFile } = require('./media/subtitles');
 const { MockPaymentProvider } = require('./payment');
 const audit = require('./admin/audit');
+const { AttemptLimiter } = require('./admin/limiter');
+
+// Connexion par code : 10 essais par quart d'heure et par adresse IP
+const codeLimiter = new AttemptLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
 
 const router = express.Router();
 const json = express.json({ limit: '200kb' });
@@ -130,13 +134,39 @@ router.get('/me', wrap(async (req, res) => {
   const videos = await clients.listVideos(client.id);
   res.json({
     client: {
-      id: client.id, name: client.name, company: client.company, hasLogo: Boolean(client.logo_key),
+      id: client.id, name: client.name, company: client.company, email: client.email, sector: client.sector || null,
+      hasLogo: Boolean(client.logo_key), packageLabel: client.package_label || null,
+      firstSeenAt: client.first_seen_at || null, broadcastDate: client.broadcast_date || null,
       // null : pas encore répondu → l'espace client pose la question (fenêtre à la première connexion)
       marketing: client.marketing_optin === undefined ? null : client.marketing_optin,
     },
     videos: videos.map(publicVideo),
     clientUploads: config.clientUploadsEnabled,
   });
+}));
+
+/**
+ * Connexion de l'espace client avec le code d'accès (OM-XXXX-XX).
+ * Renvoie l'identifiant du client et un jeton de session à garder dans le navigateur.
+ */
+router.post('/client/login', json, wrap(async (req, res) => {
+  if (!codeLimiter.hit(req.ip || 'inconnue')) {
+    return res.status(429).json({ error: 'Trop d’essais. Patientez un quart d’heure avant de réessayer.' });
+  }
+  const code = clients.normalizeCode((req.body || {}).code);
+  if (!code) return res.status(400).json({ error: 'Code incomplet : il a la forme OM-XXXX-XX.' });
+  const client = await clients.findByCode(code);
+  if (!client) return res.status(401).json({ error: 'Ce code ne correspond à aucun espace. Vérifiez la saisie ou contactez votre chargé de projet.' });
+  const token = await clients.openSession(client.id, req.get('user-agent'));
+  clients.recordVisit(client.id, { force: true });
+  await audit.record({ ip: req.ip, auditActorLabel: `Client (${client.name})` }, 'client_connexion', { targetType: 'client', targetId: client.id });
+  res.json({ client: { id: client.id }, token });
+}));
+
+/** Déconnexion de l'espace client sur ce navigateur. */
+router.post('/client/logout', wrap(async (req, res) => {
+  await clients.closeSession(req.get('x-client-token'));
+  res.json({ ok: true });
 }));
 
 /** Le client accepte ou refuse d'être contacté pour des campagnes marketing (modifiable ensuite). */

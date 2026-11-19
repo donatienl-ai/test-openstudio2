@@ -13,8 +13,7 @@ const db = require('../db');
 const config = require('../config');
 const mailer = require('../mailer');
 const audit = require('./audit');
-const { newAccessToken } = require('../auth');
-const { sha256 } = require('../clients');
+const { sha256, newAccessCode } = require('../clients');
 
 const MAX_AUTO_ATTEMPTS = 5;
 const RETRY_AFTER_MINUTES = 60;
@@ -49,12 +48,13 @@ function isoDay(v) {
 function accessStatus(c, now = new Date()) {
   if (c.access_revoked_at) return { code: 'revoked', label: 'Accès coupé', at: c.access_revoked_at };
   if (c.access_email_sent_at && c.access_issued_via === 'email') {
-    return { code: 'sent', label: 'Lien envoyé par e-mail', at: c.access_email_sent_at };
+    return { code: 'sent', label: 'Code envoyé par e-mail', at: c.access_email_sent_at };
   }
-  if ((c.access_token_hash || c.has_access) && c.access_issued_at) {
-    return { code: 'manual', label: 'Lien remis à la main', at: c.access_issued_at };
+  const hasAccess = c.access_token_hash || c.access_code_hash || c.has_access;
+  if (hasAccess && c.access_issued_at) {
+    return { code: 'manual', label: 'Code remis à la main', at: c.access_issued_at };
   }
-  if (c.access_token_hash || c.has_access) return { code: 'manual', label: 'Lien existant (avant le back-office)', at: null };
+  if (hasAccess) return { code: 'manual', label: 'Lien existant (avant le back-office)', at: null };
   if (c.access_email_error && c.email) {
     const automatic = Boolean(c.trigger_date || c.broadcast_date);
     return {
@@ -97,25 +97,43 @@ function linkFor(clientId, token) {
   return `${base}/?client=${encodeURIComponent(clientId)}&clientToken=${encodeURIComponent(token)}`;
 }
 
-/** Crée un nouveau lien (l'ancien cesse de fonctionner). */
-async function issue(clientId, via) {
-  const token = newAccessToken();
-  const { rows } = await db.query(
-    `UPDATE clients SET access_token = NULL, access_token_hash = $2, access_issued_at = now(),
-       access_issued_via = $3, access_revoked_at = NULL
-     WHERE id = $1 RETURNING *`,
-    [clientId, sha256(token), via]
-  );
-  if (!rows[0]) throw new Error('Client introuvable');
-  return { client: rows[0], token, link: linkFor(clientId, token) };
+/** Adresse de connexion, avec le code prérempli. */
+function loginUrlFor(code) {
+  const base = config.clientSiteUrl || 'https://ADRESSE-DE-L-ESPACE-CLIENT';
+  return `${base}/?code=${encodeURIComponent(code)}`;
 }
 
+/**
+ * Crée un nouveau code d'accès : l'ancien code et l'ancien lien cessent de fonctionner pour se
+ * connecter. Les navigateurs déjà connectés le restent (sauf accès coupé).
+ */
+async function issue(clientId, via) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = newAccessCode();
+    try {
+      const { rows } = await db.query(
+        `UPDATE clients SET access_token = NULL, access_token_hash = NULL, access_code_hash = $2,
+           access_issued_at = now(), access_issued_via = $3, access_revoked_at = NULL
+         WHERE id = $1 RETURNING *`,
+        [clientId, sha256(code), via]
+      );
+      if (!rows[0]) throw new Error('Client introuvable');
+      return { client: rows[0], code, link: loginUrlFor(code) };
+    } catch (e) {
+      if (!/clients_access_code|duplicate key/i.test(e.message)) throw e; // code déjà attribué : on en tire un autre
+    }
+  }
+  throw new Error('Impossible de générer un code unique, réessayez.');
+}
+
+/** Coupe l'accès : plus de code, plus de lien, tous les navigateurs du client sont déconnectés. */
 async function revoke(clientId) {
   const { rows } = await db.query(
-    `UPDATE clients SET access_token = NULL, access_token_hash = NULL, access_revoked_at = now()
+    `UPDATE clients SET access_token = NULL, access_token_hash = NULL, access_code_hash = NULL, access_revoked_at = now()
      WHERE id = $1 RETURNING *`,
     [clientId]
   );
+  if (rows[0]) await db.query('DELETE FROM client_sessions WHERE client_id = $1', [clientId]);
   return rows[0] || null;
 }
 
@@ -127,17 +145,19 @@ function frenchDate(day) {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
-function accessEmail(client, link) {
+function accessEmail(client, link, code) {
   const hello = client.name ? `Bonjour ${client.name},` : 'Bonjour,';
   const text = [
     hello,
     '',
     `Votre espace OpenStudio est prêt${client.company ? ` pour ${client.company}` : ''}. Vous y retrouvez la vidéo de votre passage à l’antenne, et vous pouvez en tirer vous-même des capsules pour vos réseaux sociaux et votre site.`,
     '',
-    'Votre lien d’accès personnel :',
+    `Votre code d’accès personnel : ${code}`,
+    '',
+    'Pour vous connecter, ouvrez ce lien (le code est déjà rempli) :',
     link,
     '',
-    'Ce lien vous est réservé : ne le transférez pas. Si vous le perdez, répondez simplement à cet e-mail.',
+    'Ce code vous est réservé : ne le transmettez pas. Si vous le perdez, répondez simplement à cet e-mail.',
     '',
     'L’équipe OpenMedias',
   ].join('\n');
@@ -150,6 +170,7 @@ function accessEmail(client, link) {
       nom: client.name || '',
       entreprise: client.company || '',
       lien: link,
+      code: code || '',
       date_diffusion: frenchDate(isoDay(client.broadcast_date)),
     },
     customId: `acces-client-${client.id}`,
@@ -170,11 +191,11 @@ async function sendByEmail(client, { req = null, automatic = false, send = maile
   }
   // État du lien actuel, rétabli si l'envoi échoue (le client garde alors son accès existant)
   const { rows: before } = await db.query(
-    'SELECT access_token, access_token_hash, access_issued_at, access_issued_via, access_revoked_at FROM clients WHERE id = $1',
+    'SELECT access_token, access_token_hash, access_code_hash, access_issued_at, access_issued_via, access_revoked_at FROM clients WHERE id = $1',
     [client.id]
   );
-  const { link } = await issue(client.id, 'email');
-  const message = accessEmail(client, link);
+  const { link, code } = await issue(client.id, 'email');
+  const message = accessEmail(client, link, code);
   try {
     const r = await send(message);
     await logEmail(client, { status: 'envoye', subject: message.subject, providerId: r && r.messageId, redirectedTo: r && r.redirectedTo, automatic });
@@ -190,13 +211,13 @@ async function sendByEmail(client, { req = null, automatic = false, send = maile
     });
     return { client: rows[0], redirectedTo: r && r.redirectedTo };
   } catch (e) {
-    // Le nouveau lien n'a pas été transmis : on rétablit l'accès précédent (ou aucun accès)
+    // Le nouveau code n'a pas été transmis : on rétablit l'accès précédent (ou aucun accès)
     const p = before[0] || {};
     await db.query(
       `UPDATE clients SET access_token = $2, access_token_hash = $3, access_issued_at = $4, access_issued_via = $5,
-         access_revoked_at = $6 WHERE id = $1`,
+         access_revoked_at = $6, access_code_hash = $7 WHERE id = $1`,
       [client.id, p.access_token || null, p.access_token_hash || null, p.access_issued_at || null,
-        p.access_issued_via || null, p.access_revoked_at || null]
+        p.access_issued_via || null, p.access_revoked_at || null, p.access_code_hash || null]
     );
     await recordFailure(client.id, e.message);
     await logEmail(client, { status: 'echec', subject: message.subject, error: e.message, redirectedTo: config.mail.redirectTo || null, automatic });
@@ -239,7 +260,7 @@ async function dueClients(today) {
          WHERE v.client_id = c.id AND v.active = true
            AND COALESCE(v.broadcast_date, c.broadcast_date) <= $1::date)
        AND email IS NOT NULL AND email <> ''
-       AND access_email_sent_at IS NULL AND access_revoked_at IS NULL AND access_token_hash IS NULL
+       AND access_email_sent_at IS NULL AND access_revoked_at IS NULL AND access_token_hash IS NULL AND access_code_hash IS NULL
        AND access_email_attempts < $2
        AND (access_email_last_try_at IS NULL OR access_email_last_try_at < now() - make_interval(mins => $3))
      ORDER BY broadcast_date, created_at
@@ -269,4 +290,4 @@ async function runScheduled({ now = new Date(), send = mailer.send, log = consol
   return { sent, failed };
 }
 
-module.exports = { accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
+module.exports = { accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };

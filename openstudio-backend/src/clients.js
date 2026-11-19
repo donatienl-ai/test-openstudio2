@@ -46,8 +46,17 @@ async function fromRequest(req) {
   const token = req.get('x-client-token') || req.query.clientToken;
   if (!id || !token) return null;
   const client = await get(id);
-  if (!client || client.access_revoked_at || !client.access_token_hash) return null;
-  if (!tokensMatch(client.access_token_hash, sha256(token))) return null;
+  if (!client || client.access_revoked_at) return null;
+  // Lien d'accès (…?client=…&clientToken=…) ou session ouverte avec le code d'accès
+  let ok = Boolean(client.access_token_hash) && tokensMatch(client.access_token_hash, sha256(token));
+  if (!ok && String(token).startsWith('cst_')) {
+    const { rows } = await db.query(
+      'SELECT 1 FROM client_sessions WHERE token_hash = $1 AND client_id = $2 AND expires_at > now()',
+      [sha256(token), client.id]
+    );
+    ok = rows.length > 0;
+  }
+  if (!ok) return null;
   recordVisit(client.id);
   return client;
 }
@@ -85,7 +94,7 @@ async function update(id, fields) {
 async function list() {
   const { rows } = await db.query(
     `SELECT c.id, c.name, c.company, c.email, c.logo_key, c.created_at, c.broadcast_date, c.package_label,
-            c.access_token_hash IS NOT NULL AS has_access, c.access_issued_at, c.access_issued_via,
+            (c.access_token_hash IS NOT NULL OR c.access_code_hash IS NOT NULL) AS has_access, c.access_issued_at, c.access_issued_via,
             c.access_revoked_at, c.access_email_sent_at, c.access_email_error, c.access_email_attempts,
             c.marketing_optin,
             COUNT(v.id) FILTER (WHERE v.active)::int AS videos,
@@ -144,6 +153,50 @@ async function findByEmail(email) {
   return rows.length === 1 ? rows[0] : null;
 }
 
+/* ------------------------------------------------------------------ Code d'accès */
+
+// Sans lettres ni chiffres ambigus (O/0, I/1, L) : le code se lit et se recopie sans erreur
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+/** Nouveau code au format OM-XXXX-XX (6 caractères aléatoires, environ 900 millions de combinaisons). */
+function newAccessCode() {
+  const pick = () => CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)];
+  return `OM-${pick()}${pick()}${pick()}${pick()}-${pick()}${pick()}`;
+}
+
+/** « om 4827 ev », « OM4827EV »… → « OM-4827-EV » ; null si le format est impossible. */
+function normalizeCode(v) {
+  const s = String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!/^OM[A-Z0-9]{6}$/.test(s)) return null;
+  return `OM-${s.slice(2, 6)}-${s.slice(6, 8)}`;
+}
+
+/** Client correspondant à un code (accès non coupé), ou null. */
+async function findByCode(code) {
+  const c = normalizeCode(code);
+  if (!c) return null;
+  const { rows } = await db.query(
+    'SELECT * FROM clients WHERE access_code_hash = $1 AND access_revoked_at IS NULL',
+    [sha256(c)]
+  );
+  return rows[0] || null;
+}
+
+/** Ouvre une session pour ce navigateur (180 jours). Renvoie le jeton à garder côté client. */
+async function openSession(clientId, userAgent) {
+  const token = `cst_${crypto.randomBytes(32).toString('base64url')}`;
+  await db.query(
+    `INSERT INTO client_sessions (token_hash, client_id, expires_at, user_agent)
+     VALUES ($1, $2, now() + interval '180 days', $3)`,
+    [sha256(token), clientId, String(userAgent || '').slice(0, 300)]
+  );
+  return token;
+}
+
+async function closeSession(token) {
+  if (String(token || '').startsWith('cst_')) await db.query('DELETE FROM client_sessions WHERE token_hash = $1', [sha256(token)]);
+}
+
 const lastVisitWrite = new Map();
 /** Note la venue du client dans son espace (jour de Paris). Sans effet sur la requête en cas d'erreur. */
 function recordVisit(clientId, { now = Date.now(), force = false } = {}) {
@@ -161,4 +214,4 @@ function recordVisit(clientId, { now = Date.now(), force = false } = {}) {
   ).then(() => true, (e) => { console.error('[visites]', e.message); return false; });
 }
 
-module.exports = { recordVisit, findByEmail, create, get, findByName, fromRequest, update, list, addVideo, setVideoActive, listVideos, listAllVideos, getVideo, sha256 };
+module.exports = { recordVisit, findByEmail, newAccessCode, normalizeCode, findByCode, openSession, closeSession, create, get, findByName, fromRequest, update, list, addVideo, setVideoActive, listVideos, listAllVideos, getVideo, sha256 };

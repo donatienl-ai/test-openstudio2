@@ -140,6 +140,24 @@
   const getMyVideos = () => call('GET', '/api/me');
   /** Réponse du client sur les campagnes marketing (true : accepte, false : refuse). */
   const setMarketing = (optin) => call('POST', '/api/me/marketing', { body: { optin: Boolean(optin) } });
+  /** Connexion avec le code d'accès (OM-XXXX-XX) : la session est gardée dans ce navigateur. */
+  const loginWithCode = async (code) => {
+    try { localStorage.removeItem(CLIENT_KEY); } catch { /* ignoré */ }
+    const d = await call('POST', '/api/client/login', { body: { code } });
+    try { localStorage.setItem(CLIENT_KEY, JSON.stringify({ id: d.client.id, token: d.token })); } catch { /* ignoré */ }
+    return d.client;
+  };
+  /** Session ouverte avec un code (et non avec un ancien lien d'accès) ? */
+  const hasCodeSession = () => { const c = clientSession(); return Boolean(c && String(c.token).startsWith('cst_')); };
+  /** Déconnexion : la session locale est effacée tout de suite, puis fermée côté serveur. */
+  const logoutClient = async () => {
+    const c = clientSession();
+    try { localStorage.removeItem(CLIENT_KEY); } catch { /* ignoré */ }
+    if (!c) return;
+    try {
+      await fetch(API() + '/api/client/logout', { method: 'POST', headers: { 'X-Client-Id': c.id, 'X-Client-Token': c.token }, keepalive: true });
+    } catch { /* la session expirera d'elle-même */ }
+  };
   /** Mode test : ajoute à l'espace client une vidéo déjà envoyée avec uploadFile(file, 'video'). */
   const addMyVideo = ({ title, sourceKey, programmeId, broadcastDate, durationSec }) =>
     call('POST', '/api/me/videos', { body: { title, sourceKey, programmeId, broadcastDate, durationSec } }).then((d) => d.video);
@@ -200,6 +218,9 @@
     getCatalog,
     getMyVideos,
     setMarketing,
+    loginWithCode,
+    hasCodeSession,
+    logoutClient,
     addMyVideo,
     social,
     montage,
