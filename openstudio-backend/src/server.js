@@ -97,7 +97,7 @@ async function main() {
     console.log(`OpenStudio back-end sur le port ${config.port} — webhook : ${config.publicBaseUrl}/api/webhooks/opusclip`);
     worker.start();
   });
-  storage.ensureCors(config.frontendOrigins).then((st) => {
+  storage.ensureCors(allowedOrigins).then((st) => {
     if (st.corsError) console.error(`[stockage] CORS du bucket : ${st.corsError}`);
     else console.log(`[stockage] CORS du bucket : ${st.cors}`);
   });

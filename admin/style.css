@@ -126,3 +126,8 @@ td.actions .btn + .btn { margin-left: 6px; }
   .filters { flex-wrap: wrap; }
   td.actions { white-space: normal; }
 }
+
+/* Dépôt de vidéo */
+.upload { margin-top: 12px; }
+.bar { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--blue); transition: width 0.2s; }

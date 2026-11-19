@@ -328,19 +328,49 @@ router.post('/webhooks/opusclip', express.raw({ type: '*/*', limit: '1mb' }), wr
 
 // Création, liste et modification des clients : routes-admin-clients.js (back-office, lot 2)
 
+/** Émissions proposées (back-office). */
+router.get('/admin/programmes', wrap(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.json({ programmes: Object.entries(mapping.programmes).map(([id, p]) => ({ id, title: p.title })) });
+}));
+
+/**
+ * Back-office : adresse d'envoi direct d'une vidéo brute vers le stockage (navigateur → bucket).
+ * Le fichier est rangé sous clients/<id client>/…, puis rattaché au package par la route suivante.
+ */
+router.post('/admin/clients/:id/videos/upload', json, wrap(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const client = await clients.get(req.params.id);
+  if (!client) return res.status(404).json({ error: 'Client introuvable' });
+  const { fileName, contentType } = req.body || {};
+  const spec = UPLOAD_KINDS.video;
+  const ext = path.extname(String(fileName || '')).toLowerCase();
+  if (!spec.exts.includes(ext)) return res.status(400).json({ error: `Format non accepté (${spec.exts.join(', ')}).` });
+  const ct = String(contentType || '') || 'video/mp4';
+  if (!spec.types.test(ct)) return res.status(400).json({ error: 'Ce fichier n’est pas une vidéo.' });
+  const key = `clients/${client.id}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}/video${ext}`;
+  const uploadUrl = await storage.presignUpload(key, ct, 6 * 3600);
+  res.json({ key, uploadUrl, method: 'PUT', headers: { 'Content-Type': ct } });
+}));
+
 /** Ajouter une vidéo au package d'un client (vidéo déjà déposée dans le stockage). */
 router.post('/admin/clients/:id/videos', json, wrap(async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const client = await clients.get(req.params.id);
   if (!client) return res.status(404).json({ error: 'Client introuvable' });
-  const { programmeId, title, sourceKey, broadcastDate } = req.body || {};
+  const { programmeId, sourceKey } = req.body || {};
+  const title = String((req.body || {}).title || '').trim().slice(0, 200);
+  const broadcastDate = /^\d{4}-\d{2}-\d{2}$/.test(String((req.body || {}).broadcastDate || '')) ? req.body.broadcastDate : null;
+  const d = Number((req.body || {}).durationSec);
+  const durationSec = Number.isFinite(d) && d > 0 && d < 24 * 3600 ? Math.round(d * 10) / 10 : null;
   if (!mapping.programmes[programmeId]) {
-    return res.status(400).json({ error: `Programme inconnu. Disponibles : ${Object.keys(mapping.programmes).join(', ')}` });
+    return res.status(400).json({ error: `Émission inconnue. Disponibles : ${Object.keys(mapping.programmes).join(', ')}` });
   }
-  if (!title || !sourceKey) return res.status(400).json({ error: 'title et sourceKey requis' });
+  if (!title || !sourceKey) return res.status(400).json({ error: 'Titre et fichier requis.' });
   const h = await storage.head(sourceKey);
-  if (!h.exists) return res.status(400).json({ error: `Fichier introuvable dans le stockage : ${sourceKey}` });
-  const v = await clients.addVideo(client.id, { programmeId, title, sourceKey, broadcastDate });
+  if (!h.exists) return res.status(400).json({ error: 'Fichier introuvable dans le stockage : l’envoi n’est peut-être pas terminé.' });
+  if (h.contentType && !/^video\//.test(h.contentType)) return res.status(400).json({ error: 'Ce fichier n’est pas une vidéo.' });
+  const v = await clients.addVideo(client.id, { programmeId, title, sourceKey, broadcastDate, durationSec });
   await audit.record(req, 'video_ajoutee', { targetType: 'client', targetId: client.id, detail: { videoId: v.id, title, programmeId } });
   res.status(201).json({ video: publicVideo(v) });
 }));
@@ -348,6 +378,15 @@ router.post('/admin/clients/:id/videos', json, wrap(async (req, res) => {
 router.get('/admin/clients/:id/videos', wrap(async (req, res) => {
   if (!requireAdmin(req, res)) return;
   res.json({ videos: (await clients.listVideos(req.params.id)).map(publicVideo) });
+}));
+
+/** Back-office : lien de visionnage d'une vidéo brute (valable 1 heure). */
+router.get('/admin/clients/:id/videos/:videoId/preview', wrap(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const v = await clients.getVideo(req.params.id, req.params.videoId);
+  if (!v) return res.status(404).json({ error: 'Vidéo introuvable' });
+  const ext = path.extname(v.source_key) || '.mp4';
+  res.json({ url: await storage.presignDownload(v.source_key, `${v.title}${ext}`, 'inline', 3600) });
 }));
 
 /** Retirer une vidéo du package (elle reste en base mais n'est plus proposée). */
