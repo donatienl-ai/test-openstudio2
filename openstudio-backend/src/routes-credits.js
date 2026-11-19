@@ -32,11 +32,12 @@ function publicPurchase(p) {
   };
 }
 
-/** Solde, échéance, barème, packs de recharge et historique. */
+/** Solde, échéance, barème et packs de recharge (sans le décompte détaillé). */
 router.get('/me/credits', wrap(async (req, res) => {
   const client = await requireClient(req, res);
   if (!client) return;
-  const acc = await credits.account(client.id);
+  // Le décompte détaillé reste réservé à l'équipe (fiche client du back-office)
+  const { history, ...acc } = await credits.account(client.id, { historyLimit: 0 });
   const purchases = await credits.listPurchases(client.id);
   res.json({ ...acc, paymentMode: config.stripe.mock ? 'simulation' : 'stripe', purchases: purchases.filter((p) => p.status === 'paid').map(publicPurchase) });
 }));

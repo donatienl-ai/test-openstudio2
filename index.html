@@ -896,25 +896,33 @@ em,i:not([class]){font-style:normal}
 .os-cr.dk{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.6);color:#fff}.os-cr.dk span{color:rgba(255,255,255,.75)}
 .os-cr.low{border-color:#E0A526}
 .os-cr.cr-side{width:100%;justify-content:center;margin-top:-16px;box-sizing:border-box}
-.cr-ico{width:18px;height:18px;flex:none}
+.cr-ico{width:14.4px;height:14.4px;flex:none}
 .cr-tag{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--os-mut);margin-top:auto;padding-top:4px}
-.cr-tag .cr-ico{width:15px;height:15px}
+.cr-tag .cr-ico{width:12px;height:12px}
 .cr-tag.dk{color:rgba(255,255,255,.82)}
-.cr-sum{display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:14px;background:#F6F5FF;border:1px solid #E1E0FB}
-.cr-sum .cr-ico{width:40px;height:40px}
-.cr-sum b{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:28px;color:var(--os-navy,#1C1C62);line-height:1.1}
-.cr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-.cr-pack{display:flex;flex-direction:column;gap:6px;text-align:left;font:inherit;background:#fff;border:1.5px solid #E2E0D8;border-radius:14px;padding:16px;cursor:pointer;color:#1A1A2E;position:relative}
-.cr-pack:hover:not(:disabled){border-color:#3B3BF9}
-.cr-pack:disabled{opacity:.55;cursor:default}
-.cr-pack.rec{border-color:#3B3BF9;box-shadow:0 0 0 3px rgba(59,59,249,.12)}
-.cr-pack .n{display:flex;align-items:center;gap:6px;font-weight:700;font-size:18px}
-.cr-pack .pr{font-weight:700;font-size:20px;margin-top:6px}
-.cr-pack .badge{position:absolute;top:-10px;left:12px;background:#3B3BF9;color:#fff;font-size:11px;font-weight:600;border-radius:50px;padding:3px 9px}
-.cr-warn{padding:12px 14px;border-radius:10px;background:#FFF6E5;border:1px solid #F2D49B;color:#7A4B00;font-size:14px;line-height:1.5}
-.cr-hist{font-size:13px}.cr-hist summary{cursor:pointer;color:var(--os-mut)}
-.cr-hist ol{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
-.cr-hist li{display:flex;justify-content:space-between;gap:12px}.cr-hist .p{color:#127A45;font-weight:600}.cr-hist .m{color:#1A1A2E;font-weight:600}
+.cr-warn{padding:12px 14px;border-radius:8px;background:#FFF8EC;border:1px solid #F1DDB4;color:#6B4708;font-size:14px;line-height:1.5}
+.crm{display:flex;flex-direction:column;gap:22px;color:#1A1A2E}
+.crm-k{display:block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--os-mut,#6B6B80);margin-bottom:6px}
+.crm-bal{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px 32px;padding:0 0 20px;border-bottom:1px solid #E7E6EF}
+.crm-v{display:flex;align-items:center;gap:8px;font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:24px;letter-spacing:.01em;color:var(--os-navy,#1C1C62)}
+.crm-v .cr-ico{width:19.2px;height:19.2px}
+.crm-exp{font-size:14px;text-align:right}
+.crm-rate{margin:-8px 0 0;font-size:13px;color:var(--os-mut,#6B6B80);line-height:1.5}
+.crm-list{display:flex;flex-direction:column;border:1px solid #E7E6EF;border-radius:10px;overflow:hidden}
+.crm-row{display:grid;grid-template-columns:18px minmax(0,1fr) auto;align-items:center;gap:14px;padding:14px 16px;font:inherit;text-align:left;background:#fff;border:0;border-top:1px solid #EFEEF4;color:inherit;cursor:pointer}
+.crm-row:first-child{border-top:0}
+.crm-row:hover{background:#FAFAFC}
+.crm-row[aria-checked="true"]{background:#F5F5FF}
+.crm-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid #B9B8C8;box-sizing:border-box}
+.crm-row[aria-checked="true"] .crm-dot{border:5px solid #3B3BF9}
+.crm-name{display:flex;flex-direction:column;gap:2px;min-width:0}
+.crm-name b{font-size:15px;font-weight:600}
+.crm-name small{font-size:13px;color:var(--os-mut,#6B6B80)}
+.crm-name em{font-style:normal;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#3B3BF9;margin-left:8px}
+.crm-price{display:flex;flex-direction:column;align-items:flex-end;gap:2px;white-space:nowrap}
+.crm-price b{font-size:15px;font-weight:600}
+.crm-price small{font-size:12px;color:var(--os-mut,#6B6B80)}
+.crm-note{margin:0;font-size:12.5px;line-height:1.55;color:var(--os-mut,#6B6B80)}
 .os-bandnav .who{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:none;padding:11px 18px;border:1px solid rgba(255,255,255,.6);border-radius:50px;cursor:pointer}
 .os-hero{display:flex;flex-wrap:wrap;gap:48px;align-items:center}
 .os-hero .txt{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:26px}
@@ -3155,28 +3163,40 @@ function crPill(cls = '') {
   return `<button type="button" class="os-cr ${cls}${low ? ' low' : ''}" data-a="cr-open" aria-label="${b == null ? 'Mes crédits' : `Mes crédits : ${crN(b)} disponibles`}">${CR_ICO}<b>${b == null ? '…' : crN(b)}</b><span>crédits</span></button>`;
 }
 const crDay = d => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+function crPick(m, packs) {
+  const missing = m.need && CR.d ? Math.max(0, m.need - CR.d.balance) : 0;
+  const rec = missing ? (packs.filter(x => x.credits >= missing).sort((a, b) => a.credits - b.credits)[0] || null) : null;
+  const pick = packs.find(x => x.id === m.pick) || rec || packs.find(x => !x.once) || packs[0] || null;
+  return { missing, rec, pick };
+}
 function crModalHtml(m) {
   const d = CR.d;
-  if (!d) return `<p class="mut">${CR.err ? esc(CR.err) : 'Chargement de vos crédits…'}</p>`;
-  const p = d.prices; const missing = m.need ? Math.max(0, m.need - d.balance) : 0;
-  const packs = d.packs.filter(x => x.available);
-  const rec = missing ? (packs.filter(x => x.credits >= missing).sort((a, b) => a.credits - b.credits)[0] || null) : null;
-  const until = d.expiresAt ? `Valables jusqu’au ${crDay(new Date(new Date(d.expiresAt).getTime() - 1000))} inclus.` : `Valables ${d.validityDays} jours à partir de la diffusion de votre émission.`;
-  const KIND = { inclus: 'Crédits offerts', recharge: 'Recharge', debit: 'Création', remboursement: 'Crédits rendus', expiration: 'Échéance', ajustement: 'Ajustement OpenMedias' };
-  return `<div style="display:flex;flex-direction:column;gap:20px">
-    <div class="cr-sum">${CR_ICO}<div style="display:flex;flex-direction:column;gap:4px"><b>${crN(d.balance)} crédits</b><span class="mut" style="font-size:14px">${d.balance ? until : 'Rechargez pour lancer de nouvelles créations.'}</span></div></div>
-    ${missing ? `<p class="cr-warn" style="margin:0">Il vous manque <b>${crN(missing)} crédits</b> pour cette création (${crN(m.need)} nécessaires).</p>` : ''}
-    <p class="mut" style="margin:0;font-size:14px;line-height:1.5">Un projet de capsules ou un teaser : <b style="color:#1A1A2E">${crN(p.capsules)} crédits</b>. Interview sous-titrée : <b style="color:#1A1A2E">${crN(p.subtitlesPer5Min)} crédits</b> par tranche de 5 minutes.</p>
-    <div style="display:flex;flex-direction:column;gap:12px"><h4 style="margin:0;font-size:15px">Recharger mes crédits</h4>
-      <div class="cr-grid">${packs.map(x => `<button type="button" class="cr-pack${rec && rec.id === x.id ? ' rec' : ''}" data-a="cr-buy" data-arg="${esc(x.id)}" ${m.buying ? 'disabled' : ''}>${rec && rec.id === x.id ? '<span class="badge">Suffisant pour cette création</span>' : ''}<span style="font-size:13px;font-weight:600">${esc(x.label)}</span><span class="n">${CR_ICO}${crN(x.credits)}</span><span class="mut" style="font-size:13px">${x.productions >= 1 ? `${String(x.productions).replace('.', ',')} production${x.productions > 1 ? 's' : ''}` : 'Pour compléter votre solde'}</span><span class="pr">${crN(x.priceHT)} € <small style="font-size:12px;font-weight:500">HT</small></span><span class="mut" style="font-size:12px">${x.priceTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} € TTC</span>${m.buying === x.id ? '<span style="font-size:12px;color:#3B3BF9">Ouverture du paiement…</span>' : ''}</button>`).join('')}</div>
-      <p class="mut" style="margin:0;font-size:13px;line-height:1.5">Paiement sécurisé par carte bancaire. Chaque recharge relance la validité de tout votre solde pour ${d.validityDays} jours. Facture disponible dans <a href="#" data-a="nav" data-arg="factures">Factures</a>.</p>
-      ${m.err ? `<p class="cr-warn" style="margin:0">${esc(m.err)}</p>` : ''}</div>
-    ${d.history.length ? `<details class="cr-hist"><summary>Historique de mes crédits</summary><ol>${d.history.slice(0, 12).map(h => `<li><span>${esc(KIND[h.kind] || h.kind)}${h.label ? ` <span class="mut">· ${esc(h.label)}</span>` : ''} <span class="mut">· ${new Date(h.at).toLocaleDateString('fr-FR')}</span></span><span class="${h.credits > 0 ? 'p' : 'm'}">${h.credits > 0 ? '+' : '−'}${crN(Math.abs(h.credits))}</span></li>`).join('')}</ol></details>` : ''}
+  if (!d) return `<p class="mut">${CR.err ? esc(CR.err) : 'Chargement de votre solde…'}</p>`;
+  const p = d.prices; const packs = d.packs.filter(x => x.available);
+  const { missing, rec, pick } = crPick(m, packs);
+  const eur = n => n.toLocaleString('fr-FR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }).replace(/\u202f/g, '\u00a0') + '\u00a0€';
+  const until = d.expiresAt ? `jusqu’au ${crDay(new Date(new Date(d.expiresAt).getTime() - 1000))}` : `${d.validityDays} jours après la diffusion`;
+  return `<div class="crm">
+    <div class="crm-bal"><div><span class="crm-k">Solde disponible</span><span class="crm-v">${CR_ICO}${crN(d.balance)} crédits</span></div>
+      <div class="crm-exp"><span class="crm-k">Validité</span>${d.balance ? until : '—'}</div></div>
+    <p class="crm-rate">Projet de capsules ou teaser : ${crN(p.capsules)} crédits. Interview sous-titrée : ${crN(p.subtitlesPer5Min)} crédits par tranche de 5 minutes.</p>
+    ${missing ? `<p class="cr-warn" style="margin:0">Cette création nécessite ${crN(m.need)} crédits : il vous en manque ${crN(missing)}.</p>` : ''}
+    <div><span class="crm-k">Recharger mon solde</span>
+      <div class="crm-list" role="radiogroup" aria-label="Recharges disponibles">${packs.map(x => `<button type="button" class="crm-row" role="radio" aria-checked="${pick && pick.id === x.id}" data-a="cr-pick" data-arg="${esc(x.id)}" ${m.buying ? 'disabled' : ''}><span class="crm-dot" aria-hidden="true"></span><span class="crm-name"><b>${esc(x.label)}${rec && rec.id === x.id ? '<em>Recommandé</em>' : ''}</b><small>${crN(x.credits)} crédits${x.productions >= 1 ? ` · ${String(x.productions).replace('.', ',')} production${x.productions > 1 ? 's' : ''}` : x.once ? ' · proposé une seule fois' : ''}</small></span><span class="crm-price"><b>${eur(x.priceHT)} HT</b><small>${eur(x.priceTTC)} TTC</small></span></button>`).join('')}</div></div>
+    ${m.err ? `<p class="cr-warn" style="margin:0">${esc(m.err)}</p>` : ''}
+    <p class="crm-note">Paiement sécurisé par carte bancaire. Toute recharge prolonge de ${d.validityDays} jours la validité de l’ensemble de votre solde. La facture est disponible dans la rubrique <a href="#" data-a="nav" data-arg="factures">Factures</a>.</p>
   </div>`;
 }
+function crModalFoot(m) {
+  const packs = CR.d ? CR.d.packs.filter(x => x.available) : [];
+  const { pick } = crPick(m, packs);
+  const ttc = pick ? pick.priceTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '\u00a0€ TTC' : '';
+  return `<button class="os-pillbtn s" style="height:48px;padding:0 22px" data-a="close">Fermer</button><button class="os-cta" data-a="cr-pay" ${!pick || m.buying ? 'disabled' : ''}>${m.buying ? 'Ouverture du paiement…' : `Payer ${ttc}`}</button>`;
+}
 function crOpen(need) { S.modal = { type: 'credits', need: need || 0 }; S.keepScroll = true; render(); crLoad(true); }
-async function crBuy(id) {
-  const m = S.modal; if (!m || m.type !== 'credits' || m.buying) return;
+async function crBuy() {
+  const m = S.modal; if (!m || m.type !== 'credits' || m.buying || !CR.d) return;
+  const { pick } = crPick(m, CR.d.packs.filter(x => x.available)); if (!pick) return; const id = pick.id;
   m.buying = id; m.err = ''; S.keepScroll = true; render();
   try { const r = await OpenStudio.credits.buy(id); location.href = r.checkoutUrl; }
   catch (e) { m.buying = null; m.err = e.message || 'Le paiement n’a pas pu être préparé. Réessayez dans un instant.'; S.keepScroll = true; render(); }
@@ -5220,7 +5240,7 @@ function modalHtml() {
   } else if (m.type === 'credits') {
     title = 'Mes crédits';
     h = crModalHtml(m);
-    foot = `<button class="os-pillbtn s" style="height:44px;padding:0 20px" data-a="close">Fermer</button>`;
+    foot = crModalFoot(m);
   } else if (m.type === 'os-marketing') {
     title = 'Restons en contact';
     h = `<p>OpenMedias peut vous envoyer de temps en temps ses actualités et ses offres : nouvelles émissions, formats vidéo, événements.</p><p class="small muted" style="margin-top:10px">Vous pourrez changer d'avis à tout moment en nous écrivant. Votre réponse ne change rien à votre espace ni à vos vidéos.</p>`;
@@ -5507,7 +5527,8 @@ const A = {
   'bk-step': a => { if (+a > 1 && !S.cap.bkVideoId) { toast('Choisissez d’abord une émission.'); return; } S.cap.bkStep = Math.min(+a, 4); S.modal = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
   'bk-submit': () => flowSubmit(),
   'cr-open': a => crOpen(Number(a) || 0),
-  'cr-buy': a => crBuy(a),
+  'cr-pick': a => { if (S.modal && S.modal.type === 'credits') { S.modal.pick = a; S.keepScroll = true; render(); } },
+  'cr-pay': () => crBuy(),
   'cr-inv': a => crInvoice(a),
   'bk-new': () => { S.cap.bkStep = 1; S.cap.bkOrderId = null; S.keepScroll = false; render(); },
   'bk-kind': a => { S.cap.flowKind = a; if (a === 'teaser' && !S.cap.fmt) S.cap.fmt = '9:16'; S.keepScroll = true; render(); },
