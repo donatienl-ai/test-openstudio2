@@ -181,10 +181,42 @@
   }
 
   function pageHome() {
-    return '<div class="head"><div><h1>Bonjour ' + esc(S.user.name) + '</h1>' +
-      '<p class="muted">Le back-office se construit lot par lot. Les rubriques marquées d’un numéro de lot arrivent dans les prochaines semaines.</p></div></div>' +
-      '<div class="card"><h2>Ce qui est disponible</h2><p>Connexion à l’espace équipe avec votre identifiant.' +
-      (isSuper() ? ' En tant que super admin, vous gérez aussi les comptes de l’équipe et consultez le journal d’activité.' : '') + '</p></div>';
+    var d = S.dash;
+    var head = '<div class="head"><div><h1>Bonjour ' + esc(S.user.name) + '</h1><p class="muted">Activité de la plateforme.</p></div>' +
+      '<button class="btn secondary" type="button" data-a="reload-dash">Actualiser</button></div>';
+    if (!d) return head + errorBox() + '<div class="card empty">Chargement…</div>';
+    var a = d.accounts;
+    var p = d.payments;
+    var tile = function (label, value, sub, tone, href) {
+      return '<' + (href ? 'a href="' + href + '"' : 'div') + ' class="tile ' + (tone || '') + '"><span class="tile-l">' + esc(label) + '</span><b class="tile-v">' + esc(value) + '</b>' +
+        (sub ? '<span class="tile-s">' + esc(sub) + '</span>' : '') + '</' + (href ? 'a' : 'div') + '>';
+    };
+    var tiles = '<div class="tiles">' +
+      tile('Comptes actifs', a.active, a.everConnected + ' se sont déjà connectés, sur ' + a.total + ' clients', '', '#clients') +
+      tile('Connectés aujourd’hui', a.connectedToday, a.returningToday ? a.returningToday + ' revenus (déjà venus un autre jour)' : 'aucun retour aujourd’hui', '') +
+      tile('Paiements reçus · 30 jours', p.paid, euros(p.paid_cents) + ' TTC', 'ok') +
+      tile('Paiements en échec · 30 jours', p.failed, p.awaiting + ' en attente de paiement', p.failed ? 'err' : '') +
+      '</div>';
+    var max = Math.max.apply(null, a.days.map(function (x) { return x.connected; }).concat([1]));
+    var week = '<div class="card"><h2>Connexions des 7 derniers jours</h2><p class="small muted">Un client compte une fois par jour. En foncé : les clients qui reviennent (déjà venus un jour précédent).</p><div class="bars">' +
+      a.days.map(function (x) {
+        var h = Math.round((x.connected / max) * 100);
+        var r = x.connected ? Math.round((x.returning / x.connected) * 100) : 0;
+        return '<div class="bar-col" title="' + esc(fmtDay(x.day) + ' : ' + x.connected + ' connecté(s), dont ' + x.returning + ' revenu(s)') + '">' +
+          '<span class="bar-n">' + esc(x.connected) + '</span><div class="bar-track"><div class="bar-fill" data-h="' + h + '"><div class="bar-ret" data-h="' + r + '"></div></div></div>' +
+          '<span class="bar-d">' + esc(fmtDay(x.day).replace(/ \d{4}$/, '')) + '</span></div>';
+      }).join('') + '</div></div>';
+    var fails = p.failures.length ? '<table><thead><tr><th>Date</th><th>Client</th><th>Objet</th><th>Raison donnée par la banque</th><th>État</th></tr></thead><tbody>' + p.failures.map(function (f) {
+      return '<tr><td class="small nowrap">' + esc(fmtDate(f.payment_failed_at)) + '</td><td>' + (f.client_id ? '<a href="#clients/' + esc(f.client_id) + '"><b>' + esc(f.client_name) + '</b></a>' : esc(f.company || 'Non rattaché')) +
+        '</td><td class="small">' + esc(f.offer_title) + (f.payment_failures > 1 ? ' <span class="muted">(' + esc(f.payment_failures) + ' essais)</span>' : '') + '</td><td class="small">' + esc(f.last_payment_error) +
+        '</td><td>' + tag(MONTAGE_STATUS[f.status], f.status) + '</td></tr>';
+    }).join('') + '</tbody></table>' : emptyLine('Aucun paiement en échec ces 30 derniers jours.');
+    var alerts = [];
+    if (p.unattached) alerts.push(p.unattached + ' paiement' + (p.unattached > 1 ? 's' : '') + ' reçu' + (p.unattached > 1 ? 's' : '') + ' sans client rattaché (demande faite hors espace client, e-mail inconnu).');
+    if (d.accessEmailFailures7d) alerts.push(d.accessEmailFailures7d + ' envoi' + (d.accessEmailFailures7d > 1 ? 's' : '') + ' de lien d’accès en échec ces 7 derniers jours (voir les fiches concernées).');
+    if (p.to_quote) alerts.push(p.to_quote + ' demande' + (p.to_quote > 1 ? 's' : '') + ' de montage à chiffrer.');
+    return head + errorBox() + tiles + (alerts.length ? '<div class="warn mb">' + alerts.map(esc).join('<br>') + '</div>' : '') +
+      week + section('Paiements en échec', p.failures.length, fails);
   }
 
   function pageSoon() {
@@ -465,7 +497,9 @@
 
     var payments = (d.payments.length ? '<table><thead><tr><th>Date</th><th>Objet</th><th>Montant TTC</th><th>État</th></tr></thead><tbody>' + d.payments.map(function (p) {
       return '<tr><td class="small nowrap">' + esc(fmtDate(p.paid_at || p.created_at)) + '</td><td>Montage sur mesure · ' + esc(p.offer_title) + '</td><td class="nowrap">' + esc(euros(p.amount_ttc_cents)) +
-        '</td><td>' + (p.status === 'paid' && p.has_invoice
+        '</td><td>' + (p.status !== 'paid' && p.payment_failures
+          ? '<span class="tag err">Échec de paiement</span><br><span class="small muted">' + esc(p.last_payment_error) + (p.payment_failures > 1 ? ' (' + p.payment_failures + ' essais)' : '') + '</span>'
+          : p.status === 'paid' && p.has_invoice
           ? '<button class="tag ok linkish" type="button" data-a="payment-invoice" data-id="' + esc(p.id) + '" title="Voir la facture">Payée · voir la facture</button>'
           : tag(MONTAGE_STATUS[p.status], p.status)) + '</td></tr>';
     }).join('') + '</tbody></table>' : emptyLine('Aucun paiement pour le moment.')) +
@@ -644,6 +678,7 @@
       : S.view === 'error' ? '<div class="auth"><div class="auth-card">' + brand() + errorBox() + '<p class="mt"><a href="./">Revenir à la connexion</a></p></div></div>'
         : views[S.view]();
     restoreFields(saved);
+    app.querySelectorAll('[data-h]').forEach(function (el) { el.style.height = el.dataset.h + '%'; });
     var bar = document.getElementById('upload-bar');
     if (bar) bar.style.width = (S.upload ? S.upload.pct : 0) + '%';
     if (focus) {
@@ -658,6 +693,7 @@
   function loadPage() {
     S.error = '';
     if (S.page === 'clients') loadClients();
+    if (S.page === 'accueil') loadDashboard();
     if (S.page === 'equipe' && isSuper()) {
       api('GET', '/admin/team').then(function (d) { S.team = d.users; render(); }).catch(function (e) { S.error = e.message; render(); });
     }
@@ -666,6 +702,10 @@
       api('GET', '/admin/audit?limit=200').then(function (d) { S.audit = d.entries; render(); }).catch(function (e) { S.error = e.message; S.audit = []; render(); });
     }
     render();
+  }
+
+  function loadDashboard() {
+    return api('GET', '/admin/dashboard').then(function (d) { S.dash = d; render(); }).catch(function (e) { S.error = e.message; render(); });
   }
 
   function readHash() {
@@ -850,6 +890,7 @@
         .then(function () { toast('Lien copié'); }, function () { input.select(); toast('Sélectionnez le lien et copiez-le (Ctrl+C)'); });
     },
     'reload-audit': function () { loadPage(); },
+    'reload-dash': function () { S.dash = null; loadPage(); },
     'client-send': function () {
       var c = S.client.client;
       var replacing = c.access.code === 'sent' || c.access.code === 'manual';

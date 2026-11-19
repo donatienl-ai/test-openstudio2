@@ -30,7 +30,8 @@ router.get('/montage/offers', (req, res) => {
 
 /** Enregistre la demande et renvoie l'adresse de la page de paiement. Espace client facultatif. */
 router.post('/montage/requests', json, wrap(async (req, res) => {
-  const client = await clients.fromRequest(req).catch(() => null);
+  let client = await clients.fromRequest(req).catch(() => null);
+  if (!client) client = await clients.findByEmail(((req.body || {}).contact || {}).email).catch(() => null);
   const r = await montage.createRequest(client, req.body, { returnOrigin: req.get('origin') });
   res.status(201).json({ id: r.id, status: r.status, checkoutUrl: r.checkoutUrl || null });
 }));
