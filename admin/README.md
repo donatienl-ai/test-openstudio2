@@ -51,13 +51,14 @@ Si l'adresse du serveur change, modifier `config.js` **et** `connect-src` dans l
 - La base ne contient ni jeton utilisable (les jetons sont hachés) ni secret de double authentification en clair (il est chiffré).
 - Les actions sensibles sont inscrites au journal d'activité : connexions, comptes, clients, vidéos, relances de commandes.
 
-## Clients et liens d'accès (lot 2)
+## Clients et codes d'accès
 
-- Chaque client a un **lien d'accès personnel** à son espace. Le serveur n'en garde qu'une empreinte : personne, même l'équipe, ne peut relire un lien existant.
-- **Le jour de la diffusion de l'émission, à partir de 8 h** (heure de Paris), le lien est créé et envoyé à l'e-mail du client. La date qui compte est celle **de la vidéo déposée** (à défaut, la date prévue sur la fiche) : tant qu'aucune vidéo n'est déposée, rien ne part, et le client n'arrive jamais dans un espace vide. Le serveur vérifie toutes les 10 minutes, jusqu'à 20 h. En cas d'échec, il réessaie toutes les heures, 5 fois au plus.
-- Depuis la fiche client, l'équipe peut **envoyer le lien tout de suite**, **créer un lien à transmettre elle-même** (affiché une seule fois) ou **couper l'accès**. Chaque nouveau lien rend le précédent inutilisable.
-- Un client dont le lien a été remis à la main ou coupé ne reçoit pas d'envoi automatique.
-- **Import CSV** : colonnes `nom`, `entreprise`, `email`, `date de diffusion` (JJ/MM/AAAA), `package`, `notes`. Le consentement marketing n’est pas importé : le client le donne lui-même. Séparateur `;` (Excel) ou `,`. Les e-mails déjà présents sont ignorés.
-- Les clients créés avant le back-office gardent leur lien actuel.
-- **Fiche client** : informations, réponse du client sur les campagnes marketing (posée dans son espace à la première connexion, en lecture seule ici), accès à l'espace client, e-mails envoyés (réussis ou en échec), émissions déposées (retirées comprises), contenus générés et publications, paiements, historique des actions de l'équipe.
-- **Émissions proposées** : BFM TV, BFM Business, Capital, Le Figaro (`src/opusclip.config.js`). Le logo du Figaro reste à fournir : en attendant, ses vidéos sortent sans logo d'émission.
+- Chaque client a un **code d'accès** personnel au format `OM-XXXX-XX` (6 caractères tirés au hasard, sans O, I, L, 0 ni 1). Le serveur n'en garde qu'une empreinte : personne ne peut relire un code existant.
+- Le client saisit son code sur la page de connexion de l'espace client (ou ouvre le lien de l'e-mail, qui le remplit pour lui). Son navigateur reste ensuite connecté 180 jours : il n'a pas à ressaisir le code à chaque visite.
+- **Le jour de la diffusion de la vidéo, à partir de 8 h** (heure de Paris), un code est créé et envoyé à l'e-mail du client. Tant qu'aucune vidéo n'est déposée, rien ne part. En cas d'échec, nouvel essai toutes les heures, 5 fois au plus.
+- Depuis la fiche client : **envoyer le code tout de suite**, **générer un code** à transmettre soi-même (affiché une seule fois), ou **couper l'accès**. Un nouveau code remplace l'ancien pour se connecter ; les navigateurs déjà connectés le restent, sauf si l'accès est coupé (tous sont alors déconnectés).
+- Connexion par code limitée à 10 essais par quart d'heure et par adresse IP.
+- Les anciens liens (`?client=…&clientToken=…`) des clients créés avant les codes restent valables jusqu'au premier code généré.
+- **Import CSV** : colonnes `nom`, `entreprise`, `email`, `date de diffusion` (JJ/MM/AAAA), `package`, `notes`. Séparateur `;` (Excel) ou `,`. Les e-mails déjà présents sont ignorés. Le consentement marketing n'est pas importé : le client le donne lui-même.
+- **Fiche client** : informations, réponse du client sur les campagnes marketing (posée dans son espace à la première connexion), e-mails envoyés, émissions (retirées comprises), contenus générés et publications, paiements et factures, historique des actions.
+- **Émissions proposées** : BFM TV, BFM Business, Capital, Le Figaro (`src/opusclip.config.js`). Le logo du Figaro reste à fournir.

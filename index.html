@@ -2407,10 +2407,42 @@ function normCode(v) {
   let out = s.slice(0, 2); if (s.length > 2) out += '-' + s.slice(2, 6); if (s.length > 6) out += '-' + s.slice(6, 8);
   return out;
 }
+// --- Connexion réelle : code généré dans le back-office, vérifié par le serveur OpenStudio ---
+const SRV_PREFIX = 'srv-';
+const isRealClient = c => !!(c && String(c.id).startsWith(SRV_PREFIX));
+/** Construit le client affiché à partir du compte réel (/api/me) et ouvre son espace. */
+async function enterRealSpace(code) {
+  const r = await OpenStudio.getMyVideos();
+  const me = r.client || {};
+  const id = SRV_PREFIX + me.id;
+  const first = !me.firstSeenAt || (Date.now() - new Date(me.firstSeenAt).getTime() < 60 * 1000);
+  const prev = CLIENTS.find(x => x.id === id);
+  const c = mkClient(id, me.company || me.name || 'Mon entreprise', me.sector || '', me.name || '', me.email || '', code || (prev && prev.code) || '', 0, 0, { last: 0, stats: (prev && prev.stats) || undefined });
+  c.serverId = me.id;
+  CLIENTS = CLIENTS.filter(x => x.id !== id).concat([c]);
+  BK.client = me; BK.clientUploads = !!r.clientUploads; BK.videos = (r.videos || []).map(bkVideo); BK.mkAsked = false;
+  S.fails = 0; S.clientId = id; S.asAdmin = false; S.modal = null;
+  resetClientState();
+  trackEvent('user.login', { first, real: true }, first ? 'first-login' : 'login-' + Date.now().toString(36));
+  go('client', 'dashboard');
+  bkAskMarketing();
+}
+async function doRealLogin(code) {
+  const err = document.getElementById('code-err'), inp = document.getElementById('code'), btn = document.querySelector('[data-a="do-login"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Connexion…'; }
+  try { await OpenStudio.loginWithCode(code); await enterRealSpace(code); }
+  catch (e) {
+    S.fails++; if (inp) inp.classList.add('err');
+    if (err) err.textContent = e.status === 401 || e.status === 400 || e.status === 429 ? e.message : "Connexion impossible pour le moment. Vérifiez votre connexion internet et réessayez.";
+    if (btn) { btn.disabled = false; btn.textContent = 'Accéder à mon espace'; }
+  }
+}
 function doLogin(code) {
   const err = document.getElementById('code-err'), inp = document.getElementById('code');
-  let c = CLIENTS.find(x => x.code === code);
+  let c = CLIENTS.find(x => x.code === code && !isRealClient(x));
   if (!c && DEFAULT_CODES[code]) { c = CLIENTS.find(x => x.id === DEFAULT_CODES[code]); if (c) c.code = code; }
+  // Code inconnu de la démonstration : vrai code, vérifié par le serveur
+  if (!c && bkOn()) { doRealLogin(code); return; }
   if (!c) {
     S.fails++; inp.classList.add('err');
     const raw = String(inp ? inp.value : code).toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -5193,7 +5225,7 @@ const A = {
   'studio-tab': () => { if (S.view === 'client') A.nav('dashboard'); else if (S.view === 'admin') go('admin'); else A['to-login'](); },
   'to-login': () => { S.modal = null; S.asAdmin = false; S.clientId = null; go('login'); },
   'fill-code': a => { const inp = document.getElementById('code'); inp.value = a; inp.classList.remove('err'); document.getElementById('code-err').textContent = ''; inp.focus(); },
-  'logout': () => { S.clientId = null; S.preview = null; if (S.asAdmin) { S.asAdmin = false; go('admin'); } else { toast('Vous êtes déconnecté'); go('login'); } },
+  'logout': () => { if (isRealClient(client()) && bkOn()) OpenStudio.logoutClient(); S.clientId = null; S.preview = null; if (S.asAdmin) { S.asAdmin = false; go('admin'); } else { toast('Vous êtes déconnecté'); go('login'); } },
   'nav': a => { S.modal = null; if (a === 'capsules' && S.cap.bkStep === 5) { S.cap.bkStep = 1; S.cap.bkOrderId = null; } go('client', a); },
   'open-video': a => { const [id, sub] = String(a).split('|'); S.vsub = sub === 'sub'; go('client', 'video', id); },
   'play-main': () => playMain(),
@@ -5505,6 +5537,17 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.modal) A
 loadOrders();
 try { const c1 = CLIENTS.find(c => c.id === 'c1'); if (c1 && !c1.kit) c1.kit = buildKitSync(c1, 'publie'); } catch (e) {}
 render();
+// Connexion réelle : lien « …?code=OM-XXXX-XX » reçu par e-mail, ou session déjà ouverte sur ce navigateur
+if (bkOn()) {
+  const urlCode = new URLSearchParams(location.search).get('code');
+  if (urlCode) {
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    const inp = document.getElementById('code'); if (inp) inp.value = normCode(urlCode);
+    doRealLogin(normCode(urlCode));
+  } else if (OpenStudio.hasCodeSession() && S.view === 'login') {
+    enterRealSpace().catch(() => { try { OpenStudio.logoutClient(); } catch (e) {} });
+  }
+}
 </script>
 </body>
 </html>

@@ -215,7 +215,7 @@ router.get('/admin/dashboard', requireTeam, wrap(async (req, res) => {
        ORDER BY m.payment_failed_at DESC LIMIT 20`),
     db.query("SELECT COUNT(*)::int AS n FROM montage_requests WHERE client_id IS NULL AND status = 'paid'"),
     db.query(
-      `SELECT COUNT(*) FILTER (WHERE access_token_hash IS NOT NULL AND access_revoked_at IS NULL)::int AS active,
+      `SELECT COUNT(*) FILTER (WHERE (access_token_hash IS NOT NULL OR access_code_hash IS NOT NULL) AND access_revoked_at IS NULL)::int AS active,
               COUNT(*)::int AS total,
               COUNT(*) FILTER (WHERE first_seen_at IS NOT NULL)::int AS ever_connected
        FROM clients`),
@@ -290,7 +290,7 @@ router.post('/admin/clients/:id/access/link', requireTeam, wrap(async (req, res)
   if (!config.clientSiteUrl) return res.status(503).json({ error: 'Adresse de l’espace client non configurée (CLIENT_SITE_URL).' });
   const r = await access.issue(c.id, 'manuel');
   await audit.record(req, 'acces_lien_cree', { targetType: 'client', targetId: c.id });
-  res.json({ client: await fresh(c.id), link: r.link });
+  res.json({ client: await fresh(c.id), code: r.code, link: r.link });
 }));
 
 router.post('/admin/clients/:id/access/revoke', requireTeam, wrap(async (req, res) => {
