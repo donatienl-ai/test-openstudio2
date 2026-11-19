@@ -55,7 +55,8 @@ async function createCheckoutSession(p) {
       enabled: true,
       invoice_data: { description: p.title, metadata },
     },
-    line_items: [{
+    // Prix du catalogue Stripe s'il existe (recharges de crédits), sinon prix calculé pour ce paiement
+    line_items: [p.priceId ? { quantity: 1, price: p.priceId } : {
       quantity: 1,
       price_data: { currency: 'eur', unit_amount: p.amountTtcCents, product_data: { name: p.title, description: p.description } },
     }],
@@ -98,4 +99,4 @@ async function invoiceForSession(sessionId, opts) {
   return null;
 }
 
-module.exports = { createCheckoutSession, verifyWebhook, form, invoiceForSession };
+module.exports = { createCheckoutSession, verifyWebhook, form, invoiceForSession, stripeRequest };

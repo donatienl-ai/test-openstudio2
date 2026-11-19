@@ -3172,14 +3172,14 @@ function crPick(m, packs) {
 function crModalHtml(m) {
   const d = CR.d;
   if (!d) return `<p class="mut">${CR.err ? esc(CR.err) : 'Chargement de votre solde…'}</p>`;
-  const p = d.prices; const packs = d.packs.filter(x => x.available);
+  const p = d.prices; const packs = d.packs.filter(x => x.available).sort((a, b) => a.credits - b.credits);
   const { missing, rec, pick } = crPick(m, packs);
   const eur = n => n.toLocaleString('fr-FR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }).replace(/\u202f/g, '\u00a0') + '\u00a0€';
   const until = d.expiresAt ? `jusqu’au ${crDay(new Date(new Date(d.expiresAt).getTime() - 1000))}` : `${d.validityDays} jours après la diffusion`;
   return `<div class="crm">
     <div class="crm-bal"><div><span class="crm-k">Solde disponible</span><span class="crm-v">${CR_ICO}${crN(d.balance)} crédits</span></div>
       <div class="crm-exp"><span class="crm-k">Validité</span>${d.balance ? until : '—'}</div></div>
-    <p class="crm-rate">Projet de capsules ou teaser : ${crN(p.capsules)} crédits. Interview sous-titrée : ${crN(p.subtitlesPer5Min)} crédits par tranche de 5 minutes.</p>
+    <p class="crm-rate">${p.capsules === p.teaser ? `Projet de capsules ou teaser : ${crN(p.capsules)} crédits.` : `Projet de capsules : ${crN(p.capsules)} crédits. Teaser : ${crN(p.teaser)} crédits.`} Interview sous-titrée : ${crN(p.subtitlesPer5Min)} crédits par tranche de 5 minutes.</p>
     ${missing ? `<p class="cr-warn" style="margin:0">Cette création nécessite ${crN(m.need)} crédits : il vous en manque ${crN(missing)}.</p>` : ''}
     <div><span class="crm-k">Recharger mon solde</span>
       <div class="crm-list" role="radiogroup" aria-label="Recharges disponibles">${packs.map(x => `<button type="button" class="crm-row" role="radio" aria-checked="${pick && pick.id === x.id}" data-a="cr-pick" data-arg="${esc(x.id)}" ${m.buying ? 'disabled' : ''}><span class="crm-dot" aria-hidden="true"></span><span class="crm-name"><b>${esc(x.label)}${rec && rec.id === x.id ? '<em>Recommandé</em>' : ''}</b><small>${crN(x.credits)} crédits${x.productions >= 1 ? ` · ${String(x.productions).replace('.', ',')} production${x.productions > 1 ? 's' : ''}` : x.once ? ' · proposé une seule fois' : ''}</small></span><span class="crm-price"><b>${eur(x.priceHT)} HT</b><small>${eur(x.priceTTC)} TTC</small></span></button>`).join('')}</div></div>
@@ -5409,7 +5409,8 @@ const A = {
   'to-login': () => { S.modal = null; S.asAdmin = false; S.clientId = null; go('login'); },
   'fill-code': a => { const inp = document.getElementById('code'); inp.value = a; inp.classList.remove('err'); document.getElementById('code-err').textContent = ''; inp.focus(); },
   'logout': () => { if (isRealClient(client()) && bkOn()) OpenStudio.logoutClient(); S.clientId = null; S.preview = null; if (S.asAdmin) { S.asAdmin = false; go('admin'); } else { toast('Vous êtes déconnecté'); go('login'); } },
-  'nav': a => { S.modal = null; if (a === 'capsules' && S.cap.bkStep === 5) { S.cap.bkStep = 1; S.cap.bkOrderId = null; } go('client', a); },
+  'nav': a => { S.modal = null; if (osLive()) setTimeout(() => crLoad(true), 0); // tarifs et solde à jour à chaque rubrique
+ if (a === 'capsules' && S.cap.bkStep === 5) { S.cap.bkStep = 1; S.cap.bkOrderId = null; } go('client', a); },
   'open-video': a => { const [id, sub] = String(a).split('|'); S.vsub = sub === 'sub'; go('client', 'video', id); },
   'play-main': () => playMain(),
   'vid-seg': (a) => { const v = video(S.arg); A['cap-from'](`${v.id}|${a}`); },

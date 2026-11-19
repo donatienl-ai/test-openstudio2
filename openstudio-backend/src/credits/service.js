@@ -268,8 +268,9 @@ async function createPurchase(client, packId, { returnOrigin, stripe } = {}) {
     session = { id: `mock_${id}`, url: `${config.publicBaseUrl}/api/credits/mock-checkout/${id}` };
   } else {
     try {
+      const priceId = await require('./stripe-catalog').priceFor(pack.id, ttc);
       session = await (stripe || require('../montage/stripe')).createCheckoutSession({
-        requestId: id, title, description: `${fmt(pack.credits)} crédits, valables ${s.validityDays} jours avec tout votre solde`,
+        requestId: id, priceId, title, description: `${fmt(pack.credits)} crédits, valables ${s.validityDays} jours avec tout votre solde`,
         amountTtcCents: ttc, email: client.email || undefined,
         successUrl: `${base}/?credits=paid&purchase=${id}`, cancelUrl: `${base}/?credits=cancelled&purchase=${id}`,
         metadata: { credit_purchase_id: id, client_id: client.id },

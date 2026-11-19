@@ -155,7 +155,7 @@
     ['clients', 'Clients', null],
     ['emissions', 'Émissions et vidéos', 'lot 3'],
     ['commandes', 'Commandes', 'lot 3'],
-    ['credits', 'Crédits', null],
+    ['tarifs', 'Tarifs', null],
   ];
   var NAV_SUPER = [['equipe', 'Équipe'], ['journal', 'Journal d’activité']];
 
@@ -174,7 +174,7 @@
     else if (S.page === 'equipe' && isSuper()) page = pageTeam();
     else if (S.page === 'journal' && isSuper()) page = pageAudit();
     else if (S.page === 'accueil') page = pageHome();
-    else if (S.page === 'credits') page = pageCredits();
+    else if (S.page === 'tarifs' || S.page === 'credits') page = pageCredits();
     else page = pageSoon();
     return '<div class="shell"><nav class="side" aria-label="Navigation">' + brand('Espace équipe') + nav + navSuper +
       '<div class="me"><span><b>' + esc(S.user.name) + '</b><br>' + (isSuper() ? 'Super admin' : 'Admin') + '</span>' +
@@ -244,8 +244,7 @@
     }).join('') + '</tbody></table>' : emptyLine('Aucun mouvement pour le moment.');
     return '<div class="card"><div class="card-head"><h2>Crédits</h2></div>' +
       '<div class="credit-sum"><div><span class="small muted">Solde disponible</span><b class="credit-bal">' + nb(cr.balance) + '</b><span class="small ' + (expired ? 'err-text' : 'muted') + '">' + esc(until) + '</span></div>' +
-      '<div><span class="small muted">Consommés en créations</span><b>' + nb(used) + '</b></div>' +
-      '<div><span class="small muted">Barème</span><span class="small">Capsules ou teaser : ' + nb(cr.prices.capsules) + ' · Sous-titres : ' + nb(cr.prices.subtitlesPer5Min) + ' / 5 min</span></div></div>' +
+      '<div><span class="small muted">Consommés en créations</span><b>' + nb(used) + '</b></div></div>' +
       '<details class="mt"><summary class="small">Ajuster le solde (geste commercial, correction)</summary>' +
       '<form data-form="credits-adjust" class="form-inline mt" novalidate><label>Crédits<input name="credits" type="number" step="1" placeholder="+300 ou -300" required></label>' +
       '<label class="grow">Motif<input name="reason" maxlength="300" placeholder="Ex. geste commercial suite à un souci de génération" required></label>' +
@@ -253,32 +252,53 @@
       '<h3 class="mt">Décompte</h3>' + rows + '</div>';
   }
 
-  /** Barème des crédits et packs de recharge (modifiable par le super admin). */
+  /** Tarifs : crédits par production et prix des recharges (modifiables par l'équipe, reportés dans Stripe). */
   function pageCredits() {
-    var head = '<div class="head"><div><h1>Crédits</h1><p class="muted">Coût de chaque création et prix des recharges proposées aux clients.</p></div></div>';
+    var head = '<div class="head"><div><h1>Tarifs</h1><p class="muted">Crédits demandés pour chaque production et prix des recharges. Les changements s’affichent aussitôt dans l’espace des clients.</p></div></div>';
     var st = S.creditSettings;
     if (!st) return head + errorBox() + '<div class="card empty">Chargement…</div>';
-    var v = st.settings; var ro = !isSuper();
-    var dis = ro ? ' disabled' : '';
-    var p = v.prices;
+    var v = st.settings; var p = v.prices;
+    var sync = st.stripe;
+    var syncBox = !sync ? '' : sync.skipped ? '<div class="note mb">' + esc(sync.skipped) + '</div>'
+      : sync.ok ? '<div class="ok-box mb">Stripe' + (sync.mode === 'live' ? '' : ' (mode test)') + ' : ' + esc(sync.changes.length ? sync.changes.join(' · ') : 'catalogue déjà à jour') + '.</div>'
+      : '<div class="error mb"><b>Tarifs enregistrés, mais Stripe n’a pas pu être mis à jour :</b> ' + esc(sync.error) +
+        '. Les paiements utilisent quand même les nouveaux prix. <button class="btn small secondary" type="button" data-a="tarifs-sync">Réessayer</button></div>';
     var packs = v.packs.map(function (x, i) {
-      return '<tr><td><input name="pk_label_' + i + '" value="' + esc(x.label) + '"' + dis + '></td><td><input name="pk_credits_' + i + '" type="number" min="1" step="1" value="' + esc(x.credits) + '"' + dis + '></td>' +
-        '<td><input name="pk_price_' + i + '" type="number" min="1" step="0.01" value="' + esc(x.priceHT) + '"' + dis + '></td><td class="small nowrap">' + esc(euros(Math.round(x.priceHT * 100 * (1 + st.vatRate)))) + ' TTC</td>' +
-        '<td class="small nowrap">' + (p.capsules ? (Math.round(x.priceHT / (x.credits / p.capsules) * 100) / 100).toLocaleString('fr-FR') + ' € HT' : '—') + '</td>' +
-        '<td><label class="check"><input type="checkbox" name="pk_once_' + i + '"' + (x.once ? ' checked' : '') + dis + '> une seule fois</label><input type="hidden" name="pk_id_' + i + '" value="' + esc(x.id) + '"></td></tr>';
+      var perProd = p.capsules && x.credits ? (Math.round(x.priceHT / (x.credits / p.capsules) * 100) / 100).toLocaleString('fr-FR') + ' € HT' : '—';
+      return '<tr><td><input name="pk_label_' + i + '" value="' + esc(x.label) + '" maxlength="60" aria-label="Nom du pack"></td>' +
+        '<td><input name="pk_credits_' + i + '" type="number" min="1" step="1" value="' + esc(x.credits) + '" aria-label="Crédits"></td>' +
+        '<td><input name="pk_price_' + i + '" type="number" min="1" step="0.01" value="' + esc(x.priceHT) + '" aria-label="Prix HT"></td>' +
+        '<td class="small nowrap">' + esc(euros(Math.round(x.priceHT * 100 * (1 + st.vatRate)))) + '</td><td class="small nowrap">' + esc(perProd) + '</td>' +
+        '<td><label class="check"><input type="checkbox" name="pk_once_' + i + '"' + (x.once ? ' checked' : '') + '> une seule fois</label><input type="hidden" name="pk_id_' + i + '" value="' + esc(x.id) + '"></td>' +
+        '<td><button class="btn small secondary" type="button" data-a="tarifs-del" data-id="' + i + '"' + (v.packs.length < 2 ? ' disabled' : '') + ' aria-label="Retirer ce pack">Retirer</button></td></tr>';
     }).join('');
-    return head + errorBox() + (ro ? '<div class="note mb">Seul le super admin peut modifier le barème.</div>' : '') +
-      '<form data-form="credit-settings" novalidate><div class="card"><h2>Compte client</h2><div class="form-2">' +
-      '<label>Crédits offerts à la création du compte<input name="included" type="number" min="0" step="1" value="' + esc(v.included) + '"' + dis + '></label>' +
-      '<label>Validité (jours)<span class="small muted">après la diffusion, puis relancée à chaque recharge</span><input name="validityDays" type="number" min="1" max="365" step="1" value="' + esc(v.validityDays) + '"' + dis + '></label></div></div>' +
-      '<div class="card"><h2>Coût des créations</h2><div class="form-2">' +
-      '<label>Projet de capsules (3 propositions)<input name="capsules" type="number" min="0" step="1" value="' + esc(p.capsules) + '"' + dis + '></label>' +
-      '<label>Teaser de 15 s<input name="teaser" type="number" min="0" step="1" value="' + esc(p.teaser) + '"' + dis + '></label>' +
-      '<label>Interview sous-titrée, par tranche de 5 min entamée<input name="subtitlesPer5Min" type="number" min="0" step="1" value="' + esc(p.subtitlesPer5Min) + '"' + dis + '></label>' +
-      '<label>Traduction des sous-titres, par langue et tranche de 5 min<input name="translationPer5Min" type="number" min="0" step="1" value="' + esc(p.translationPer5Min) + '"' + dis + '></label></div></div>' +
-      '<div class="card"><h2>Packs de recharge</h2><table class="edit"><thead><tr><th>Nom</th><th>Crédits</th><th>Prix HT (€)</th><th>Prix TTC</th><th>Prix par production</th><th></th></tr></thead><tbody>' + packs + '</tbody></table>' +
-      '<p class="small muted mt">Une « production » = un projet de capsules. Les modifications s’appliquent aux prochains achats et aux prochaines créations.</p></div>' +
-      (ro ? '' : '<div class="btns left"><button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Enregistrer le barème</button></div>') + '</form>';
+    return head + errorBox() + syncBox +
+      '<form data-form="credit-settings" novalidate>' +
+      '<div class="card"><h2>Crédits par production</h2><div class="form-2">' +
+      '<label>Projet de capsules (3 propositions)<input name="capsules" type="number" min="0" step="1" value="' + esc(p.capsules) + '"></label>' +
+      '<label>Teaser de 15 s<input name="teaser" type="number" min="0" step="1" value="' + esc(p.teaser) + '"></label>' +
+      '<label>Interview sous-titrée, par tranche de 5 min entamée<input name="subtitlesPer5Min" type="number" min="0" step="1" value="' + esc(p.subtitlesPer5Min) + '"></label>' +
+      '<label>Traduction des sous-titres, par langue et tranche de 5 min<input name="translationPer5Min" type="number" min="0" step="1" value="' + esc(p.translationPer5Min) + '"></label></div></div>' +
+      '<div class="card"><h2>Prix des recharges</h2><table class="edit"><thead><tr><th>Nom affiché au client</th><th>Crédits</th><th>Prix HT (€)</th><th>Prix TTC</th><th>Prix par production</th><th></th><th></th></tr></thead><tbody>' + packs + '</tbody></table>' +
+      '<div class="btns left mt"><button class="btn small secondary" type="button" data-a="tarifs-add">Ajouter un pack</button></div>' +
+      '<p class="small muted mt">Les prix sont reportés dans le catalogue Stripe à l’enregistrement (un produit par pack, l’ancien prix est archivé). Une « production » = ' + nb(p.capsules) + ' crédits.</p></div>' +
+      '<div class="card"><h2>Compte client</h2><div class="form-2">' +
+      '<label>Crédits offerts à la création du compte<input name="included" type="number" min="0" step="1" value="' + esc(v.included) + '"></label>' +
+      '<label>Validité des crédits (jours)<span class="small muted">après la diffusion, puis relancée à chaque recharge</span><input name="validityDays" type="number" min="1" max="365" step="1" value="' + esc(v.validityDays) + '"></label></div></div>' +
+      '<div class="btns left"><button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Enregistrer les tarifs</button>' +
+      (st.dirty ? '<span class="small muted">Modifications non enregistrées</span>' : '') + '</div></form>';
+  }
+
+  /** Lit le formulaire des tarifs (sert à l'enregistrement et à l'ajout / retrait d'un pack). */
+  function readTarifs(f) {
+    var st = S.creditSettings.settings;
+    return {
+      included: Number(f.included.value), validityDays: Number(f.validityDays.value),
+      prices: { capsules: Number(f.capsules.value), teaser: Number(f.teaser.value), subtitlesPer5Min: Number(f.subtitlesPer5Min.value), translationPer5Min: Number(f.translationPer5Min.value) },
+      packs: st.packs.map(function (x, i) {
+        return { id: f['pk_id_' + i].value, label: f['pk_label_' + i].value, credits: Number(f['pk_credits_' + i].value), priceHT: Number(String(f['pk_price_' + i].value).replace(',', '.')), once: f['pk_once_' + i].checked };
+      }),
+    };
   }
 
   function pageSoon() {
@@ -346,7 +366,8 @@
     acces_coupe: 'Accès coupé',
     marketing_reponse: 'Réponse sur les campagnes marketing',
     credits_ajustes: 'Crédits ajustés',
-    bareme_credits_modifie: 'Barème des crédits modifié',
+    bareme_credits_modifie: 'Tarifs modifiés',
+    tarifs_stripe_synchronises: 'Tarifs synchronisés avec Stripe',
   };
 
   var FIELD_NAMES = {
@@ -359,7 +380,8 @@
     if (d.identifiant && !d.email) return d.identifiant + (d.motif ? ' — ' + d.motif : '');
     if (d.email) return d.email + (d.role ? ' (' + (d.role === 'super_admin' ? 'super admin' : 'admin') + ')' : '') + (d.motif ? ' — ' + d.motif : '');
     if (d.credits !== undefined && d.motif) return (d.credits > 0 ? '+' : '') + nb(d.credits) + ' crédits — ' + d.motif + ' (solde ' + nb(d.solde) + ')';
-    if (d.apres && d.apres.packs) return 'barème et packs de recharge mis à jour';
+    if (d.apres && d.apres.packs) return 'crédits par production et prix des recharges mis à jour' + (typeof d.stripe === 'string' ? ' — Stripe : ' + d.stripe : '');
+    if (d.stripe !== undefined) return typeof d.stripe === 'string' ? 'Stripe : ' + d.stripe : (d.stripe.length ? d.stripe.join(', ') : 'déjà à jour');
     if (d.marketing && !d.champs) return d.marketing === 'oui' ? 'accepte d’être contacté' : 'refuse d’être contacté';
     if (d.title && d.programme) return d.title + ' (' + d.programme + ')';
     if (d.name) return d.name;
@@ -762,7 +784,7 @@
     S.error = '';
     if (S.page === 'clients') loadClients();
     if (S.page === 'accueil') loadDashboard();
-    if (S.page === 'credits') {
+    if (S.page === 'tarifs' || S.page === 'credits') {
       S.creditSettings = null;
       api('GET', '/admin/credit-settings').then(function (d) { S.creditSettings = d; render(); }).catch(function (e) { S.error = e.message; render(); });
     }
@@ -865,15 +887,10 @@
       });
     },
     'credit-settings': function (f) {
-      var st = S.creditSettings.settings;
-      var body = {
-        included: Number(f.included.value), validityDays: Number(f.validityDays.value),
-        prices: { capsules: Number(f.capsules.value), teaser: Number(f.teaser.value), subtitlesPer5Min: Number(f.subtitlesPer5Min.value), translationPer5Min: Number(f.translationPer5Min.value) },
-        packs: st.packs.map(function (x, i) {
-          return { id: f['pk_id_' + i].value, label: f['pk_label_' + i].value, credits: Number(f['pk_credits_' + i].value), priceHT: Number(String(f['pk_price_' + i].value).replace(',', '.')), once: f['pk_once_' + i].checked };
-        }),
-      };
-      return api('POST', '/admin/credit-settings', body).then(function (d) { S.creditSettings.settings = d.settings; toast('Barème enregistré'); });
+      return api('POST', '/admin/credit-settings', readTarifs(f)).then(function (d) {
+        S.creditSettings.settings = d.settings; S.creditSettings.stripe = d.stripe; S.creditSettings.dirty = false;
+        toast(d.stripe && d.stripe.ok === false ? 'Tarifs enregistrés (Stripe à réessayer)' : 'Tarifs enregistrés');
+      });
     },
     'client-edit': function (f) {
       return api('POST', '/admin/clients/' + encodeURIComponent(S.client.client.id), readClientForm(f)).then(function () {
@@ -988,6 +1005,21 @@
     },
     'reload-audit': function () { loadPage(); },
     'reload-dash': function () { S.dash = null; loadPage(); },
+    'tarifs-add': function () {
+      var f = document.querySelector('form[data-form="credit-settings"]');
+      var st = S.creditSettings; st.settings = readTarifs(f);
+      st.settings.packs.push({ id: 'pack-' + Date.now().toString(36), label: 'Nouveau pack', credits: st.settings.prices.capsules || 300, priceHT: 69 });
+      st.dirty = true; render();
+    },
+    'tarifs-del': function (i) {
+      var f = document.querySelector('form[data-form="credit-settings"]');
+      var st = S.creditSettings; st.settings = readTarifs(f);
+      st.settings.packs.splice(Number(i), 1);
+      st.dirty = true; render();
+    },
+    'tarifs-sync': function () {
+      withBusy(api('POST', '/admin/credit-settings/stripe-sync').then(function (d) { S.creditSettings.stripe = d.stripe; }));
+    },
     'client-restore': function () {
       var c = S.client.client;
       withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/access/restore').then(function () {
