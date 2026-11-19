@@ -12,7 +12,7 @@ const audit = require('./admin/audit');
 const access = require('./admin/client-access');
 const credits = require('./credits/service');
 const importer = require('./admin/client-import');
-const { requireTeam, requireSuperAdmin } = require('./admin/session');
+const { requireTeam } = require('./admin/session');
 const mapping = require('./opusclip.config');
 const stripe = require('./montage/stripe');
 
@@ -337,12 +337,22 @@ router.get('/admin/credit-settings', requireTeam, wrap(async (req, res) => {
   res.json({ settings: await credits.settings.get({ fresh: true }), defaults: credits.settings.DEFAULTS, vatRate: config.stripe.vatRate });
 }));
 
-router.post('/admin/credit-settings', requireSuperAdmin, json, wrap(async (req, res) => {
+// Tarifs : modifiables par toute l'équipe ; les recharges sont reportées dans le catalogue Stripe
+router.post('/admin/credit-settings', requireTeam, json, wrap(async (req, res) => {
   const before = await credits.settings.get({ fresh: true });
   const r = await credits.settings.save(req.body || {}, req.adminUser ? req.adminUser.name : null);
   if (r.error) return res.status(400).json({ error: r.error });
-  await audit.record(req, 'bareme_credits_modifie', { detail: { avant: before, apres: r.value } });
-  res.json({ settings: r.value });
+  const stripeSync = await require('./credits/stripe-catalog').sync(r.value.packs);
+  await audit.record(req, 'bareme_credits_modifie', { detail: { avant: before, apres: r.value, stripe: stripeSync.error ? `échec : ${stripeSync.error}` : stripeSync.changes } });
+  res.json({ settings: r.value, stripe: stripeSync });
+}));
+
+/** Remet le catalogue Stripe en accord avec les tarifs (bouton « Synchroniser avec Stripe »). */
+router.post('/admin/credit-settings/stripe-sync', requireTeam, wrap(async (req, res) => {
+  const s = await credits.settings.get({ fresh: true });
+  const r = await require('./credits/stripe-catalog').sync(s.packs);
+  await audit.record(req, 'tarifs_stripe_synchronises', { detail: { stripe: r.error ? `échec : ${r.error}` : r.changes } });
+  res.json({ stripe: r });
 }));
 
 module.exports = router;
