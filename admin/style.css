@@ -138,3 +138,6 @@ h3 { font-size: 14px; margin: 18px 0 8px; }
 table.compact td { padding: 7px 10px; }
 tr.retired td { color: var(--muted); }
 .hint { font-weight: 400; }
+.sub { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 4px; }
+button.tag.linkish { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; }
+button.tag.linkish:hover { text-decoration: underline; }

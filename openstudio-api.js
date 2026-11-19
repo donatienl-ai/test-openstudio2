@@ -138,6 +138,8 @@
   const getCatalog = () => call('GET', '/api/catalog');
   /** Client connecté + vidéos de son package (étape 1 « Vidéo » des capsules). */
   const getMyVideos = () => call('GET', '/api/me');
+  /** Réponse du client sur les campagnes marketing (true : accepte, false : refuse). */
+  const setMarketing = (optin) => call('POST', '/api/me/marketing', { body: { optin: Boolean(optin) } });
   /** Mode test : ajoute à l'espace client une vidéo déjà envoyée avec uploadFile(file, 'video'). */
   const addMyVideo = ({ title, sourceKey, programmeId, broadcastDate, durationSec }) =>
     call('POST', '/api/me/videos', { body: { title, sourceKey, programmeId, broadcastDate, durationSec } }).then((d) => d.video);
@@ -197,6 +199,7 @@
     zipUrl,
     getCatalog,
     getMyVideos,
+    setMarketing,
     addMyVideo,
     social,
     montage,

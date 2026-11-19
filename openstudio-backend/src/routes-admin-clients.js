@@ -13,6 +13,7 @@ const access = require('./admin/client-access');
 const importer = require('./admin/client-import');
 const { requireTeam } = require('./admin/session');
 const mapping = require('./opusclip.config');
+const stripe = require('./montage/stripe');
 
 const router = express.Router();
 const json = express.json({ limit: '50kb' });
@@ -67,12 +68,8 @@ function readFields(body, { creating }) {
     email: body.email === undefined ? undefined : (clean(body.email, 200) || '').toLowerCase() || null,
     packageLabel: clean(body.packageLabel, 200),
     notes: clean(body.notes, 2000),
-    marketingOptinSource: clean(body.marketingOptinSource, 200),
   };
-  if (body.marketingOptin !== undefined) {
-    const v = body.marketingOptin;
-    f.marketingOptin = v === true || v === 'oui' ? true : v === false || v === 'non' ? false : null;
-  }
+  // Le consentement marketing est donné par le client lui-même, dans son espace : pas modifiable ici.
   if (body.broadcastDate !== undefined) {
     const d = importer.parseDate(body.broadcastDate);
     if (d === false) return { error: 'Date de diffusion illisible (format attendu : JJ/MM/AAAA).' };
@@ -147,7 +144,7 @@ router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
               (SELECT COUNT(*)::int FROM deliverables d WHERE d.order_id = o.id) AS files
        FROM orders o WHERE o.client_id = $1 ORDER BY o.created_at DESC LIMIT 100`, [c.id]),
     db.query(
-      `SELECT id, offer_title, status, amount_ttc_cents, paid_at, created_at
+      `SELECT id, offer_title, status, amount_ttc_cents, paid_at, created_at, stripe_session_id IS NOT NULL AS has_invoice
        FROM montage_requests WHERE client_id = $1 ORDER BY created_at DESC LIMIT 100`, [c.id]),
     db.query(
       `SELECT id, video_title, platforms, status, scheduled_at, created_at
@@ -189,15 +186,34 @@ router.post('/admin/clients/:id', requireTeam, json, wrap(async (req, res) => {
   if (req.body && req.body.sector !== undefined) fields.sector = clean(req.body.sector, 200);
   const changed = Object.keys(fields).filter((k) => String(fields[k] ?? '') !== String(
     { name: current.name, company: current.company, email: current.email, packageLabel: current.package_label, notes: current.notes,
-      broadcastDate: access.isoDay(current.broadcast_date), logoKey: current.logo_key, sector: current.sector,
-      marketingOptin: current.marketing_optin, marketingOptinSource: current.marketing_optin_source }[k] ?? ''
+      broadcastDate: access.isoDay(current.broadcast_date), logoKey: current.logo_key, sector: current.sector }[k] ?? ''
   ));
   if (!changed.length) return res.json({ client: await fresh(current.id) });
   const c = await clients.update(current.id, Object.fromEntries(changed.map((k) => [k, fields[k]])));
-  const detail = { champs: changed };
-  if (changed.includes('marketingOptin')) detail.marketing = fields.marketingOptin === true ? 'oui' : fields.marketingOptin === false ? 'non' : 'non renseigné';
-  await audit.record(req, 'client_modifie', { targetType: 'client', targetId: c.id, detail });
+  await audit.record(req, 'client_modifie', { targetType: 'client', targetId: c.id, detail: { champs: changed } });
   res.json({ client: await fresh(c.id) });
+}));
+
+/* ------------------------------------------------------------------ Factures */
+
+/** Facture (ou reçu) d'un paiement du client, à ouvrir depuis la fiche. */
+router.get('/admin/clients/:id/payments/:paymentId/invoice', requireTeam, wrap(async (req, res) => {
+  const { rows } = await db.query(
+    "SELECT stripe_session_id, status FROM montage_requests WHERE id::text = $1 AND client_id::text = $2",
+    [req.params.paymentId, req.params.id]
+  );
+  const p = rows[0];
+  if (!p) return res.status(404).json({ error: 'Paiement introuvable.' });
+  if (p.status !== 'paid' || !p.stripe_session_id) return res.status(409).json({ error: 'Ce paiement n’a pas de facture : il n’a pas été réglé en ligne.' });
+  if (!config.stripe || !config.stripe.secretKey) return res.status(503).json({ error: 'Stripe n’est pas configuré sur le serveur.' });
+  let inv;
+  try {
+    inv = await stripe.invoiceForSession(p.stripe_session_id);
+  } catch (e) {
+    return res.status(502).json({ error: `Stripe : ${e.message}` });
+  }
+  if (!inv) return res.status(404).json({ error: 'Stripe n’a ni facture ni reçu pour ce paiement.' });
+  res.json(inv);
 }));
 
 /* ------------------------------------------------------------------ Lien d'accès */
