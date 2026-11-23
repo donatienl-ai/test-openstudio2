@@ -1324,6 +1324,8 @@ em,i:not([class]){font-style:normal}
    Version mobile pensée comme une application (iPhone & co)
    ===================================================================== */
 .mb,.mb-dr{display:none}
+.os-choice .ls,.os-choice-sum{display:none}
+@media (max-width:760px){.os-choice .ls,.os-choice-sum{display:inline}.os-choice-sum{display:block}}
 .os-filters{display:flex;gap:10px;flex-wrap:wrap}
 @media (max-width:760px){.os-filters{width:100%}.os-filters .os-sel{flex:1 1 140px;min-width:0}}
 .modal .os-in.mt-date.empty{color:#8A8A9C}
@@ -1361,8 +1363,30 @@ em,i:not([class]){font-style:normal}
   /* Accueil : contenu centré, boutons pleine largeur */
   .os-hero{gap:24px}
   .os-hero .txt{align-items:stretch}
-  .os-hero .txt>div:has(>.os-cta.big){justify-content:center}
-  .os-cta.big{width:100%;justify-content:center}
+  /* Accueil mobile : titre, puis la vidéo, puis un sélecteur segmenté et un seul bouton */
+  .os-band>div{padding-top:16px;padding-bottom:28px;gap:20px}
+  .os-hero{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:14px}
+  .os-hero .txt{display:contents}
+  .os-hero .txt>.os-badge{order:1}
+  .os-hero .txt>h1{order:2}
+  .os-hero>figure{order:3;flex:none}
+  .os-hero .txt>p{order:4}
+  .os-hero .txt>.os-choices{order:5}
+  .os-hero .txt>.os-choice-sum{order:6}
+  .os-hero .txt>div:has(>.os-cta.big){order:7;flex-direction:column;gap:10px!important}
+  .os-hero .txt>*:last-child:not(div){order:8}
+  .os-badge{font-size:12px;padding:6px 11px}
+  .os-hero h1{font-size:26px}
+  .os-hero p{font-size:14px;line-height:1.45}
+  .os-hero .txt>p:not(.os-choice-sum){display:none}
+  .os-choices{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+  .os-choice{flex:1 1 0;min-width:0;min-height:0;padding:0 6px;height:40px;border:0;border-radius:999px;background:transparent;align-items:center;justify-content:center}
+  .os-choice[aria-pressed="true"]{background:#fff;color:#24244A}
+  .os-choice .t,.os-choice span.d,.os-choice .cr-tag,.os-choice .lf{display:none}
+  .os-choice b{font-size:14px;white-space:nowrap}
+  .os-choice-sum{margin:0;font-size:13px!important;line-height:1.45;color:rgba(255,255,255,.75)!important;text-align:center}
+  .os-choice-sum .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff}
+  .os-cta.big{font-size:12.5px;padding:13px 22px;align-self:stretch}
 }
 @media (max-width:380px){.mb .os-cr span{display:none}}
 
@@ -1408,6 +1432,48 @@ em,i:not([class]){font-style:normal}
   .modal-b h3{font-size:14.5px}
   .modal-b h2+p,.modal-b>p.muted:first-of-type{font-size:12.75px}
   .modal .mt-sec legend{font-size:12.75px}
+}
+
+/* Commande prête : grille ; sur mobile les capsules verticales côte à côte */
+.liv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}
+@media (max-width:760px){
+  .liv-grid.liv-side{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .liv-side .liv-card{padding:6px!important;gap:6px!important;border-radius:10px!important}
+  .liv-side .liv-card>div:nth-child(2) span:first-child{font-size:12.5px}
+  .liv-side .liv-card>div:nth-child(2) .mut{font-size:10.5px!important}
+  .liv-side .vc-act,.liv-side .soc-foot{flex-direction:column;gap:6px}
+  .liv-side .vc-dl,.liv-side .vc-pub,.liv-side .soc-pubbtn{flex:none;width:100%;border-radius:9px;justify-content:center;font-size:11.5px;padding:0 6px;height:32px;box-sizing:border-box}
+  .liv-side .vc-dl svg,.liv-side .vc-pub svg,.liv-side .soc-pubbtn svg{width:13px;height:13px}
+  /* Pop-up « Mes crédits » : tout sur un écran */
+  .crm{gap:12px}
+  .crm-bal{display:grid;grid-template-columns:auto auto;justify-content:space-between;align-items:end;gap:12px;padding-bottom:12px}
+  .crm-k{font-size:10px;margin-bottom:3px}
+  .crm-v{font-size:20px;gap:6px}
+  .crm-v .cr-ico{width:16px;height:16px}
+  .crm-exp{font-size:13px}
+  .crm-rate{margin:0;font-size:12px;line-height:1.4}
+  .crm-row{padding:8px 12px;gap:10px}
+  .crm-name b{font-size:13.5px;line-height:1.25}
+  .crm-name small,.crm-price small{font-size:11.5px}
+  .crm-price b{font-size:13.5px}
+  .crm-name em{display:block;margin:2px 0 0}
+  .crm-note{font-size:11px;line-height:1.4}
+  .modal{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px)}
+  .modal:has(.crm) .modal-h{padding-top:16px}
+  .modal:has(.crm) .modal-b{padding-top:10px;padding-bottom:12px}
+  .modal:has(.crm) .modal-f{padding-bottom:16px}
+  .modal:has(.crm) .modal-f .os-cta,.modal:has(.crm) .modal-f .os-pillbtn{height:44px!important}
+}
+
+/* Récapitulatif de commande (« Le détail ») : espacements réduits de 15 % */
+.os-recap{padding:24px;gap:15px}
+.os-recap .os-row{padding:12px 0;gap:7px 14px}
+@media (max-width:760px){
+  .os-recap{padding:17px}
+  .os-recap .os-row{flex-wrap:nowrap;padding:10px 0;gap:10px;font-size:14px}
+  .os-recap .os-row .k{flex:0 0 100px;font-size:13px}
+  .os-recap .os-row .v{flex:1 1 0;min-width:0}
+  .os-recap .os-row button{flex:none;font-size:13px}
 }
 </style>
 </head>
@@ -2280,7 +2346,7 @@ function bkCapsulesPage(c) {
       : BK.err ? `<section class="os-card"><h2>Vos émissions ne sont pas accessibles</h2><p class="mut" style="margin:0">${esc(BK.err)}</p><button class="os-pillbtn s" style="align-self:flex-start" data-a="bk-reload">Réessayer</button></section>`
       : `<section class="os-card" aria-labelledby="q-em"><h2 id="q-em">À partir de quelle émission ?</h2>${bkUploadBox()}
         <div style="display:flex;flex-direction:column;gap:12px">${list.length ? list.map(x => `<button type="button" class="os-em" data-a="bk-video" data-arg="${esc(x.bkId)}" aria-pressed="${k.bkVideoId === x.bkId}">${thumb(x)}<div style="flex:1 1 220px;display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;font-size:16px">${esc([x.media, x.title].filter(Boolean).join(' — '))}</span><span class="mut" style="font-size:14px">${x.date ? 'Diffusé le ' + fmtD(x.date) : 'Vidéo de votre package'}${x.duration ? ' · ' + tc(x.duration) : ''}</span></div><span class="os-dot ok" style="font-weight:600"><i aria-hidden="true"></i>Prête</span></button>`).join('') : `<div class="os-empty">Vos émissions apparaîtront ici dès que l'équipe OpenMedias les aura déposées.</div>`}</div>
-        <p class="mut" style="margin:0;font-size:14px;line-height:1.5">Vous voyez ici les émissions de votre package. Une autre en tête ? Écrivez à votre chargée de projet.</p></section>`;
+        <p class="mut" style="margin:0;font-size:14px;line-height:1.5">Vous voyez ici les émissions de votre package.</p></section>`;
   } else if (n === 2) {
     const ill = { capsules: '<i style="width:38px;height:68px"></i><i style="width:38px;height:68px;background:#48406E"></i><i style="width:38px;height:68px;background:#384868"></i>', teaser: '<i style="width:46px;height:82px"></i>', subtitles: '<i style="width:150px;height:84px"></i>' };
     main = `<section class="os-card" aria-labelledby="q-type"><div><h2 id="q-type">Que voulez-vous en faire ?</h2><div class="sub">Le logo de l'émission et le vôtre sont ajoutés dans tous les cas.</div></div>
@@ -2300,7 +2366,7 @@ function bkCapsulesPage(c) {
     }
   } else {
     const prev = kd === 'subtitles' ? '' : `<section class="os-card"><h2>Ce que vous allez recevoir</h2><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:520px">${[1, 2, 3].slice(0, kd === 'teaser' ? 1 : 3).map(i => `<div style="display:flex;flex-direction:column;gap:8px"><div class="frame ${fmtClass(k.fmt)}" style="width:100%">${scene(v)}</div><span style="font-size:14px;font-weight:600">${kd === 'teaser' ? 'Teaser' : 'Capsule ' + i}</span></div>`).join('')}</div><p class="mut" style="margin:0;font-size:14px;line-height:1.5">Aperçu indicatif : les extraits sont choisis automatiquement dans votre interview au moment de la création.</p></section>`;
-    main = prev + `<section class="os-card"><h2>Le détail</h2><div>${flowRows(v).map(([k2, val, act]) => `<div class="os-row"><span class="k">${k2}</span><span class="v">${esc(val)}</span>${act ? `<button data-a="${act.startsWith('step') ? 'bk-step' : 'flow-mod'}" data-arg="${act.split('|')[1] || ''}">Modifier</button>` : ''}</div>`).join('')}</div></section>`;
+    main = prev + `<section class="os-card os-recap"><h2>Le détail</h2><div>${flowRows(v).map(([k2, val, act]) => `<div class="os-row"><span class="k">${k2}</span><span class="v">${esc(val)}</span>${act ? `<button data-a="${act.startsWith('step') ? 'bk-step' : 'flow-mod'}" data-arg="${act.split('|')[1] || ''}">Modifier</button>` : ''}</div>`).join('')}</div></section>`;
   }
   const rows = flowRows(v).filter(r => r[0] !== 'Livraison' && (n > 1 || r[0] === 'Émission' || r[0] === 'Habillage'));
   const aside = n < 4 ? `<aside class="os-aside" aria-labelledby="recap"><h2 id="recap">Votre commande</h2>
@@ -3184,9 +3250,9 @@ function viewClient() {
 function osHome(c) {
   const vids = osPkgVideos(); const hv = vids[0] || null;
   const kinds = [
-    { id: 'capsules', tag: '30 s · vertical', label: 'Capsules réseaux', desc: 'Les meilleurs moments, prêts pour LinkedIn et Instagram', cta: 'Créer mes capsules ↗' },
-    { id: 'teaser', tag: '15 s · vertical', label: 'Teaser', desc: 'Pour annoncer la diffusion ou relancer après', cta: 'Créer mon teaser ↗' },
-    { id: 'subtitles', tag: hv && hv.duration ? `${tc(hv.duration)} · horizontal` : 'vidéo complète', label: 'Interview sous-titrée', desc: 'La version complète, lisible sans le son', cta: 'Sous-titrer mon interview ↗' }
+    { id: 'capsules', short: 'Capsules', tag: '30 s · vertical', label: 'Capsules réseaux', desc: 'Les meilleurs moments, prêts pour LinkedIn et Instagram', cta: 'Créer mes capsules ↗' },
+    { id: 'teaser', short: 'Teaser', tag: '15 s · vertical', label: 'Teaser', desc: 'Pour annoncer la diffusion ou relancer après', cta: 'Créer mon teaser ↗' },
+    { id: 'subtitles', tag: hv && hv.duration ? `${tc(hv.duration)} · horizontal` : 'vidéo complète', short: 'Sous-titres', label: 'Interview sous-titrée', desc: 'La version complète, lisible sans le son', cta: 'Sous-titrer mon interview ↗' }
   ];
   const cur = kinds.find(k => k.id === (S.home || 'capsules')) || kinds[0];
   const f = S.hf || 'all';
@@ -3200,7 +3266,8 @@ function osHome(c) {
       ${hv ? `<span class="os-badge"><i aria-hidden="true"></i>${hv.media ? `Votre interview ${esc(hv.media)} est prête` : 'Votre interview est prête'}</span>` : `<span class="os-badge wait"><i aria-hidden="true"></i>${BK.loading ? 'Chargement de vos émissions…' : 'Votre vidéo sera bientôt disponible'}</span>`}
       <h1 id="accroche">Vous êtes passés à la télé.<span>Faites-le savoir.</span></h1>
       <p>Choisissez ce que vous voulez en tirer. On s'occupe du découpage, des sous-titres et de vos logos.</p>
-      <div class="os-choices" role="group" aria-label="Que voulez-vous créer ?">${kinds.map(k => `<button type="button" class="os-choice" data-a="home-pick" data-arg="${k.id}" aria-pressed="${k.id === cur.id}"><span class="t">${esc(k.tag)}<span class="r" aria-hidden="true"></span></span><b>${esc(k.label)}</b><span class="d">${esc(k.desc)}</span>${osLive() ? crTag(crCostTxt(k.id, hv), true) : ''}</button>`).join('')}</div>
+      <div class="os-choices" role="group" aria-label="Que voulez-vous créer ?">${kinds.map(k => `<button type="button" class="os-choice" data-a="home-pick" data-arg="${k.id}" aria-pressed="${k.id === cur.id}"><span class="t">${esc(k.tag)}<span class="r" aria-hidden="true"></span></span><b><span class="lf">${esc(k.label)}</span><span class="ls">${esc(k.short)}</span></b><span class="d">${esc(k.desc)}</span>${osLive() ? crTag(crCostTxt(k.id, hv), true) : ''}</button>`).join('')}</div>
+      <p class="os-choice-sum"><span class="mono">${esc(cur.tag)}</span> · ${esc(cur.desc)}${osLive() ? ` · ${esc(crCostTxt(cur.id, hv))}` : ''}</p>
       <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center"><button class="os-cta big" data-a="flow-go" data-arg="${cur.id}|4" ${hv ? '' : 'disabled'}>${cur.cta}</button><button class="os-link" data-a="flow-go" data-arg="${cur.id}|3" ${hv ? '' : 'disabled'}>Changer le format ou la durée</button></div>
       ${!osLive() ? `<p style="font-size:14px">Pour retrouver vos émissions, ouvrez le lien d'accès envoyé par l'équipe OpenMedias.</p>` : ''}
     </div>
@@ -3245,18 +3312,18 @@ function osEmissions(c) {
 function osVideos(c) {
   const f = 'all'; const fe = S.vfe || ''; const ff = S.vff || '';
   const clips = osClips(); const prep = osPrep();
-  const keep = x => (f === 'all' || (f === 'capsules' ? x.kd === 'capsules' : f === 'teasers' ? x.kd === 'teaser' : f === 'subtitles' ? x.kd === 'subtitles' : false)) && (!fe || (x.o.options && x.o.options.videoTitle) === fe) && (!ff || x.fmt === ff);
+  const keep = x => (f === 'all' || (f === 'capsules' ? x.kd === 'capsules' : f === 'teasers' ? x.kd === 'teaser' : f === 'subtitles' ? x.kd === 'subtitles' : false)) && (!fe || (x.o.options && x.o.options.videoTitle) === fe) && (!ff || x.kd === ff);
   const groups = {};
   clips.filter(keep).forEach(x => { (groups[x.o.id] = groups[x.o.id] || { o: x.o, list: [] }).list.push(x); });
   const titles = [...new Set(clips.map(x => x.o.options && x.o.options.videoTitle).filter(Boolean))];
   const card = x => `<article class="os-vcard"><div class="stage ${osFmtCls(x.fmt)}"><video src="${esc(vsrc(x.url))}" controls playsinline preload="metadata"></video></div>
       <div class="vc-foot"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">${esc(x.title)}</span><span class="mut" style="font-size:13px">${esc(osFmtName(x.fmt))}${x.dur ? ' · ' + x.dur : ''}</span></div><div class="soc-foot"><a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}" title="Télécharger">${DL_SVG}</a>${x.id && socEnabled() ? `<button type="button" class="soc-pubbtn" data-a="soc-open" data-arg="${esc(x.id)}">${SOC_PUB_SVG}Publier</button>` : ''}</div></div></article>`;
-  const prepCards = (f === 'all' || f === 'prep') ? prep.map(o => `<article class="os-vcard"><div class="stage" style="border:1.5px dashed #A9A8B8;background:transparent;flex-direction:column;gap:8px;text-align:center;padding:16px;box-sizing:border-box"><span class="mono mut" style="font-size:12px">EN PRÉPARATION</span><span class="mut" style="font-size:13px;line-height:1.4">Une pastille vous prévient dès qu’elles sont prêtes</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(osTypeLabel(o))}</span><button class="os-link" style="font-size:13px;align-self:flex-start" data-a="order-track" data-arg="${o.id}">Suivre la commande</button></div></article>`) : [];
+  const prepCards = !ff ? prep.map(o => `<article class="os-vcard"><div class="stage" style="border:1.5px dashed #A9A8B8;background:transparent;flex-direction:column;gap:8px;text-align:center;padding:16px;box-sizing:border-box"><span class="mono mut" style="font-size:12px">EN PRÉPARATION</span><span class="mut" style="font-size:13px;line-height:1.4">Une pastille vous prévient dès qu’elles sont prêtes</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(osTypeLabel(o))}</span><button class="os-link" style="font-size:13px;align-self:flex-start" data-a="order-track" data-arg="${o.id}">Suivre la commande</button></div></article>`) : [];
   const secs = Object.values(groups).map(g => `<section style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 class="os-h2">${esc(osTypeLabel(g.o))} · ${esc((g.o.options && g.o.options.videoTitle) || '')} · ${osDate(g.o.createdAt)}</h2>${g.list.length > 1 ? `<a href="${esc(OpenStudio.zipUrl(g.o.id))}" style="font-size:13px">Tout télécharger (.zip)</a>` : ''}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${g.list.map(card).join('')}</div></section>`);
   return `<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center">
       <div class="os-filters"><label class="visually-hidden" for="vf-em">Émission</label><select id="vf-em" class="os-sel" data-in="vf-em"><option value="">Toutes les émissions</option>${titles.map(t => `<option ${fe === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
-      <label class="visually-hidden" for="vf-fmt">Format</label><select id="vf-fmt" class="os-sel" data-in="vf-fmt"><option value="">Tous les formats</option>${[['9:16', 'Vertical'], ['1:1', 'Carré'], ['16:9', 'Horizontal']].map(([v, l]) => `<option value="${v}" ${ff === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
+      <label class="visually-hidden" for="vf-fmt">Format</label><select id="vf-fmt" class="os-sel" data-in="vf-fmt"><option value="">Tous les formats</option>${[['capsules', 'Capsules'], ['teaser', 'Teasers'], ['subtitles', 'Interviews sous-titrées']].map(([v, l]) => `<option value="${v}" ${ff === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
     ${prepCards.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${prepCards.join('')}</div>` : ''}
     ${secs.join('') || (prepCards.length ? '' : `<div class="os-empty"><b style="color:var(--os-navy)">${osLive() ? 'Aucune vidéo pour le moment' : 'Aucun espace relié'}</b><span>${osLive() ? 'Vos capsules, teasers et interviews sous-titrées apparaîtront ici.' : "Ouvrez le lien d'accès envoyé par l'équipe OpenMedias."}</span><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></div>`)}`;
 }
@@ -3355,7 +3422,7 @@ function osLivraison(c, id) {
   const fmt = osFmtOf(o); const kd = osKindOf(o); const vids = Array.isArray(f) ? f.filter(x => x.kind === 'video') : [];
   const others = Array.isArray(f) ? f.filter(x => x.kind !== 'video') : [];
   const n = vids.length; const what = kd === 'subtitles' ? 'Votre interview sous-titrée est prête' : kd === 'teaser' ? 'Votre teaser est prêt' : `Vos ${n || ''} capsules sont prêtes`.replace('  ', ' ');
-  const card = (x, i) => `<article class="os-vcard" style="padding:14px;gap:12px;border-radius:14px"><div class="stage ${osFmtCls(fmt)}" style="height:auto;background:#000"><video src="${esc(vsrc(x.previewUrl))}" controls playsinline preload="metadata" style="width:100%;max-height:none;border-radius:6px;object-fit:cover;aspect-ratio:${fmt === '16:9' ? '16/9' : fmt === '1:1' ? '1/1' : '9/16'}"></video></div>
+  const card = (x, i) => `<article class="os-vcard liv-card" style="padding:14px;gap:12px;border-radius:14px"><div class="stage ${osFmtCls(fmt)}" style="height:auto;background:#000"><video src="${esc(vsrc(x.previewUrl))}" controls playsinline preload="metadata" style="width:100%;max-height:none;border-radius:6px;object-fit:cover;aspect-ratio:${fmt === '16:9' ? '16/9' : fmt === '1:1' ? '1/1' : '9/16'}"></video></div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`}</span><span class="mut" style="font-size:13px">${[osMMSS(x.durationMs), fmt, 'MP4'].filter(Boolean).join(' · ')}</span></div></div>
       ${socRow(x.id, i === 0, `<a class="vc-dl" href="${esc(x.downloadUrl)}" download="${esc(x.fileName || '')}">${DL_SVG}Télécharger</a>`)}</article>`;
   return `<main class="os-wrap" style="gap:28px">
@@ -3367,7 +3434,7 @@ function osLivraison(c, id) {
       ${n > 1 ? `<a class="os-cta" href="${esc(OpenStudio.zipUrl(id))}">Tout télécharger (.zip)</a>` : ''}</div>
     <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
       <div style="flex:999 1 640px;min-width:0;display:flex;flex-direction:column;gap:16px">${o.status !== 'ready' ? bkOrderCard(o) : !f || f === 'loading' ? `<div class="os-empty">Chargement de vos fichiers…</div>` : f.err ? `<div class="os-empty">Fichiers inaccessibles : ${esc(f.err)} <button class="os-link" data-a="bk-files" data-arg="${id}">Réessayer</button></div>`
-        : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px">${vids.map(card).join('')}</div>${others.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap">${others.map(x => `<a class="os-pillbtn s" href="${esc(x.downloadUrl)}" download="${esc(x.fileName)}">${DL_SVG}Fichier .${esc(x.kind)}</a>`).join('')}</div>` : ''}${f[0] && f[0].expiresAt ? `<p class="mut" style="margin:0;font-size:13px">Fichiers conservés jusqu’au ${new Date(f[0].expiresAt).toLocaleDateString('fr-FR')}.</p>` : ''}`}</div>
+        : `<div class="liv-grid${fmt !== '16:9' && vids.length > 1 ? ' liv-side' : ''}">${vids.map(card).join('')}</div>${others.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap">${others.map(x => `<a class="os-pillbtn s" href="${esc(x.downloadUrl)}" download="${esc(x.fileName)}">${DL_SVG}Fichier .${esc(x.kind)}</a>`).join('')}</div>` : ''}${f[0] && f[0].expiresAt ? `<p class="mut" style="margin:0;font-size:13px">Fichiers conservés jusqu’au ${new Date(f[0].expiresAt).toLocaleDateString('fr-FR')}.</p>` : ''}`}</div>
       <aside style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:16px">
         <div style="background:#fff;border:1px solid var(--os-line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:12px"><h2 style="margin:0;font-size:16px;font-weight:600;font-family:Inter,sans-serif">Et ensuite ?</h2>
           ${kd !== 'teaser' ? `<button class="os-opt" style="padding:14px 16px;border-width:1px;background:var(--os-bg)" data-a="em-go" data-arg="teaser|${esc(o.options && o.options.videoId || '')}"><b>Faire un teaser de 15 s</b><span class="d">À partir de la même interview</span></button>` : ''}
