@@ -1040,6 +1040,55 @@ em,i:not([class]){font-style:normal}
   .os-tbl.cmd .os-tr>:nth-child(6)>*,.os-tbl.em .os-tr>:nth-child(5)>*{flex:1;justify-content:center}
   .os-tbl.cmd .os-tr>:nth-child(5){font-weight:600}
 }
+/* Fenêtre de publication (centrée, 2 colonnes) */
+.soc-dr2{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:100%}
+.soc-side{background:var(--os-bg);padding:24px;display:flex;flex-direction:column;gap:14px;border-right:1px solid var(--os-line)}
+.soc-big{display:block;width:100%;aspect-ratio:9/16;max-height:440px;object-fit:cover;border-radius:16px;background:#000;box-shadow:0 12px 30px rgba(26,26,46,.18);position:sticky;top:0}
+.soc-big.r169{aspect-ratio:16/9}.soc-big.r11{aspect-ratio:1/1}.soc-big.ph{background:#3D3D6B}
+.soc-side-t{display:flex;flex-direction:column;gap:3px}.soc-side-t b{font-size:15px}.soc-side-t span{font-size:13px;color:var(--os-mut)}
+.soc-main{padding:24px 28px;display:flex;flex-direction:column;gap:28px;min-width:0}
+.soc-sec h4{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.soc-sec h4 .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--os-navy);color:#fff;font:600 12px Inter,sans-serif}
+.soc-auto{font:600 12px Inter,sans-serif;color:var(--os-blue);background:var(--os-tint);border-radius:999px;padding:4px 10px}
+.soc-chip .pl{font-style:normal;font-weight:700;margin-left:2px}
+.soc-tabs2{display:flex;gap:4px;padding:4px;background:var(--os-bg);border-radius:14px;overflow-x:auto;scrollbar-width:none}
+.soc-tabs2::-webkit-scrollbar{display:none}
+.soc-tabs2 button{flex:1 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;padding:0 14px;border:0;border-radius:10px;background:none;font:inherit;font-size:13.5px;font-weight:600;color:var(--os-mut);cursor:pointer;position:relative;white-space:nowrap}
+.soc-tabs2 button .ic svg{width:15px;height:15px;display:block}
+.soc-tabs2 button[aria-selected="true"]{background:#fff;color:var(--os-navy);box-shadow:0 1px 4px rgba(26,26,46,.12)}
+.soc-tabs2 button.youtube .ic{color:#FF0000}.soc-tabs2 button.instagram .ic{color:#E1306C}.soc-tabs2 button.tiktok .ic{color:#111}.soc-tabs2 button.linkedin .ic{color:#0A66C2}.soc-tabs2 button.facebook .ic{color:#1877F2}
+.soc-tabs2 .ov{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:#D2493A}
+.soc-post{border:1px solid var(--os-line);border-radius:16px;background:#fff;padding:16px 18px;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,box-shadow .15s}
+.soc-post:focus-within{border-color:var(--os-blue);box-shadow:0 0 0 4px var(--os-tint)}
+.soc-post-h{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.soc-post-h .av{width:36px;height:36px;border-radius:50%;background:var(--os-navy);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+.soc-post-h b{display:block;font-size:14px}
+.soc-post-h span{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--os-mut)}
+.soc-post-h .ic svg{width:13px;height:13px;display:block}
+.soc-post.youtube .soc-post-h .ic{color:#FF0000}.soc-post.instagram .soc-post-h .ic{color:#E1306C}.soc-post.linkedin .soc-post-h .ic{color:#0A66C2}.soc-post.facebook .soc-post-h .ic{color:#1877F2}
+.soc-ttl,.soc-ta{font:inherit;color:var(--os-navy);border:0;outline:none;background:none;padding:0;width:100%;box-sizing:border-box}
+.soc-ttl{font-size:17px;font-weight:700;padding:4px 0;border-bottom:1px dashed var(--os-line)}
+.soc-ta{font-size:15px;line-height:1.6;resize:vertical;min-height:120px}
+.soc-cnt{display:flex;justify-content:flex-end}
+.soc-count{font-size:12px;color:var(--os-mut);font-variant-numeric:tabular-nums}.soc-count.over{color:#C24A3A;font-weight:600}
+.soc-tipx{margin:6px 0 0;padding-top:10px;border-top:1px solid #EFEDE6;font-size:12.5px;line-height:1.5;color:var(--os-mut)}
+.soc-tipx::before{content:"💡 "}
+.soc-empty2{border:1.5px dashed var(--os-line2);border-radius:16px;padding:22px;font-size:14px;line-height:1.5;color:var(--os-mut);text-align:center}
+.soc-when{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+@media (max-width:860px){
+  .overlay.soc-ov{padding:0;place-items:end stretch}
+  .modal.soc-dw{max-height:94vh;border-radius:22px 22px 0 0}
+  .modal.soc-dw .modal-h{padding:18px 18px 12px}
+  .modal.soc-dw .modal-f{padding:12px 18px}
+  .soc-dr2{grid-template-columns:1fr}
+  .soc-side{flex-direction:row;align-items:center;padding:14px 18px;border-right:0;border-bottom:1px solid var(--os-line)}
+  .soc-big{width:56px;max-height:none;border-radius:10px;box-shadow:none;position:static;flex:none}.soc-big.r169{width:96px}.soc-big.r11{width:64px}
+  .soc-main{padding:18px;gap:24px}
+  .modal.soc-dw .modal-h h3{font-size:19px}
+  .soc-regen{white-space:nowrap;padding:6px 10px;font-size:12.5px}
+  .soc-sech{align-items:flex-start}
+  .soc-tabs2 button{padding:0 10px;font-size:13px}
+}
 /* Réseaux sociaux — zone « partage » de la carte vidéo et panneau de publication (version 2) */
 .vc-act{display:flex;flex-wrap:wrap;gap:8px}
 .vc-dl,.vc-pub{flex:1 1 112px;min-width:0;height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;font:inherit;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,transform .1s}
@@ -1166,9 +1215,10 @@ em,i:not([class]){font-style:normal}
 .soc-perf{font-size:12px;margin-left:auto}
 .soc-fail{margin:0;font-size:12px;color:#A34232}
 /* Panneau latéral */
-.overlay.soc-ov{place-items:stretch end;padding:0}
-.modal.soc-dw{max-width:520px;width:100%;height:100vh;max-height:100vh;border-radius:20px 0 0 20px;display:flex;flex-direction:column}
-.modal.soc-dw .modal-b{flex:1}
+.modal.soc-dw{max-width:980px;width:100%;max-height:min(92vh,880px);border-radius:24px;display:flex;flex-direction:column;overflow:hidden}
+.modal.soc-dw .modal-h{padding:24px 28px 16px;border-bottom:1px solid var(--os-line)}
+.modal.soc-dw .modal-b{flex:1;min-height:0;overflow:auto;padding:0}
+.modal.soc-dw .modal-f{padding:14px 28px;border-top:1px solid var(--os-line);background:#fff}
 .soc-drawer{display:flex;flex-direction:column;gap:18px}
 .soc-prev{display:block;width:auto;max-width:100%;max-height:300px;margin:0 auto;border-radius:10px;background:#000;aspect-ratio:9/16}
 .soc-prev.r169{aspect-ratio:16/9;width:100%}.soc-prev.r11{aspect-ratio:1/1}
@@ -1226,7 +1276,6 @@ em,i:not([class]){font-style:normal}
   .soc-tr{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:4px}
   .soc-tr .soc-nw{grid-column:1/-1;font-weight:600}
   .soc-tr [data-l]::before{content:attr(data-l) " : ";color:var(--os-mut);font-size:12px}
-  .modal.soc-dw{max-width:none;border-radius:0}
   .soc-prev{max-height:200px}
   .soc-perf{margin-left:0}
 }
@@ -2811,32 +2860,43 @@ function socApplyCaptions(r) {
 }
 function socLimit(p, f) { const d = SOC.d; return d && d.meta && d.meta.limits && d.meta.limits[p] ? d.meta.limits[p][f] : 2200; }
 function socCount(p, f) { const n = ((SOC.d.texts && SOC.d.texts[p] && SOC.d.texts[p][f]) || '').length; const lim = socLimit(p, f); return `<span class="soc-count ${n > lim ? 'over' : ''}" data-cnt="${p}|${f}">${n} / ${lim}</span>`; }
+const SOC_TIPS = {
+  youtube: 'Titre court avec le mot-clé au début · description de 2 à 3 phrases · #Shorts pour les vidéos verticales.',
+  instagram: 'La 1ʳᵉ ligne est la seule visible avant « plus » : soignez l’accroche · 3 à 5 hashtags.',
+  tiktok: 'Une à deux lignes, ton direct, une question pour faire réagir · 3 à 5 hashtags.',
+  linkedin: 'Accroche dès la 1ʳᵉ ligne, paragraphes courts, une question pour finir · 3 hashtags maximum.',
+  facebook: 'Ton accessible, 2 à 4 phrases et un appel à l’action clair.'
+};
 function socDrawerHtml() {
   const d = SOC.d; if (!d) return '';
-  const info = d.info;
-  const head = `<div class="soc-hd">${info ? `<video class="soc-mini ${osFmtCls(info.fmt)}" src="${esc(info.x.previewUrl)}" controls playsinline preload="metadata"></video>` : ''}<div class="soc-hd-t"><b>${esc(info ? info.title : 'Vidéo')}</b><span>${esc([info && info.o.options && info.o.options.videoTitle, info && osMMSS(info.x.durationMs)].filter(Boolean).join(' · '))}</span></div></div>`;
+  const info = d.info; const c = client();
+  const side = `<aside class="soc-side">${info ? `<video class="soc-big ${osFmtCls(info.fmt)}" src="${esc(info.x.previewUrl)}" controls playsinline preload="metadata"></video>` : '<div class="soc-big ph"></div>'}<div class="soc-side-t"><b>${esc(info ? info.title : 'Vidéo')}</b><span>${esc([info && info.o.options && info.o.options.videoTitle, info && osMMSS(info.x.durationMs)].filter(Boolean).join(' · '))}</span></div></aside>`;
   const chips = SOC_NETS.map(p => {
     const a = socAcc(p);
     if (socOk(p)) { const on = d.checked.includes(p); return `<button type="button" class="soc-chip ${p}${on ? ' sel' : ''}" data-a="soc-toggle" data-arg="${p}" aria-pressed="${on}"><span class="ic">${SOC_ICON[p]}</span>${SOC_LABEL[p]}<i class="ck" aria-hidden="true">✓</i></button>`; }
-    return `<button type="button" class="soc-chip add" data-a="soc-net" data-arg="${p}|${esc(d.videoId)}"><span class="ic">${SOC_ICON[p]}</span>${a.reauthRequired ? 'Reconnecter' : 'Connecter'} ${SOC_LABEL[p]}</button>`;
+    return `<button type="button" class="soc-chip add" data-a="soc-net" data-arg="${p}|${esc(d.videoId)}"><span class="ic">${SOC_ICON[p]}</span>${a.reauthRequired ? 'Reconnecter' : 'Connecter'} ${SOC_LABEL[p]}<i class="pl" aria-hidden="true">+</i></button>`;
   }).join('');
-  const where = `<section class="soc-sec"><h4>Où publier ?</h4><div class="soc-chips">${chips}</div>${d.checked.includes('facebook') && SOC.acc.facebookPage ? `<p class="soc-note">Facebook : publication sur la Page « ${esc(SOC.acc.facebookPage.name || 'sélectionnée')} ».</p>` : ''}</section>`;
+  const where = `<section class="soc-sec"><h4><span class="n">1</span>Où publier ?</h4><div class="soc-chips">${chips}</div>${d.checked.includes('facebook') && SOC.acc.facebookPage ? `<p class="soc-note">Facebook : publication sur la Page « ${esc(SOC.acc.facebookPage.name || 'sélectionnée')} ».</p>` : ''}</section>`;
+  const tab = d.checked.includes(d.tab) ? d.tab : d.checked[0];
   let texts = '';
-  if (!d.checked.length) texts = `<p class="soc-note">${SOC_NETS.some(socOk) ? 'Sélectionnez au moins un réseau.' : 'Connectez un réseau pour commencer : une fenêtre officielle du réseau s’ouvre, puis vous revenez ici.'}</p>`;
-  else if (d.loading) texts = `<div class="soc-load" aria-live="polite"><span class="bk-spin" aria-hidden="true"></span>${d.regen ? 'Nouvelle rédaction des textes…' : 'Préparation des textes…'}</div>`;
-  else if (d.texts) texts = d.checked.map(p => {
-    const t = d.texts[p] || {};
-    const body = p === 'youtube'
-      ? `<label class="soc-lab" for="soc-yt-t">Titre ${socCount('youtube', 'title')}</label><input class="soc-in" id="soc-yt-t" data-in="soc-txt" data-arg="youtube|title" value="${esc(t.title || '')}"><label class="soc-lab" for="soc-yt-d">Description ${socCount('youtube', 'description')}</label><textarea class="soc-in" id="soc-yt-d" rows="4" data-in="soc-txt" data-arg="youtube|description">${esc(t.description || '')}</textarea>`
-      : `<textarea class="soc-in" id="soc-tx-${p}" rows="4" aria-label="Texte ${SOC_LABEL[p]}" data-in="soc-txt" data-arg="${p}|caption">${esc(t.caption || '')}</textarea>`;
-    return `<div class="soc-card ${p}"><div class="soc-card-h"><span class="ic">${SOC_ICON[p]}</span><b>${SOC_LABEL[p]}</b>${p === 'youtube' ? '' : socCount(p, 'caption')}</div>${body}</div>`;
-  }).join('');
-  const regen = d.texts && !d.loading && d.checked.length ? `<button type="button" class="soc-regen" data-a="soc-regen" ${d.meta && d.meta.regenerationsLeft > 0 ? '' : 'disabled'} title="${d.meta ? `${d.meta.regenerationsLeft} restante${d.meta.regenerationsLeft > 1 ? 's' : ''}` : ''}">↻ Régénérer</button>` : '';
-  const textSec = `<section class="soc-sec"><div class="soc-sech"><h4>Textes</h4>${regen}</div>${texts}${d.texts && d.checked.length && !d.loading ? `<p class="soc-note">${d.meta && d.meta.source === 'fallback' ? 'Textes proposés à partir du titre : personnalisez-les librement.' : 'Rédigés à partir de la vidéo, adaptés à chaque réseau : relisez-les et modifiez-les librement.'}</p>` : ''}</section>`;
+  if (!d.checked.length) texts = `<div class="soc-empty2">${SOC_NETS.some(socOk) ? 'Sélectionnez au moins un réseau.' : 'Connectez un réseau pour commencer : une fenêtre officielle du réseau s’ouvre, puis vous revenez ici avec un texte déjà rédigé.'}</div>`;
+  else if (d.loading) texts = `<div class="soc-load" aria-live="polite"><span class="bk-spin" aria-hidden="true"></span>${d.regen ? 'Nouvelle rédaction des textes…' : 'Rédaction de vos textes pour chaque réseau…'}</div>`;
+  else if (d.texts) {
+    const over = q => (q === 'youtube' ? ['title', 'description'] : ['caption']).some(f => (((d.texts[q] || {})[f]) || '').length > socLimit(q, f));
+    const tabs = d.checked.length > 1 ? `<div class="soc-tabs2" role="tablist" aria-label="Texte par réseau">${d.checked.map(q => `<button type="button" role="tab" class="${q}" data-a="soc-tab" data-arg="${q}" aria-selected="${q === tab}"><span class="ic">${SOC_ICON[q]}</span>${SOC_LABEL[q]}${over(q) ? '<i class="ov" aria-label="texte trop long"></i>' : ''}</button>`).join('')}</div>` : '';
+    const t = d.texts[tab] || {};
+    const body = tab === 'youtube'
+      ? `<input class="soc-ttl" id="soc-yt-t" data-in="soc-txt" data-arg="youtube|title" value="${esc(t.title || '')}" aria-label="Titre YouTube" placeholder="Titre de la vidéo"><div class="soc-cnt">${socCount('youtube', 'title')}</div><textarea class="soc-ta" id="soc-yt-d" rows="6" data-in="soc-txt" data-arg="youtube|description" aria-label="Description YouTube" placeholder="Description">${esc(t.description || '')}</textarea><div class="soc-cnt">${socCount('youtube', 'description')}</div>`
+      : `<textarea class="soc-ta" id="soc-tx-${tab}" rows="${tab === 'linkedin' ? 10 : 7}" aria-label="Texte ${SOC_LABEL[tab]}" data-in="soc-txt" data-arg="${tab}|caption">${esc(t.caption || '')}</textarea><div class="soc-cnt">${socCount(tab, 'caption')}</div>`;
+    texts = `${tabs}<div class="soc-post ${tab}" role="tabpanel"><div class="soc-post-h"><span class="av" aria-hidden="true">${esc(osInitials(c.name))}</span><div><b>${esc(c.name)}</b><span><span class="ic">${SOC_ICON[tab]}</span>${SOC_LABEL[tab]}</span></div></div>${body}<p class="soc-tipx">${SOC_TIPS[tab]}</p></div>`;
+  }
+  const auto = d.texts && !d.loading && d.checked.length ? `<span class="soc-auto">✦ Proposés automatiquement</span>` : '';
+  const regen = d.texts && !d.loading && d.checked.length ? `<button type="button" class="soc-regen" data-a="soc-regen" ${d.meta && d.meta.regenerationsLeft > 0 ? '' : 'disabled'} title="${d.meta ? `${d.meta.regenerationsLeft} restante${d.meta.regenerationsLeft > 1 ? 's' : ''}` : ''}">↻ Autre proposition</button>` : '';
+  const textSec = `<section class="soc-sec"><div class="soc-sech"><h4><span class="n">2</span>Vos textes ${auto}</h4>${regen}</div>${texts}</section>`;
   const minAt = socLocal(new Date(Date.now() + 10 * 60000)); const maxAt = socLocal(new Date(Date.now() + 7 * 86400000));
-  const when = `<section class="soc-sec"><h4>Quand ?</h4><div class="os-seg soc-seg" role="group" aria-label="Quand publier"><button type="button" data-a="soc-when-set" data-arg="now" aria-pressed="${d.when === 'now'}">Maintenant</button><button type="button" data-a="soc-when-set" data-arg="later" aria-pressed="${d.when === 'later'}">Programmer</button></div>
-    ${d.when === 'later' ? `<div class="soc-at"><input type="datetime-local" class="soc-in" data-in="soc-at" min="${minAt}" max="${maxAt}" value="${esc(d.at || '')}" aria-label="Date et heure de publication"><span class="soc-note">Heure de Paris · jusqu’à 7 jours à l’avance</span></div>` : ''}</section>`;
-  return `<div class="soc-dr">${head}${where}${textSec}${when}${d.err ? `<p class="soc-err" role="alert">${esc(d.err)}</p>` : ''}</div>`;
+  const when = `<section class="soc-sec"><h4><span class="n">3</span>Quand ?</h4><div class="soc-when"><div class="os-seg soc-seg" role="group" aria-label="Quand publier"><button type="button" data-a="soc-when-set" data-arg="now" aria-pressed="${d.when === 'now'}">Maintenant</button><button type="button" data-a="soc-when-set" data-arg="later" aria-pressed="${d.when === 'later'}">Programmer</button></div>
+    ${d.when === 'later' ? `<div class="soc-at"><input type="datetime-local" class="soc-in" data-in="soc-at" min="${minAt}" max="${maxAt}" value="${esc(d.at || '')}" aria-label="Date et heure de publication"><span class="soc-note">Heure de Paris · jusqu’à 7 jours à l’avance</span></div>` : ''}</div></section>`;
+  return `<div class="soc-dr2">${side}<div class="soc-main">${where}${textSec}${when}${d.err ? `<p class="soc-err" role="alert">${esc(d.err)}</p>` : ''}</div></div>`;
 }
 const socLocal = dt => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(dt).replace(' ', 'T');
 function socDrawerFoot() {
@@ -3158,7 +3218,7 @@ async function crLoad(force) {
 }
 function crPill(cls = '') {
   if (!osLive()) return '';
-  if (!CR.d && !CR.loading) setTimeout(crLoad, 0);
+  if (!CR.d && !CR.loading && !CR.err) setTimeout(crLoad, 0); // en cas d'erreur : pas de nouvel essai à chaque affichage
   const b = crBal(); const low = b != null && b < crPrices().capsules;
   return `<button type="button" class="os-cr ${cls}${low ? ' low' : ''}" data-a="cr-open" aria-label="${b == null ? 'Mes crédits' : `Mes crédits : ${crN(b)} disponibles`}">${CR_ICO}<b>${b == null ? '…' : crN(b)}</b><span>crédits</span></button>`;
 }

@@ -121,7 +121,7 @@ test('sécurité : un client ne voit ni ne publie la vidéo d’un autre', { ski
 test('légendes : générées une fois (secours sans clé IA), relues ensuite, régénération limitée à 5', { skip }, async () => {
   const c1 = await social.captions(A, videoA);
   assert.equal(c1.source, 'fallback');
-  assert.match(c1.captions.instagram.caption, /Vu sur BFM Business/);
+  assert.match(c1.captions.instagram.caption, /BFM Business/);
   assert.ok(c1.captions.youtube.description.includes('#Shorts'));
   assert.equal(c1.regenerationsLeft, 5);
   assert.equal(c1.limits.tiktok.caption, 2200);
@@ -240,7 +240,33 @@ test('légendes IA : un seul appel, sortie structurée, limites appliquées ; é
   const broken = { beta: { messages: { create: async () => { throw new Error('API indisponible'); } } } };
   const f = await captionsLib.generateCaptions(ctx, { client: broken });
   assert.equal(f.source, 'fallback');
-  assert.match(f.captions.linkedin.caption, /Capsule — Vu sur BFM Business\./);
+  assert.match(f.captions.linkedin.caption, /BFM Business/);
+});
+
+test('textes sans IA : un texte propre à chaque réseau, selon ses bonnes pratiques', () => {
+  const ctx = { title: 'Nos granulés vus sur BFM Business', kind: 'capsules', programme: 'BFM Business', company: 'Écoval Industrie', sector: 'Recyclage',
+    transcript: 'Bonjour. Nous recyclons chaque année des milliers de tonnes de plastiques industriels en granulés. Merci.' };
+  const c = captionsLib.fallbackCaptions(ctx);
+  const all = [c.youtube.description, c.instagram.caption, c.tiktok.caption, c.linkedin.caption, c.facebook.caption];
+  assert.equal(new Set(all).size, 5, 'aucun texte recopié d’un réseau à l’autre');
+  assert.equal(c.youtube.title, 'Nos granulés vus sur BFM Business', 'émission non répétée dans le titre');
+  assert.ok(c.youtube.title.length <= 70);
+  assert.match(c.youtube.description, /#Shorts/);
+  assert.match(c.instagram.caption, /« Nous recyclons chaque année des milliers de tonnes de plastiques industriels en granulés\. »/, 'citation tirée de la transcription');
+  assert.match(c.instagram.caption, /#BFMBusiness #EcovalIndustrie #Recyclage/);
+  assert.ok(c.tiktok.caption.split('\n').length <= 2, 'TikTok : 2 lignes maximum');
+  const li = c.linkedin.caption;
+  assert.ok((li.match(/#\w+/g) || []).length <= 3, 'LinkedIn : 3 hashtags maximum');
+  assert.match(li.trim().split('\n').slice(-3).join(' '), /\?/, 'LinkedIn : question finale');
+  assert.ok((c.facebook.caption.match(/#\w+/g) || []).length <= 2, 'Facebook : 2 hashtags maximum');
+  // Interview complète (horizontale) : pas de #Shorts ; titre générique remplacé
+  const s = captionsLib.fallbackCaptions({ title: 'Capsule 1', kind: 'subtitles', company: 'Ecoval', programme: 'BFM Business' });
+  assert.doesNotMatch(s.youtube.description, /#Shorts/);
+  assert.equal(s.youtube.title, 'Ecoval sur BFM Business');
+  // « Autre proposition » : l'accroche change
+  assert.notEqual(captionsLib.fallbackCaptions(ctx, 1).instagram.caption, c.instagram.caption);
+  assert.equal(captionsLib.hashtag('BFM Business'), '#BFMBusiness');
+  assert.equal(captionsLib.pickQuote('Oui. Bon.'), '');
 });
 
 test('format 16:9 : Facebook en vidéo de Page (les Reels sont verticaux)', () => {

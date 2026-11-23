@@ -3,60 +3,85 @@
   "common": [
     "Écris en français, sans aucune faute d'orthographe ni de grammaire.",
     "N'invente jamais de chiffres, de noms, de citations ou d'affirmations absents de la transcription.",
+    "Chaque réseau a son propre texte : ne recopie pas le même texte d'un réseau à l'autre.",
     "Mentionne l'émission (par exemple « vu sur BFM Business ») quand c'est pertinent.",
     "Écris à la première personne du pluriel (« nous ») : c'est l'entreprise cliente qui publie.",
-    "Adapte le ton au secteur d'activité de l'entreprise."
+    "Adapte le ton au secteur d'activité de l'entreprise.",
+    "Hashtags : sans accents, en CamelCase (#BFMBusiness), uniquement en fin de texte, jamais inventés au hasard : émission, entreprise, secteur, sujet de la vidéo.",
+    "Pas de lien dans le texte (les réseaux réduisent la portée des posts avec lien)."
   ],
   "platforms": {
     "youtube": {
       "label": "YouTube Shorts",
       "fields": {
-        "title": { "maxLength": 100 },
-        "description": { "maxLength": 5000 }
+        "title": {
+          "maxLength": 100
+        },
+        "description": {
+          "maxLength": 5000
+        }
       },
       "rules": [
-        "Titre accrocheur de moins de 70 caractères, contenant le mot-clé principal.",
-        "Description de 2 à 3 phrases.",
-        "3 à 5 hashtags à la fin de la description, dont #Shorts."
+        "Titre de 40 à 70 caractères, le mot-clé principal (sujet ou émission) placé au début, sans majuscules partout ni clickbait.",
+        "Description : les 2 premières lignes résument la vidéo (seules visibles avant « plus »), puis 1 à 2 phrases de contexte et une invitation à s'abonner.",
+        "3 à 5 hashtags à la fin de la description ; #Shorts seulement si la vidéo est verticale (capsule ou teaser), jamais pour une interview sous-titrée complète."
       ]
     },
     "instagram": {
       "label": "Instagram Reels",
-      "fields": { "caption": { "maxLength": 2200 } },
+      "fields": {
+        "caption": {
+          "maxLength": 2200
+        }
+      },
       "rules": [
-        "Première ligne = accroche forte (c'est la seule visible avant « plus »).",
-        "Texte court et rythmé.",
-        "Emojis avec parcimonie.",
+        "Première ligne = accroche forte de moins de 125 caractères (la seule visible avant « plus »).",
+        "Texte court et rythmé, avec des lignes aérées.",
+        "2 à 4 emojis au maximum, utilisés comme repères.",
         "Un appel à l'action : commenter, partager ou enregistrer.",
-        "3 à 5 hashtags pertinents en fin de texte."
+        "3 à 5 hashtags pertinents en fin de texte (émission, entreprise, secteur, sujet)."
       ]
     },
     "tiktok": {
       "label": "TikTok",
-      "fields": { "caption": { "maxLength": 2200 } },
+      "fields": {
+        "caption": {
+          "maxLength": 2200
+        }
+      },
       "rules": [
-        "Très court : 1 à 2 lignes.",
-        "Ton direct et naturel, avec une accroche ou une question.",
-        "3 à 5 hashtags, dont 1 ou 2 larges et les autres de niche."
+        "Très court : 1 à 2 lignes, moins de 150 caractères hors hashtags.",
+        "Ton direct et naturel, avec une accroche ou une question qui donne envie de regarder jusqu'au bout.",
+        "3 à 5 hashtags, dont 1 ou 2 larges (#pourtoi) et les autres de niche."
       ]
     },
     "linkedin": {
       "label": "LinkedIn",
-      "fields": { "caption": { "maxLength": 3000 } },
+      "fields": {
+        "caption": {
+          "maxLength": 3000
+        }
+      },
       "rules": [
-        "Ton professionnel.",
-        "Accroche sur la première ligne.",
-        "3 à 5 lignes aérées qui racontent l'enjeu business et ce que le passage TV apporte.",
-        "Une question ou un appel à l'action en fin de texte.",
-        "3 hashtags au maximum ; peu ou pas d'emojis."
+        "Post percutant et professionnel, qui donne envie de cliquer sur « voir plus ».",
+        "Accroche sur les 2 premières lignes (moins de 200 caractères) : un constat fort, une idée clé de la vidéo ou une question, jamais « Nous sommes fiers de… ».",
+        "Puis 3 à 6 paragraphes très courts (1 à 2 phrases), séparés par une ligne vide : l'enjeu business, ce que nous avons défendu à l'antenne (d'après la transcription), ce que cela apporte aux clients ou au secteur.",
+        "Une question ouverte en fin de post pour susciter les commentaires.",
+        "3 hashtags au maximum, à la toute fin ; 0 à 2 emojis, utilisés comme repères (👇, 📺).",
+        "Entre 600 et 1 300 caractères."
       ]
     },
     "facebook": {
       "label": "Facebook (Page)",
-      "fields": { "caption": { "maxLength": 5000 } },
+      "fields": {
+        "caption": {
+          "maxLength": 5000
+        }
+      },
       "rules": [
-        "Ton accessible, 2 à 4 phrases.",
-        "Un appel à l'action clair.",
+        "Ton accessible et chaleureux, 2 à 4 phrases courtes.",
+        "Première phrase accrocheuse (moins de 80 caractères).",
+        "Un appel à l'action clair (regarder, partager, commenter).",
         "0 à 2 hashtags."
       ]
     }
