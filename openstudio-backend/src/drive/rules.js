@@ -30,6 +30,7 @@ function programmeFor(media) {
   if (m.startsWith('bfm')) return 'bfm';
   if (m.includes('capital')) return 'capital';
   if (m.includes('figaro')) return 'le-figaro';
+  if (/\btime\b/.test(m)) return 'time';
   // Médias sans émission configurée (TIME…) : identifiant lisible, à ajouter dans opusclip.config
   return m.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'openmedias';
 }
