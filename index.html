@@ -1324,6 +1324,8 @@ em,i:not([class]){font-style:normal}
    Version mobile pensée comme une application (iPhone & co)
    ===================================================================== */
 .mb,.mb-dr{display:none}
+.os-choice .ls,.os-choice-sum{display:none}
+@media (max-width:760px){.os-choice .ls,.os-choice-sum{display:inline}.os-choice-sum{display:block}}
 .os-filters{display:flex;gap:10px;flex-wrap:wrap}
 @media (max-width:760px){.os-filters{width:100%}.os-filters .os-sel{flex:1 1 140px;min-width:0}}
 .modal .os-in.mt-date.empty{color:#8A8A9C}
@@ -1361,22 +1363,30 @@ em,i:not([class]){font-style:normal}
   /* Accueil : contenu centré, boutons pleine largeur */
   .os-hero{gap:24px}
   .os-hero .txt{align-items:stretch}
-  /* Accueil compact : la vidéo doit être visible dès l'ouverture */
+  /* Accueil mobile : titre, puis la vidéo, puis un sélecteur segmenté et un seul bouton */
   .os-band>div{padding-top:16px;padding-bottom:28px;gap:20px}
-  .os-hero{gap:18px}
-  .os-hero .txt{gap:14px}
+  .os-hero{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:14px}
+  .os-hero .txt{display:contents}
+  .os-hero .txt>.os-badge{order:1}
+  .os-hero .txt>h1{order:2}
+  .os-hero>figure{order:3;flex:none}
+  .os-hero .txt>p{order:4}
+  .os-hero .txt>.os-choices{order:5}
+  .os-hero .txt>.os-choice-sum{order:6}
+  .os-hero .txt>div:has(>.os-cta.big){order:7;flex-direction:column;gap:10px!important}
+  .os-hero .txt>*:last-child:not(div){order:8}
   .os-badge{font-size:12px;padding:6px 11px}
   .os-hero h1{font-size:26px}
-  .os-hero p{font-size:14.5px;line-height:1.45}
-  .os-choices{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-  .os-choice{min-height:0;padding:10px;gap:3px;border-radius:12px}
-  .os-choice .t{font-size:10.5px}
-  .os-choice .r{display:none}
-  .os-choice b{font-size:14px;line-height:1.25}
-  .os-choice span.d{display:none}
-  .os-choice .cr-tag{font-size:11.5px}
-  .os-hero .txt>div:has(>.os-cta.big){gap:12px 16px!important}
-  .os-cta.big{font-size:12px;padding:12px 20px}
+  .os-hero p{font-size:14px;line-height:1.45}
+  .os-hero .txt>p:not(.os-choice-sum){display:none}
+  .os-choices{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+  .os-choice{flex:1 1 0;min-width:0;min-height:0;padding:0 6px;height:40px;border:0;border-radius:999px;background:transparent;align-items:center;justify-content:center}
+  .os-choice[aria-pressed="true"]{background:#fff;color:#24244A}
+  .os-choice .t,.os-choice span.d,.os-choice .cr-tag,.os-choice .lf{display:none}
+  .os-choice b{font-size:14px;white-space:nowrap}
+  .os-choice-sum{margin:0;font-size:13px!important;line-height:1.45;color:rgba(255,255,255,.75)!important;text-align:center}
+  .os-choice-sum .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff}
+  .os-cta.big{font-size:12.5px;padding:13px 22px;align-self:stretch}
 }
 @media (max-width:380px){.mb .os-cr span{display:none}}
 
@@ -3229,9 +3239,9 @@ function viewClient() {
 function osHome(c) {
   const vids = osPkgVideos(); const hv = vids[0] || null;
   const kinds = [
-    { id: 'capsules', tag: '30 s · vertical', label: 'Capsules réseaux', desc: 'Les meilleurs moments, prêts pour LinkedIn et Instagram', cta: 'Créer mes capsules ↗' },
-    { id: 'teaser', tag: '15 s · vertical', label: 'Teaser', desc: 'Pour annoncer la diffusion ou relancer après', cta: 'Créer mon teaser ↗' },
-    { id: 'subtitles', tag: hv && hv.duration ? `${tc(hv.duration)} · horizontal` : 'vidéo complète', label: 'Interview sous-titrée', desc: 'La version complète, lisible sans le son', cta: 'Sous-titrer mon interview ↗' }
+    { id: 'capsules', short: 'Capsules', tag: '30 s · vertical', label: 'Capsules réseaux', desc: 'Les meilleurs moments, prêts pour LinkedIn et Instagram', cta: 'Créer mes capsules ↗' },
+    { id: 'teaser', short: 'Teaser', tag: '15 s · vertical', label: 'Teaser', desc: 'Pour annoncer la diffusion ou relancer après', cta: 'Créer mon teaser ↗' },
+    { id: 'subtitles', tag: hv && hv.duration ? `${tc(hv.duration)} · horizontal` : 'vidéo complète', short: 'Sous-titres', label: 'Interview sous-titrée', desc: 'La version complète, lisible sans le son', cta: 'Sous-titrer mon interview ↗' }
   ];
   const cur = kinds.find(k => k.id === (S.home || 'capsules')) || kinds[0];
   const f = S.hf || 'all';
@@ -3245,7 +3255,8 @@ function osHome(c) {
       ${hv ? `<span class="os-badge"><i aria-hidden="true"></i>${hv.media ? `Votre interview ${esc(hv.media)} est prête` : 'Votre interview est prête'}</span>` : `<span class="os-badge wait"><i aria-hidden="true"></i>${BK.loading ? 'Chargement de vos émissions…' : 'Votre vidéo sera bientôt disponible'}</span>`}
       <h1 id="accroche">Vous êtes passés à la télé.<span>Faites-le savoir.</span></h1>
       <p>Choisissez ce que vous voulez en tirer. On s'occupe du découpage, des sous-titres et de vos logos.</p>
-      <div class="os-choices" role="group" aria-label="Que voulez-vous créer ?">${kinds.map(k => `<button type="button" class="os-choice" data-a="home-pick" data-arg="${k.id}" aria-pressed="${k.id === cur.id}"><span class="t">${esc(k.tag)}<span class="r" aria-hidden="true"></span></span><b>${esc(k.label)}</b><span class="d">${esc(k.desc)}</span>${osLive() ? crTag(crCostTxt(k.id, hv), true) : ''}</button>`).join('')}</div>
+      <div class="os-choices" role="group" aria-label="Que voulez-vous créer ?">${kinds.map(k => `<button type="button" class="os-choice" data-a="home-pick" data-arg="${k.id}" aria-pressed="${k.id === cur.id}"><span class="t">${esc(k.tag)}<span class="r" aria-hidden="true"></span></span><b><span class="lf">${esc(k.label)}</span><span class="ls">${esc(k.short)}</span></b><span class="d">${esc(k.desc)}</span>${osLive() ? crTag(crCostTxt(k.id, hv), true) : ''}</button>`).join('')}</div>
+      <p class="os-choice-sum"><span class="mono">${esc(cur.tag)}</span> · ${esc(cur.desc)}${osLive() ? ` · ${esc(crCostTxt(cur.id, hv))}` : ''}</p>
       <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center"><button class="os-cta big" data-a="flow-go" data-arg="${cur.id}|4" ${hv ? '' : 'disabled'}>${cur.cta}</button><button class="os-link" data-a="flow-go" data-arg="${cur.id}|3" ${hv ? '' : 'disabled'}>Changer le format ou la durée</button></div>
       ${!osLive() ? `<p style="font-size:14px">Pour retrouver vos émissions, ouvrez le lien d'accès envoyé par l'équipe OpenMedias.</p>` : ''}
     </div>
