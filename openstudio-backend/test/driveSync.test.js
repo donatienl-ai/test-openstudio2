@@ -27,7 +27,8 @@ test('émission OpenStudio déduite du média du planning', () => {
   assert.equal(rules.programmeFor('BFMTV'), 'bfm');
   assert.equal(rules.programmeFor('Capital'), 'capital');
   assert.equal(rules.programmeFor('Le Figaro HP + HP Eco'), 'le-figaro');
-  assert.equal(rules.programmeFor('TIME Magazine'), 'time-magazine');
+  assert.equal(rules.programmeFor('TIME Magazine'), 'time'); // émission « Time » configurée
+  assert.equal(rules.programmeFor('Les Echos'), 'les-echos'); // média sans émission configurée : identifiant lisible
 });
 
 test('vidéo à importer : la plus récente, non vide, plus modifiée depuis 2 minutes', () => {
