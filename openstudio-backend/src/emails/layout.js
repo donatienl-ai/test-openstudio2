@@ -18,9 +18,9 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':
 const asset = (name) => `${config.mail.assetsUrl}/${name}`;
 
 /** Bouton compatible avec toutes les messageries (cellule colorée + lien). */
-function button(href, label, { align = 'left' } = {}) {
+function button(href, label, { align = 'left', small = false } = {}) {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="${align}" style="border-collapse:separate"><tr>
-<td bgcolor="${C.accent}" style="border-radius:999px;background:${C.accent}"><a href="${esc(href)}" target="_blank" style="display:inline-block;padding:13px 28px;font-family:${FONT};font-size:15px;font-weight:500;line-height:1.2;color:#FFFFFF;text-decoration:none;border-radius:999px">${esc(label)}</a></td>
+<td bgcolor="${C.accent}" style="border-radius:999px;background:${C.accent}"><a href="${esc(href)}" target="_blank"${small ? ' class="os-btn-sm"' : ''} style="display:inline-block;padding:13px 28px;font-family:${FONT};font-size:15px;font-weight:500;line-height:1.2;color:#FFFFFF;text-decoration:none;border-radius:999px">${esc(label)}</a></td>
 </tr></table>`;
 }
 
@@ -46,15 +46,25 @@ function layout({ title, preheader, kicker, body }) {
 <!--[if mso]><style>table,td,a,span,p,h1,h2{font-family:Arial,sans-serif !important}</style><![endif]-->
 <style>
 @media only screen and (max-width:620px){
-  .os-wrap{padding:12px 0 !important}
+  .os-wrap{padding:12px 8px !important}
+  .os-card{width:100% !important}
+  img{max-width:100% !important}
   .os-pad{padding-left:20px !important;padding-right:20px !important}
   .os-h1{font-size:28px !important}
   .os-stack{display:block !important;width:100% !important;box-sizing:border-box}
-  .os-ticket-right{border-left:0 !important;border-top:2px dashed ${C.ticketDash} !important}
+  .os-tk-l{padding:18px 12px 16px 16px !important}
+  .os-tk-r{width:112px !important;padding:18px 12px 16px 14px !important}
+  .os-code{font-size:20px !important;letter-spacing:0.04em !important;padding:10px 0 12px !important}
+  .os-credits{font-size:28px !important}
+  .os-btn-sm{padding:11px 14px !important;font-size:13px !important;white-space:nowrap}
   .os-card-half{padding-right:0 !important;padding-bottom:16px !important}
   .os-card-half-r{padding-left:0 !important}
   .os-foot td{display:block !important;width:100% !important;text-align:left !important}
   .os-foot img{margin-top:16px}
+}
+@media only screen and (max-width:359px){
+  .os-btn-sm{white-space:normal}
+  .os-tk-r{width:96px !important}
 }
 a{color:${C.accent}}
 </style>
@@ -63,7 +73,7 @@ a{color:${C.accent}}
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${C.bg}">${esc(preheader || '')}&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.bg}" style="background:${C.bg}">
 <tr><td align="center" class="os-wrap" style="padding:24px 12px 48px">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;background:${C.card};border-radius:16px;overflow:hidden" bgcolor="${C.card}">
+<table role="presentation" class="os-card" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;background:${C.card};border-radius:16px;overflow:hidden" bgcolor="${C.card}">
 <tr><td class="os-pad" style="padding:26px 40px 0">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid ${C.navy}"><tr>
     <td style="padding:0 0 16px;font-family:${FONT};font-size:12px;color:${C.navy}" valign="bottom">${esc(kicker)}</td>
