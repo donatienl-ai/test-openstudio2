@@ -99,6 +99,19 @@ async function createUser({ email, name, role = 'admin', createdBy = null, usern
   return { user: rows[0], inviteToken: token };
 }
 
+/** Change le rôle d'un compte. Il doit toujours rester au moins un super admin actif. */
+async function setRole(userId, role) {
+  if (!ROLES.includes(role)) throw new AdminError('Rôle inconnu.');
+  const u = await get(userId);
+  if (!u) throw new AdminError('Compte introuvable.', 404);
+  if (u.role === role) return u;
+  if (u.role === 'super_admin' && u.active && (await countSuperAdmins()) <= 1) {
+    throw new AdminError('Il doit rester au moins un super admin actif : nommez-en un autre avant de changer ce rôle.', 409);
+  }
+  const { rows } = await db.query('UPDATE admin_users SET role = $2 WHERE id = $1 RETURNING *', [userId, role]);
+  return rows[0];
+}
+
 /**
  * Nouveau lien d'activation : le mot de passe et la double authentification sont réinitialisés
  * (téléphone perdu, mot de passe oublié) et toutes les sessions du compte sont fermées.
@@ -320,6 +333,7 @@ async function ensureBootstrap({ email, name }) {
 module.exports = {
   AdminError,
   ROLES,
+  setRole,
   publicUser,
   inviteLink,
   get,

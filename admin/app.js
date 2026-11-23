@@ -30,6 +30,9 @@
     upload: null,           // dépôt de vidéo en cours : { clientId, name, pct }
     diff: null,             // rubrique Diffusions : { diffusions, lastSync, lastDrive, setup }
     diffFilter: { q: '', view: 'avenir' },
+    ord: null,              // rubrique Commandes : { orders, counts, production }
+    ordFilter: { q: '', view: 'actives', family: '' },
+    ordDetail: null,
   };
 
   /* ------------------------------------------------------------ Outils */
@@ -157,8 +160,9 @@
     ['clients', 'Clients', null],
     ['diffusions', 'Diffusions', null],
     ['emissions', 'Émissions', null],
-    ['commandes', 'Commandes', 'lot 3'],
+    ['commandes', 'Commandes', null],
     ['tarifs', 'Tarifs', null],
+    ['alertes', 'Alertes', null],
   ];
   var NAV_SUPER = [['equipe', 'Équipe'], ['journal', 'Journal d’activité']];
 
@@ -180,6 +184,8 @@
     else if (S.page === 'accueil') page = pageHome();
     else if (S.page === 'tarifs' || S.page === 'credits') page = pageCredits();
     else if (S.page === 'emissions') page = pageEmissions();
+    else if (S.page === 'commandes') page = S.sub ? pageOrderDetail() : pageOrders();
+    else if (S.page === 'alertes') page = pageAlerts();
     else page = pageSoon();
     return '<div class="shell"><nav class="side" aria-label="Navigation">' + brand('Espace équipe') + nav + navSuper +
       '<div class="me"><span><b>' + esc(S.user.name) + '</b><br>' + (isSuper() ? 'Super admin' : 'Admin') + '</span>' +
@@ -463,7 +469,8 @@
             (u.active ? '<button class="btn small danger" data-a="disable" data-id="' + esc(u.id) + '">Désactiver</button>'
               : '<button class="btn small secondary" data-a="enable" data-id="' + esc(u.id) + '">Réactiver</button>');
           return '<tr><td><b>' + esc(u.name) + '</b></td><td class="mono">' + esc(u.username || '—') + '</td><td>' + esc(u.email) + '</td><td>' +
-            (u.role === 'super_admin' ? '<span class="tag super">Super admin</span>' : 'Admin') + '</td><td>' + statusTag(u) +
+            (self ? (u.role === 'super_admin' ? '<span class="tag super">Super admin</span>' : 'Admin')
+              : '<select class="role-select" data-id="' + esc(u.id) + '" aria-label="Rôle de ' + esc(u.name) + '"' + (S.busy ? ' disabled' : '') + '><option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Admin</option><option value="super_admin"' + (u.role === 'super_admin' ? ' selected' : '') + '>Super admin</option></select>') + '</td><td>' + statusTag(u) +
             '</td><td class="small">' + esc(fmtDate(u.lastLoginAt)) + '</td><td class="actions">' + actions + '</td></tr>';
         }).join('') + '</tbody></table>';
     }
@@ -474,7 +481,7 @@
       '<div class="card"><h2>Ajouter un compte</h2><form data-form="team-add" class="grid-form" novalidate>' +
       '<label>Nom<input name="name" required placeholder="Ex. Équipe communication"></label>' +
       '<label>E-mail<input name="email" type="email" required placeholder="thomas.d@openmedias.fr"></label>' +
-      '<label>Identifiant <span class="muted">(facultatif)</span><input name="username" autocapitalize="none" spellcheck="false" placeholder="par défaut : avant le @"></label>' +
+      '<label>Identifiant<input name="username" required autocapitalize="none" spellcheck="false" maxlength="40" placeholder="rempli avec le début de l’e-mail"></label>' +
       '<label>Rôle<select name="role"><option value="admin">Admin</option><option value="super_admin">Super admin</option></select></label>' +
       '<button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Créer le compte</button></form>' +
       (S.error ? '<div class="mt">' + errorBox() + '</div>' : '') + '</div>' +
@@ -490,6 +497,10 @@
     acces_reinitialise: 'Accès réinitialisé',
     compte_desactive: 'Compte désactivé',
     compte_reactive: 'Compte réactivé',
+    role_modifie: 'Rôle modifié',
+    alertes_modifiees: 'Destinataires des alertes modifiés',
+    montage_avancement: 'Avancement d’un montage',
+    facture_creee: 'Facture créée',
     client_cree: 'Client créé',
     client_modifie: 'Client modifié',
     video_ajoutee: 'Vidéo ajoutée',
@@ -519,6 +530,11 @@
 
   function describe(e) {
     var d = e.detail || {};
+    var ROLE = { super_admin: 'super admin', admin: 'admin' };
+    if (e.action === 'role_modifie') return (d.email || '') + ' : ' + (ROLE[d.avant] || d.avant) + ' → ' + (ROLE[d.apres] || d.apres);
+    if (e.action === 'alertes_modifiees') return Object.keys(d).map(function (k) { return k + ' : ' + d[k]; }).join(' · ');
+    if (e.action === 'montage_avancement') return (d.etat || '') + (d.note ? ' — ' + d.note : '');
+    if (e.action === 'facture_creee') return 'facture ' + (d.numero || '');
     if (d.identifiant && !d.email) return d.identifiant + (d.motif ? ' — ' + d.motif : '');
     if (d.email) return d.email + (d.role ? ' (' + (d.role === 'super_admin' ? 'super admin' : 'admin') + ')' : '') + (d.motif ? ' — ' + d.motif : '');
     if (d.emission) return 'logo ' + d.emission + ' ' + (d.action || '');
@@ -781,6 +797,124 @@
       '<p class="small muted">Pour corriger un e-mail ou envoyer le code plus tôt, ouvrez la fiche du client. Les dates et les annulations se modifient dans le planning du dashboard.</p>';
   }
 
+  /* ------------------------------------------------------------ Alertes */
+
+  function pageAlerts() {
+    var head = '<div class="head"><div><h1>Alertes</h1><p class="muted">Qui reçoit les e-mails automatiques envoyés à l’équipe. Ajoutez ou retirez des destinataires : c’est pris en compte tout de suite.</p></div></div>';
+    if (!S.alerts) return head + errorBox() + '<div class="card empty">Chargement…</div>';
+    return head + errorBox() + S.alerts.types.map(function (t) {
+      var chips = t.recipients.length ? t.recipients.map(function (e) {
+        return '<span class="chip">' + esc(e) + '<button type="button" data-a="alert-del" data-id="' + esc(t.id + '|' + e) + '" aria-label="Retirer ' + esc(e) + '" title="Retirer"' + (S.busy ? ' disabled' : '') + '>×</button></span>';
+      }).join('') : '<span class="small text-err">Aucun destinataire : cette alerte n’est envoyée à personne.</span>';
+      return '<div class="card"><h2>' + esc(t.label) + '</h2><p class="small muted">' + esc(t.description) + '</p><div class="chips">' + chips + '</div>' +
+        (t.fromEnv && t.recipients.length ? '<p class="small muted">Adresse reprise de la configuration du serveur : elle sera remplacée par cette liste dès la première modification.</p>' : '') +
+        '<form data-form="alert-add" data-id="' + esc(t.id) + '" class="form-inline mt" novalidate><label class="grow">Ajouter un destinataire<input name="email" type="email" placeholder="prenom@openmedias.fr" autocomplete="off"></label><button class="btn secondary" type="submit"' + (S.busy ? ' disabled' : '') + '>Ajouter</button></form></div>';
+    }).join('') + (S.alerts.updatedAt ? '<p class="small muted">Dernière modification le ' + esc(fmtDate(S.alerts.updatedAt)) + (S.alerts.updatedBy ? ' par ' + esc(S.alerts.updatedBy) : '') + '.</p>' : '');
+  }
+  function saveAlerts(type, list) {
+    var body = {}; body[type] = list;
+    return api('PUT', '/admin/alert-settings', body).then(function (d) { S.alerts = d; });
+  }
+
+  /* ------------------------------------------------------------ Commandes */
+
+  var KIND_LABELS = { capsules: 'Capsules', teaser: 'Teaser', subtitles: 'Interview sous-titrée', montage: 'Montage sur mesure', visuels: 'Visuels', publications: 'Publications', photo: 'Photo' };
+  var PROD_TONES = { todo: 'wait', in_progress: 'info', delivered: 'ok' };
+  var ORD_VIEWS = [['actives', 'À suivre'], ['erreurs', 'En erreur'], ['montages', 'Montages à faire'], ['factures', 'Factures en attente'], ['toutes', 'Toutes']];
+  var RUNNING = ['validated', 'paid', 'submitting', 'processing', 'opus_done', 'postprocessing'];
+
+  function invoiceTag(o) {
+    var i = o.invoice || {};
+    if (o.status !== 'paid') return '';
+    if (i.status === 'created') return '<span class="tag ok">Facture ' + esc(i.number || '') + '</span>';
+    if (i.provider === 'stripe' || i.status === 'stripe') return '<span class="tag off">Facture Stripe</span>';
+    if (i.status === 'missing_address') return '<span class="tag wait">Facture : adresse manquante</span>';
+    if (i.status === 'error') return '<span class="tag err">Facture en erreur</span>';
+    return '<span class="tag wait">Facture à faire</span>';
+  }
+  function orderState(o) {
+    if (o.family === 'montage') return tag(MONTAGE_STATUS[o.status], o.status) + (o.production ? ' ' + tag([S.ord.production[o.production], PROD_TONES[o.production]], o.production) : '');
+    return tag(ORDER_STATUS[o.status] || (o.status === 'opus_done' ? ['En finition', 'wait'] : o.status === 'dry_run' ? ['Simulation', 'off'] : null), o.status) +
+      (o.status === 'error' && o.error ? '<br><span class="small text-err">' + esc(o.error.slice(0, 140)) + '</span>' : '');
+  }
+  function filteredOrders() {
+    var q = S.ordFilter.q.trim().toLowerCase(); var v = S.ordFilter.view; var fam = S.ordFilter.family;
+    return (S.ord.orders || []).filter(function (o) {
+      if (fam && o.family !== fam) return false;
+      if (q && [o.client.company, o.client.name, o.client.email, o.programme, o.title, KIND_LABELS[o.kind], o.id].join(' ').toLowerCase().indexOf(q) === -1) return false;
+      if (v === 'erreurs') return o.status === 'error';
+      if (v === 'montages') return o.family === 'montage' && o.production && o.production !== 'delivered';
+      if (v === 'factures') return o.family === 'montage' && o.status === 'paid' && o.invoice.provider === 'pennylane' && o.invoice.status !== 'created';
+      if (v === 'actives') return o.family === 'creation' ? (RUNNING.indexOf(o.status) !== -1 || o.status === 'error') : (o.production && o.production !== 'delivered') || o.status === 'awaiting_payment';
+      return true;
+    });
+  }
+  function pageOrders() {
+    var head = '<div class="head"><div><h1>Commandes</h1><p class="muted">Créations automatiques (capsules, teasers, interviews sous-titrées) et montages sur mesure : avancement, erreurs, paiements et factures.</p></div>' +
+      '<div class="btns"><button type="button" class="btn secondary" data-a="ord-reload"' + (S.busy ? ' disabled' : '') + '>Actualiser</button></div></div>';
+    if (!S.ord) return head + errorBox() + '<div class="card empty">Chargement…</div>';
+    var c = S.ord.counts;
+    var kpi = function (n, label, view, tone) { return '<button type="button" class="card kpi' + (S.ordFilter.view === view ? ' on' : '') + '" data-a="ord-view" data-id="' + view + '"><b class="' + (n && tone ? 'text-' + tone : '') + '">' + n + '</b><span class="small muted">' + esc(label) + '</span></button>'; };
+    var kpis = '<div class="kpis">' + kpi(c.running, 'en fabrication', 'actives') + kpi(c.errors, 'en erreur', 'erreurs', 'err') + kpi(c.montagesTodo, 'montages à faire', 'montages') + kpi(c.invoicesPending, 'factures en attente', 'factures', 'err') + '</div>';
+    var list = filteredOrders();
+    var rows = list.length ? '<table class="rows"><thead><tr><th>Date</th><th>Client</th><th>Commande</th><th>État</th><th>Crédits / montant</th></tr></thead><tbody>' + list.map(function (o) {
+      var href = '#commandes/' + (o.family === 'montage' ? 'm/' : 'c/') + o.id;
+      var what = o.family === 'montage'
+        ? '<b>' + esc(o.title) + '</b>' + (o.programme ? '<br><span class="small muted">' + esc(o.programme) + '</span>' : '') + (o.deadline ? '<br><span class="small">Pour le ' + esc(fmtDay(o.deadline)) + '</span>' : '')
+        : '<b>' + esc(KIND_LABELS[o.kind] || o.kind) + '</b>' + (o.duration ? ' <span class="small muted">· ' + esc(o.duration) + ' s</span>' : '') + (o.format ? ' <span class="small muted">· ' + esc(o.format) + '</span>' : '') +
+          (o.programme ? '<br><span class="small muted">' + esc(o.programme) + '</span>' : '') + (o.files ? '<br><span class="small">' + esc(o.files) + ' fichier' + (o.files > 1 ? 's' : '') + '</span>' : '');
+      var money = o.family === 'montage' ? (o.amountTtcCents == null ? '<span class="muted">Sur devis</span>' : esc(euros(o.amountTtcCents)) + ' TTC<br>' + invoiceTag(o)) : (o.credits ? esc(o.credits) + ' crédits' + (o.refunded ? '<br><span class="small muted">rendus</span>' : '') : '<span class="muted">—</span>');
+      return '<tr data-href="' + href + '"><td class="small nowrap">' + esc(fmtDate(o.createdAt)) + '</td><td>' + (o.client.id ? '<a href="#clients/' + esc(o.client.id) + '"><b>' + esc(o.client.company || o.client.name || 'Client') + '</b></a>' : '<b>' + esc(o.client.company || '—') + '</b>') +
+        (o.client.name && o.client.name !== o.client.company ? '<br><span class="small muted">' + esc(o.client.name) + '</span>' : '') + '</td><td>' + what + '</td><td>' + orderState(o) + '</td><td class="small">' + money + '</td></tr>';
+    }).join('') + '</tbody></table>' : '<div class="empty">Aucune commande dans cette vue.</div>';
+    var views = ORD_VIEWS.map(function (v) { return '<option value="' + v[0] + '"' + (S.ordFilter.view === v[0] ? ' selected' : '') + '>' + esc(v[1]) + '</option>'; }).join('');
+    var fams = [['', 'Tous les types'], ['creation', 'Créations automatiques'], ['montage', 'Montages sur mesure']].map(function (v) { return '<option value="' + v[0] + '"' + (S.ordFilter.family === v[0] ? ' selected' : '') + '>' + esc(v[1]) + '</option>'; }).join('');
+    return head + errorBox() + kpis +
+      '<form data-form="ord-filter" class="filters" novalidate><input name="q" type="search" placeholder="Rechercher un client, une émission, un n° de commande…" aria-label="Rechercher" value="' + esc(S.ordFilter.q) + '">' +
+      '<select name="view" aria-label="Vue">' + views + '</select><select name="family" aria-label="Type">' + fams + '</select><span class="small muted">' + esc(list.length + ' commande' + (list.length > 1 ? 's' : '')) + '</span></form>' +
+      '<div class="card flush">' + rows + '</div>';
+  }
+
+  function kv(label, value) { return value ? '<div><dt class="small muted">' + esc(label) + '</dt><dd>' + value + '</dd></div>' : ''; }
+  function pageOrderDetail() {
+    var back = '<p><a href="#commandes">← Toutes les commandes</a></p>';
+    var d = S.ordDetail;
+    if (!d) return back + errorBox() + '<div class="card empty">Chargement…</div>';
+    if (d.montage) {
+      var m = d.montage; var ct = m.contact || {}; var b = m.brief || {}; var bill = (d.client && d.client.billing) || ct.billing || null; var inv = m.invoice || {};
+      var prod = m.production ? '<div class="card"><h2>Avancement du montage</h2><form data-form="ord-prod" class="form-2" novalidate>' +
+        '<label>État<select name="status">' + Object.keys(d.production).map(function (k) { return '<option value="' + k + '"' + (m.production === k ? ' selected' : '') + '>' + esc(d.production[k]) + '</option>'; }).join('') + '</select></label>' +
+        '<label class="wide">Note interne <span class="muted">(monteur, lien de livraison…)</span><textarea name="note" rows="3" maxlength="2000">' + esc(m.productionNote) + '</textarea></label>' +
+        '<div class="wide btns left"><button class="btn" type="submit"' + (S.busy ? ' disabled' : '') + '>Enregistrer</button>' + (m.productionUpdatedAt ? '<span class="small muted">Mis à jour le ' + esc(fmtDate(m.productionUpdatedAt)) + (m.productionBy ? ' par ' + esc(m.productionBy) : '') + '</span>' : '') + '</div></form></div>' : '';
+      var invLine = m.status !== 'paid' ? '<span class="muted">Pas de facture : non payé.</span>'
+        : inv.status === 'created' ? '<span class="tag ok">Facture ' + esc(inv.number || '') + '</span> <button class="btn secondary small" type="button" data-a="ord-inv-open">Ouvrir le PDF</button>'
+        : inv.provider === 'pennylane' ? '<span class="tag ' + (inv.status === 'error' ? 'err' : 'wait') + '">' + esc(inv.status === 'missing_address' ? 'Adresse de facturation manquante' : 'Facture non créée') + '</span>' + (inv.error ? '<br><span class="small">' + esc(inv.error) + '</span>' : '') + '<br><button class="btn secondary small" type="button" data-a="ord-inv-retry"' + (S.busy ? ' disabled' : '') + '>Créer la facture</button>'
+        : '<span class="tag off">Facture Stripe</span> <span class="small muted">(fiche client → Paiements)</span>';
+      return back + errorBox() + '<div class="head"><div><h1>' + esc(m.title) + '</h1><p class="muted">Montage sur mesure · demande du ' + esc(fmtDate(m.createdAt)) + ' · n° ' + esc(m.id.slice(0, 8)) + '</p></div><div class="btns">' + tag(MONTAGE_STATUS[m.status], m.status) + '</div></div>' +
+        prod +
+        '<div class="card"><h2>Demande</h2><dl class="kvs">' + kv('Émission', esc(b.programme)) + kv('Formats', esc((b.formats || []).join(', '))) + kv('Pour le', b.deadline ? esc(fmtDay(b.deadline)) : '') + '</dl><p style="white-space:pre-line">' + esc(b.description || '—') + '</p></div>' +
+        '<div class="card"><h2>Client</h2><dl class="kvs">' + kv('Entreprise', d.client ? '<a href="#clients/' + esc(d.client.id) + '">' + esc(d.client.company || d.client.name) + '</a>' : esc(ct.company)) + kv('Contact', esc(ct.name)) + kv('E-mail', esc(ct.email)) + kv('Téléphone', esc(ct.phone)) +
+          kv('Facturation', bill ? esc([bill.company, bill.address, (bill.postalCode || '') + ' ' + (bill.city || ''), bill.vat ? 'TVA ' + bill.vat : ''].filter(function (x) { return x && x.trim(); }).join(' · ')) : '<span class="text-err">adresse non renseignée</span>') + '</dl></div>' +
+        '<div class="card"><h2>Paiement et facture</h2><dl class="kvs">' + kv('Montant', esc(euros(m.amountHtCents)) + ' HT · ' + esc(euros(m.amountTtcCents)) + ' TTC') + kv('Payé le', m.paidAt ? esc(fmtDate(m.paidAt)) : '') + kv('Réf. Stripe', esc(m.stripePaymentIntent)) +
+          kv('Facture', invLine) + kv('E-mail compta', m.accountingNotifiedAt ? 'envoyé le ' + esc(fmtDate(m.accountingNotifiedAt)) : (m.status === 'paid' ? '<span class="text-err">non envoyé</span>' : '')) + '</dl>' +
+          (d.events && d.events.length ? '<table class="compact"><tbody>' + d.events.map(function (e) { return '<tr><td class="small nowrap">' + esc(fmtDate(e.at || e.created_at)) + '</td><td class="small">' + esc(PAY_EVENTS[e.kind] || e.kind) + (e.message ? ' · ' + esc(e.message) : '') + '</td></tr>'; }).join('') + '</tbody></table>' : '') + '</div>';
+    }
+    var o = d.order; var c = d.client;
+    var files = d.deliverables.length ? '<table class="compact"><tbody>' + d.deliverables.map(function (f) {
+      return '<tr><td><b>' + esc(f.title || f.fileName) + '</b><br><span class="small muted">' + esc(f.fileName) + '</span></td><td class="small nowrap">' + (f.durationMs ? esc(Math.round(f.durationMs / 1000)) + ' s' : '') + '</td><td>' + (f.url ? '<a class="btn secondary small" href="' + esc(f.url) + '" target="_blank" rel="noopener">Télécharger</a>' : '') + '</td></tr>';
+    }).join('') + '</tbody></table>' : '<p class="muted">Aucun fichier livré pour le moment.</p>';
+    var events = d.events.length ? '<table class="compact"><tbody>' + d.events.map(function (e) {
+      var det = e.detail ? (typeof e.detail === 'string' ? e.detail : (e.detail.message || e.detail.error || e.detail.paymentRef || '')) : '';
+      return '<tr><td class="small nowrap">' + esc(fmtDate(e.created_at)) + '</td><td class="small">' + esc(e.kind) + (det ? ' · ' + esc(String(det).slice(0, 200)) : '') + '</td></tr>';
+    }).join('') + '</tbody></table>' : '<p class="muted">—</p>';
+    return back + errorBox() + '<div class="head"><div><h1>' + esc(KIND_LABELS[o.kind] || o.type) + (o.options && o.options.duration ? ' · ' + esc(o.options.duration) + ' s' : '') + '</h1><p class="muted">Commande du ' + esc(fmtDate(o.created_at)) + ' · n° ' + esc(o.id.slice(0, 8)) + (o.programme ? ' · ' + esc(o.programme) : '') + '</p></div>' +
+      '<div class="btns">' + tag(ORDER_STATUS[o.status], o.status) + (o.status === 'error' ? '<button class="btn" type="button" data-a="ord-retry"' + (S.busy ? ' disabled' : '') + '>Relancer</button>' : '') + '</div></div>' +
+      (o.error ? '<div class="error" role="alert">' + esc(o.error) + '</div>' : '') +
+      '<div class="card"><h2>Client</h2><dl class="kvs">' + kv('Entreprise', c ? '<a href="#clients/' + esc(c.id) + '">' + esc(c.company || c.name) + '</a>' : '') + kv('E-mail', c ? esc(c.email) : '') +
+        kv('Crédits', Number(o.credits_cost) ? esc(o.credits_cost) + (Number(o.credits_charged) ? ' débités' : ' (rendus)') : '') + kv('Format', esc(o.options && o.options.format)) + '</dl></div>' +
+      '<div class="card"><h2>Fichiers livrés</h2>' + files + '</div><div class="card"><h2>Chronologie</h2>' + events + '</div>';
+  }
+
   function clientFields(c) {
     c = c || {};
     return '<label>Nom du client<input name="name" required maxlength="200" value="' + esc(c.name) + '" placeholder="Ex. Marie Dupont"></label>' +
@@ -870,7 +1004,9 @@
     var payments = (d.payments.length ? '<table><thead><tr><th>Date</th><th>Objet</th><th>Montant TTC</th><th>État</th></tr></thead><tbody>' + d.payments.map(function (p) {
       return '<tr><td class="small nowrap">' + esc(fmtDate(p.paid_at || p.created_at)) + '</td><td>' + (p.kind === 'recharge' ? 'Recharge de crédits · ' : 'Montage sur mesure · ') + esc(p.offer_title) + '</td><td class="nowrap">' + esc(euros(p.amount_ttc_cents)) +
         '</td><td>' + (p.status === 'paid' && p.has_invoice
-          ? '<button class="tag ok linkish" type="button" data-a="payment-invoice" data-id="' + esc(p.id) + '" title="Voir la facture">Payée · voir la facture</button>'
+          ? '<button class="tag ok linkish" type="button" data-a="payment-invoice" data-id="' + esc(p.id) + '" title="Voir la facture">Payée · ' + (p.invoice_number ? 'facture ' + esc(p.invoice_number) : 'voir la facture') + '</button>'
+          : p.status === 'paid' && p.invoice_provider === 'pennylane'
+            ? tag('Payée', 'paid') + '<br><span class="small">' + esc(p.invoice_status === 'missing_address' ? 'Facture en attente : adresse de facturation manquante' : 'Facture Pennylane non créée' + (p.invoice_error ? ' : ' + p.invoice_error : '')) + '</span>'
           : tag(MONTAGE_STATUS[p.status], p.status) + (p.status !== 'paid' && p.last_payment_error
             ? '<br><span class="small">' + esc(p.last_payment_error) + '</span>' + originTag(p.failure_origin) + (p.payment_failures > 1 ? ' <span class="small muted">(' + p.payment_failures + ' essais)</span>' : '')
             : '')) + payTimeline(p) + '</td></tr>';
@@ -1034,13 +1170,13 @@
     var saved = {};
     app.querySelectorAll('form[data-form] input[name], form[data-form] select[name]').forEach(function (el) {
       if (el.type === 'password' || el.type === 'file' || el.classList.contains('code')) return;
-      saved[el.form.dataset.form + '|' + el.name] = el.value;
+      saved[el.form.dataset.form + '|' + (el.form.dataset.id || '') + '|' + el.name] = el.value;
     });
     return saved;
   }
   function restoreFields(saved) {
     app.querySelectorAll('form[data-form] input[name], form[data-form] select[name]').forEach(function (el) {
-      var k = el.form.dataset.form + '|' + el.name;
+      var k = el.form.dataset.form + '|' + (el.form.dataset.id || '') + '|' + el.name;
       if (el.type !== 'file' && Object.prototype.hasOwnProperty.call(saved, k)) el.value = saved[k];
     });
   }
@@ -1073,6 +1209,8 @@
     if (S.page === 'clients') loadClients();
     if (S.page === 'diffusions') loadDiffusions();
     if (S.page === 'accueil') loadDashboard();
+    if (S.page === 'commandes') loadOrders();
+    if (S.page === 'alertes') { S.alerts = null; api('GET', '/admin/alert-settings').then(function (d) { S.alerts = d; render(); }).catch(function (e) { S.error = e.message; render(); }); }
     if (S.page === 'emissions') {
       S.progLogos = null;
       api('GET', '/admin/programme-logos').then(function (d) { S.progLogos = d.programmes; render(); }).catch(function (e) { S.error = e.message; render(); });
@@ -1089,6 +1227,17 @@
       api('GET', '/admin/audit?limit=200').then(function (d) { S.audit = d.entries; render(); }).catch(function (e) { S.error = e.message; S.audit = []; render(); });
     }
     render();
+  }
+
+  function loadOrders() {
+    var sub = S.sub;
+    if (sub) {
+      var m = sub.split('/');
+      S.ordDetail = null;
+      return api('GET', '/admin/commandes/' + (m[0] === 'm' ? 'montages/' : 'creations/') + encodeURIComponent(m[1] || ''))
+        .then(function (d) { S.ordDetail = d; render(); }).catch(function (e) { S.error = e.message; render(); });
+    }
+    return api('GET', '/admin/commandes').then(function (d) { S.ord = d; render(); }).catch(function (e) { S.error = e.message; render(); });
   }
 
   function loadDashboard() {
@@ -1126,6 +1275,22 @@
   }
 
   var FORMS = {
+    'ord-filter': function () { return Promise.resolve(); },
+    'alert-add': function (f) {
+      var type = f.dataset.id; var email = f.email.value.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return Promise.reject(new Error('Adresse e-mail invalide.'));
+      var t = S.alerts.types.filter(function (x) { return x.id === type; })[0];
+      if (t.recipients.indexOf(email) !== -1) return Promise.reject(new Error(email + ' reçoit déjà cette alerte.'));
+      return saveAlerts(type, t.recipients.concat([email])).then(function () {
+        var cur = app.querySelector('form[data-form="alert-add"][data-id="' + type + '"] input[name="email"]'); if (cur) cur.value = '';
+        toast('Destinataire ajouté');
+      });
+    },
+    'ord-prod': function (f) {
+      var m = S.ordDetail && S.ordDetail.montage;
+      return api('POST', '/admin/commandes/montages/' + encodeURIComponent(m.id) + '/production', { status: f.status.value, note: f.note.value })
+        .then(function () { toast('Avancement enregistré'); return loadOrders(); });
+    },
     login: function (f) {
       return api('POST', '/admin/auth/login', { username: f.username.value, password: f.password.value }, '-')
         .then(function (d) {
@@ -1235,7 +1400,9 @@
     },
     'team-add': function (f) {
       var name = f.name.value.trim();
-      return api('POST', '/admin/team', { name: name, email: f.email.value, username: f.username.value.trim() || undefined, role: f.role.value })
+      var username = f.username.value.trim().toLowerCase();
+      if (!username) return Promise.reject(new Error('Identifiant requis.'));
+      return api('POST', '/admin/team', { name: name, email: f.email.value, username: username, role: f.role.value })
         .then(function (d) {
           S.lastLink = { name: d.user.name, username: d.user.username, url: d.inviteLink };
           f.reset();
@@ -1245,9 +1412,17 @@
     },
   };
 
+  /** Identifiant prérempli : la partie avant @ de l'e-mail (thomas.d@openmedias.fr → thomas.d), tant qu'il n'a pas été modifié à la main. */
+  function usernameFrom(email) { return String(email || '').split('@')[0].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9._-]/g, '').slice(0, 40); }
   app.addEventListener('input', function (ev) {
     var f = ev.target.form;
+    if (f && f.dataset.form === 'team-add') {
+      if (ev.target.name === 'username') f.username.dataset.touched = f.username.value ? '1' : '';
+      if (ev.target.name === 'email' && !f.username.dataset.touched) f.username.value = usernameFrom(f.email.value);
+      return;
+    }
     if (f && f.dataset.form === 'diff-filter') { S.diffFilter = { q: f.q.value, view: f.view.value }; return render(); }
+    if (f && f.dataset.form === 'ord-filter') { S.ordFilter = { q: f.q.value, view: f.view.value, family: f.family.value }; return render(); }
     if (!f || f.dataset.form !== 'client-filter') return;
     S.clientFilter = { q: f.q.value, status: f.status.value };
     render();
@@ -1369,6 +1544,28 @@
         return loadClients();
       }));
     },
+    'alert-del': function (v) {
+      var i = v.indexOf('|'); var type = v.slice(0, i); var email = v.slice(i + 1);
+      var t = S.alerts.types.filter(function (x) { return x.id === type; })[0];
+      if (!t || !window.confirm('Retirer ' + email + ' des destinataires de l’alerte « ' + t.label + ' » ?')) return;
+      withBusy(saveAlerts(type, t.recipients.filter(function (e) { return e !== email; })).then(function () { toast('Destinataire retiré'); }));
+    },
+    'ord-reload': function () { withBusy(loadOrders()); },
+    'ord-view': function (v) { S.ordFilter.view = v; render(); },
+    'ord-retry': function () {
+      var o = S.ordDetail && S.ordDetail.order; if (!o || !window.confirm('Relancer cette commande ? Les crédits rendus au client seront débités à nouveau.')) return;
+      withBusy(api('POST', '/admin/commandes/creations/' + encodeURIComponent(o.id) + '/retry').then(function () { toast('Commande relancée'); return loadOrders(); }));
+    },
+    'ord-inv-retry': function () {
+      var m = S.ordDetail && S.ordDetail.montage; if (!m) return;
+      withBusy(api('POST', '/admin/commandes/montages/' + encodeURIComponent(m.id) + '/invoice').then(function (d) { toast('Facture ' + (d.number || '') + ' créée'); return loadOrders(); }));
+    },
+    'ord-inv-open': function () {
+      var m = S.ordDetail && S.ordDetail.montage; if (!m) return;
+      var w = window.open('', '_blank');
+      api('GET', '/admin/commandes/montages/' + encodeURIComponent(m.id) + '/invoice').then(function (d) { if (w) w.location = d.url; else window.location.href = d.url; })
+        .catch(function (e) { if (w) w.close(); S.error = e.message; render(); window.scrollTo(0, 0); });
+    },
     'payment-invoice': function (id) {
       var w = window.open('', '_blank');
       api('GET', '/admin/clients/' + encodeURIComponent(S.client.client.id) + '/payments/' + encodeURIComponent(id) + '/invoice')
@@ -1404,6 +1601,17 @@
   };
 
   app.addEventListener('change', function (ev) {
+    var sel = ev.target.closest('select.role-select');
+    if (sel) {
+      var u = (S.team || []).filter(function (x) { return x.id === sel.dataset.id; })[0];
+      var label = sel.value === 'super_admin' ? 'Super admin' : 'Admin';
+      if (!u || !window.confirm('Passer ' + u.name + ' en « ' + label + ' » ?' + (sel.value === 'super_admin' ? ' Il pourra gérer l’équipe et voir le journal d’activité.' : ''))) { render(); return; }
+      withBusy(api('POST', '/admin/team/' + encodeURIComponent(u.id) + '/role', { role: sel.value }).then(function (d) {
+        toast('Rôle de ' + d.user.name + ' : ' + label);
+        return api('GET', '/admin/team');
+      }).then(function (d) { S.team = d.users; }));
+      return;
+    }
     var inp = ev.target.closest('input[data-logo]');
     if (inp && inp.files && inp.files[0]) uploadLogo(inp.dataset.logo, inp.files[0]);
   });

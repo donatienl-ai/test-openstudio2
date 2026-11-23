@@ -119,3 +119,17 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      # Factures : jeton d'entreprise Pennylane (Paramètres → Connectivité → Développeurs, lecture et écriture).
+      # Vide : factures Stripe comme avant. PENNYLANE_MOCK=1 : factures simulées (tests).
+      - key: PENNYLANE_API_KEY
+        sync: false
+      # Destinataires des alertes : réglables dans le back-office (rubrique Alertes). Ces variables ne
+      # servent que tant qu'une alerte n'y a pas été réglée. ACCOUNTING_EMAIL : e-mail « montage payé ».
+      - key: ACCOUNTING_EMAIL
+        sync: false
+      # Adresse du back-office pour les liens dans les e-mails à l'équipe (ex. https://admin.openstudio.fr)
+      - key: ADMIN_URL
+        sync: false
+      # « recette » sur le serveur de recette uniquement (voir docs/RECETTE.md) ; vide en production.
+      - key: APP_ENV
+        sync: false

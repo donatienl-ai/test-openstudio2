@@ -197,4 +197,23 @@ CREATE TABLE IF NOT EXISTS app_settings (
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_by  TEXT
 );
+-- Factures (Pennylane, ou Stripe à défaut) des montages payés et des recharges de crédits
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS invoice_provider TEXT;
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS invoice_external_id TEXT;
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS invoice_number TEXT;
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS invoice_status TEXT;
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS invoice_error TEXT;
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS invoice_attempts INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS accounting_notified_at TIMESTAMPTZ;
+ALTER TABLE credit_purchases ADD COLUMN IF NOT EXISTS invoice_provider TEXT;
+ALTER TABLE credit_purchases ADD COLUMN IF NOT EXISTS invoice_external_id TEXT;
+ALTER TABLE credit_purchases ADD COLUMN IF NOT EXISTS invoice_number TEXT;
+ALTER TABLE credit_purchases ADD COLUMN IF NOT EXISTS invoice_status TEXT;
+ALTER TABLE credit_purchases ADD COLUMN IF NOT EXISTS invoice_error TEXT;
+ALTER TABLE credit_purchases ADD COLUMN IF NOT EXISTS invoice_attempts INTEGER NOT NULL DEFAULT 0;
+-- Suivi de production des montages sur mesure par l'équipe (à faire → en cours → livré)
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS production_status TEXT;
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS production_note TEXT;
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS production_updated_at TIMESTAMPTZ;
+ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS production_by TEXT;
 `;

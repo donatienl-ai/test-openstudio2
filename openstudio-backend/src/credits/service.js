@@ -312,6 +312,7 @@ async function markPurchasePaid(purchaseId, paymentIntent = null, { send = maile
   const row = await move(p.client_id, p.credits, 'recharge', { label: `${p.pack_label} payé par carte`, purchaseId: p.id });
   await db.query('UPDATE credit_purchases SET credited_at = now() WHERE id = $1', [p.id]);
   console.log(`[crédits] recharge ${p.id.slice(0, 8)} payée : +${p.credits} crédits (solde ${row ? row.balance_after : '?'})`);
+  await require('../invoicing/service').invoicePayment('recharge', p.id).catch((e) => console.error('[facture]', e.message));
   await sendConfirmation(p.id, { send }).catch((e) => console.error('[crédits] e-mail de confirmation', e.message));
   return { ...p, balanceAfter: row ? row.balance_after : null };
 }

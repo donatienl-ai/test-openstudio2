@@ -148,11 +148,13 @@ async function withEvents(payments) {
 
 // Paiements du client : montages sur mesure et recharges de crédits
 const PAY_ALL = `(SELECT id, 'montage' AS kind, offer_title, status, amount_ttc_cents, paid_at, created_at, stripe_session_id,
-           last_payment_error, payment_failed_at, payment_failures, failure_origin, abandoned_at, client_id, contact->>'company' AS company
+           last_payment_error, payment_failed_at, payment_failures, failure_origin, abandoned_at, client_id, contact->>'company' AS company,
+           invoice_provider, invoice_status, invoice_number, invoice_error, invoice_external_id
     FROM montage_requests
     UNION ALL
     SELECT id, 'recharge', pack_label || ' (' || credits || ' crédits)', status, amount_ttc_cents, paid_at, created_at, stripe_session_id,
-           last_payment_error, payment_failed_at, payment_failures, failure_origin, abandoned_at, client_id, NULL
+           last_payment_error, payment_failed_at, payment_failures, failure_origin, abandoned_at, client_id, NULL,
+           invoice_provider, invoice_status, invoice_number, invoice_error, invoice_external_id
     FROM credit_purchases)`;
 
 router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
@@ -170,7 +172,9 @@ router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
               (SELECT COUNT(*)::int FROM deliverables d WHERE d.order_id = o.id) AS files
        FROM orders o WHERE o.client_id = $1 ORDER BY o.created_at DESC LIMIT 100`, [c.id]),
     db.query(
-      `SELECT id, kind, offer_title, status, amount_ttc_cents, paid_at, created_at, stripe_session_id IS NOT NULL AS has_invoice,
+      `SELECT id, kind, offer_title, status, amount_ttc_cents, paid_at, created_at,
+              (CASE WHEN invoice_provider = 'pennylane' THEN invoice_status = 'created' ELSE stripe_session_id IS NOT NULL END) AS has_invoice,
+              invoice_provider, invoice_status, invoice_number, invoice_error,
               last_payment_error, payment_failed_at, payment_failures, failure_origin, abandoned_at
        FROM ${PAY_ALL} p WHERE client_id = $1 ORDER BY created_at DESC LIMIT 100`, [c.id]),
     db.query(
@@ -367,11 +371,17 @@ async function periodStats(daysParam) {
 /** Facture (ou reçu) d'un paiement du client, à ouvrir depuis la fiche. */
 router.get('/admin/clients/:id/payments/:paymentId/invoice', requireTeam, wrap(async (req, res) => {
   const { rows } = await db.query(
-    `SELECT stripe_session_id, status FROM ${PAY_ALL} p WHERE id::text = $1 AND client_id::text = $2`,
+    `SELECT kind, stripe_session_id, status, invoice_provider, invoice_status, invoice_external_id, invoice_number, invoice_error
+     FROM ${PAY_ALL} p WHERE id::text = $1 AND client_id::text = $2`,
     [req.params.paymentId, req.params.id]
   );
   const p = rows[0];
   if (!p) return res.status(404).json({ error: 'Paiement introuvable.' });
+  if (p.invoice_provider === 'pennylane') {
+    const link = await require('./invoicing/service').invoiceLink(p.kind, p).catch((e) => ({ error: `Pennylane : ${e.message}`, status: 502 }));
+    if (link && link.error) return res.status(link.status || 502).json({ error: link.error });
+    if (link) return res.json(link);
+  }
   if (p.status !== 'paid' || !p.stripe_session_id) return res.status(409).json({ error: 'Ce paiement n’a pas de facture : il n’a pas été réglé en ligne.' });
   if (!config.stripe || !config.stripe.secretKey) return res.status(503).json({ error: 'Stripe n’est pas configuré sur le serveur.' });
   let inv;

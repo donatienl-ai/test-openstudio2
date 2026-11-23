@@ -30,12 +30,13 @@ function alertText(kind, items, { backofficeUrl = '' } = {}) {
 
 async function send(kind, items, column, today) {
   if (!items.length) return 0;
-  if (!config.mail.teamAlertEmail) {
-    console.warn(`[alertes] ${items.length} diffusion(s) incomplète(s), mais TEAM_ALERT_EMAIL n'est pas renseignée`);
+  const to = await require('./admin/alerts').recipients('diffusions');
+  if (!to.length) {
+    console.warn(`[alertes] ${items.length} diffusion(s) incomplète(s), mais aucun destinataire (back-office → Alertes)`);
     return 0;
   }
   const { subject, text } = alertText(kind, items, { backofficeUrl: config.admin.origin });
-  await mailer.send({ to: { email: config.mail.teamAlertEmail }, subject, text, customId: `alerte-diffusions-${kind}-${today}` });
+  await mailer.send({ to: to.map((email) => ({ email })), subject, text, customId: `alerte-diffusions-${kind}-${today}` });
   await db.query(`UPDATE diffusions SET ${column} = $2 WHERE id = ANY($1::uuid[])`, [items.map((d) => d.id), today]);
   return items.length;
 }
