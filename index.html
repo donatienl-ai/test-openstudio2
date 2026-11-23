@@ -1361,8 +1361,22 @@ em,i:not([class]){font-style:normal}
   /* Accueil : contenu centré, boutons pleine largeur */
   .os-hero{gap:24px}
   .os-hero .txt{align-items:stretch}
-  .os-hero .txt>div:has(>.os-cta.big){justify-content:center}
-  .os-cta.big{width:100%;justify-content:center}
+  /* Accueil compact : la vidéo doit être visible dès l'ouverture */
+  .os-band>div{padding-top:16px;padding-bottom:28px;gap:20px}
+  .os-hero{gap:18px}
+  .os-hero .txt{gap:14px}
+  .os-badge{font-size:12px;padding:6px 11px}
+  .os-hero h1{font-size:26px}
+  .os-hero p{font-size:14.5px;line-height:1.45}
+  .os-choices{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .os-choice{min-height:0;padding:10px;gap:3px;border-radius:12px}
+  .os-choice .t{font-size:10.5px}
+  .os-choice .r{display:none}
+  .os-choice b{font-size:14px;line-height:1.25}
+  .os-choice span.d{display:none}
+  .os-choice .cr-tag{font-size:11.5px}
+  .os-hero .txt>div:has(>.os-cta.big){gap:12px 16px!important}
+  .os-cta.big{font-size:12px;padding:12px 20px}
 }
 @media (max-width:380px){.mb .os-cr span{display:none}}
 
@@ -1408,6 +1422,37 @@ em,i:not([class]){font-style:normal}
   .modal-b h3{font-size:14.5px}
   .modal-b h2+p,.modal-b>p.muted:first-of-type{font-size:12.75px}
   .modal .mt-sec legend{font-size:12.75px}
+}
+
+/* Commande prête : grille ; sur mobile les capsules verticales côte à côte */
+.liv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}
+@media (max-width:760px){
+  .liv-grid.liv-side{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .liv-side .liv-card{padding:6px!important;gap:6px!important;border-radius:10px!important}
+  .liv-side .liv-card>div:nth-child(2) span:first-child{font-size:12.5px}
+  .liv-side .liv-card>div:nth-child(2) .mut{font-size:10.5px!important}
+  .liv-side .vc-act,.liv-side .soc-foot{flex-direction:column;gap:6px}
+  .liv-side .vc-dl,.liv-side .vc-pub,.liv-side .soc-pubbtn{flex:none;width:100%;border-radius:9px;justify-content:center;font-size:11.5px;padding:0 6px;height:32px;box-sizing:border-box}
+  .liv-side .vc-dl svg,.liv-side .vc-pub svg,.liv-side .soc-pubbtn svg{width:13px;height:13px}
+  /* Pop-up « Mes crédits » : tout sur un écran */
+  .crm{gap:12px}
+  .crm-bal{display:grid;grid-template-columns:auto auto;justify-content:space-between;align-items:end;gap:12px;padding-bottom:12px}
+  .crm-k{font-size:10px;margin-bottom:3px}
+  .crm-v{font-size:20px;gap:6px}
+  .crm-v .cr-ico{width:16px;height:16px}
+  .crm-exp{font-size:13px}
+  .crm-rate{margin:0;font-size:12px;line-height:1.4}
+  .crm-row{padding:8px 12px;gap:10px}
+  .crm-name b{font-size:13.5px;line-height:1.25}
+  .crm-name small,.crm-price small{font-size:11.5px}
+  .crm-price b{font-size:13.5px}
+  .crm-name em{display:block;margin:2px 0 0}
+  .crm-note{font-size:11px;line-height:1.4}
+  .modal{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px)}
+  .modal:has(.crm) .modal-h{padding-top:16px}
+  .modal:has(.crm) .modal-b{padding-top:10px;padding-bottom:12px}
+  .modal:has(.crm) .modal-f{padding-bottom:16px}
+  .modal:has(.crm) .modal-f .os-cta,.modal:has(.crm) .modal-f .os-pillbtn{height:44px!important}
 }
 </style>
 </head>
@@ -3245,18 +3290,18 @@ function osEmissions(c) {
 function osVideos(c) {
   const f = 'all'; const fe = S.vfe || ''; const ff = S.vff || '';
   const clips = osClips(); const prep = osPrep();
-  const keep = x => (f === 'all' || (f === 'capsules' ? x.kd === 'capsules' : f === 'teasers' ? x.kd === 'teaser' : f === 'subtitles' ? x.kd === 'subtitles' : false)) && (!fe || (x.o.options && x.o.options.videoTitle) === fe) && (!ff || x.fmt === ff);
+  const keep = x => (f === 'all' || (f === 'capsules' ? x.kd === 'capsules' : f === 'teasers' ? x.kd === 'teaser' : f === 'subtitles' ? x.kd === 'subtitles' : false)) && (!fe || (x.o.options && x.o.options.videoTitle) === fe) && (!ff || x.kd === ff);
   const groups = {};
   clips.filter(keep).forEach(x => { (groups[x.o.id] = groups[x.o.id] || { o: x.o, list: [] }).list.push(x); });
   const titles = [...new Set(clips.map(x => x.o.options && x.o.options.videoTitle).filter(Boolean))];
   const card = x => `<article class="os-vcard"><div class="stage ${osFmtCls(x.fmt)}"><video src="${esc(vsrc(x.url))}" controls playsinline preload="metadata"></video></div>
       <div class="vc-foot"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">${esc(x.title)}</span><span class="mut" style="font-size:13px">${esc(osFmtName(x.fmt))}${x.dur ? ' · ' + x.dur : ''}</span></div><div class="soc-foot"><a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}" title="Télécharger">${DL_SVG}</a>${x.id && socEnabled() ? `<button type="button" class="soc-pubbtn" data-a="soc-open" data-arg="${esc(x.id)}">${SOC_PUB_SVG}Publier</button>` : ''}</div></div></article>`;
-  const prepCards = (f === 'all' || f === 'prep') ? prep.map(o => `<article class="os-vcard"><div class="stage" style="border:1.5px dashed #A9A8B8;background:transparent;flex-direction:column;gap:8px;text-align:center;padding:16px;box-sizing:border-box"><span class="mono mut" style="font-size:12px">EN PRÉPARATION</span><span class="mut" style="font-size:13px;line-height:1.4">Une pastille vous prévient dès qu’elles sont prêtes</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(osTypeLabel(o))}</span><button class="os-link" style="font-size:13px;align-self:flex-start" data-a="order-track" data-arg="${o.id}">Suivre la commande</button></div></article>`) : [];
+  const prepCards = !ff ? prep.map(o => `<article class="os-vcard"><div class="stage" style="border:1.5px dashed #A9A8B8;background:transparent;flex-direction:column;gap:8px;text-align:center;padding:16px;box-sizing:border-box"><span class="mono mut" style="font-size:12px">EN PRÉPARATION</span><span class="mut" style="font-size:13px;line-height:1.4">Une pastille vous prévient dès qu’elles sont prêtes</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(osTypeLabel(o))}</span><button class="os-link" style="font-size:13px;align-self:flex-start" data-a="order-track" data-arg="${o.id}">Suivre la commande</button></div></article>`) : [];
   const secs = Object.values(groups).map(g => `<section style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 class="os-h2">${esc(osTypeLabel(g.o))} · ${esc((g.o.options && g.o.options.videoTitle) || '')} · ${osDate(g.o.createdAt)}</h2>${g.list.length > 1 ? `<a href="${esc(OpenStudio.zipUrl(g.o.id))}" style="font-size:13px">Tout télécharger (.zip)</a>` : ''}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${g.list.map(card).join('')}</div></section>`);
   return `<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center">
       <div class="os-filters"><label class="visually-hidden" for="vf-em">Émission</label><select id="vf-em" class="os-sel" data-in="vf-em"><option value="">Toutes les émissions</option>${titles.map(t => `<option ${fe === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
-      <label class="visually-hidden" for="vf-fmt">Format</label><select id="vf-fmt" class="os-sel" data-in="vf-fmt"><option value="">Tous les formats</option>${[['9:16', 'Vertical'], ['1:1', 'Carré'], ['16:9', 'Horizontal']].map(([v, l]) => `<option value="${v}" ${ff === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
+      <label class="visually-hidden" for="vf-fmt">Format</label><select id="vf-fmt" class="os-sel" data-in="vf-fmt"><option value="">Tous les formats</option>${[['capsules', 'Capsules'], ['teaser', 'Teasers'], ['subtitles', 'Interviews sous-titrées']].map(([v, l]) => `<option value="${v}" ${ff === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
     ${prepCards.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${prepCards.join('')}</div>` : ''}
     ${secs.join('') || (prepCards.length ? '' : `<div class="os-empty"><b style="color:var(--os-navy)">${osLive() ? 'Aucune vidéo pour le moment' : 'Aucun espace relié'}</b><span>${osLive() ? 'Vos capsules, teasers et interviews sous-titrées apparaîtront ici.' : "Ouvrez le lien d'accès envoyé par l'équipe OpenMedias."}</span><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></div>`)}`;
 }
@@ -3355,7 +3400,7 @@ function osLivraison(c, id) {
   const fmt = osFmtOf(o); const kd = osKindOf(o); const vids = Array.isArray(f) ? f.filter(x => x.kind === 'video') : [];
   const others = Array.isArray(f) ? f.filter(x => x.kind !== 'video') : [];
   const n = vids.length; const what = kd === 'subtitles' ? 'Votre interview sous-titrée est prête' : kd === 'teaser' ? 'Votre teaser est prêt' : `Vos ${n || ''} capsules sont prêtes`.replace('  ', ' ');
-  const card = (x, i) => `<article class="os-vcard" style="padding:14px;gap:12px;border-radius:14px"><div class="stage ${osFmtCls(fmt)}" style="height:auto;background:#000"><video src="${esc(vsrc(x.previewUrl))}" controls playsinline preload="metadata" style="width:100%;max-height:none;border-radius:6px;object-fit:cover;aspect-ratio:${fmt === '16:9' ? '16/9' : fmt === '1:1' ? '1/1' : '9/16'}"></video></div>
+  const card = (x, i) => `<article class="os-vcard liv-card" style="padding:14px;gap:12px;border-radius:14px"><div class="stage ${osFmtCls(fmt)}" style="height:auto;background:#000"><video src="${esc(vsrc(x.previewUrl))}" controls playsinline preload="metadata" style="width:100%;max-height:none;border-radius:6px;object-fit:cover;aspect-ratio:${fmt === '16:9' ? '16/9' : fmt === '1:1' ? '1/1' : '9/16'}"></video></div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`}</span><span class="mut" style="font-size:13px">${[osMMSS(x.durationMs), fmt, 'MP4'].filter(Boolean).join(' · ')}</span></div></div>
       ${socRow(x.id, i === 0, `<a class="vc-dl" href="${esc(x.downloadUrl)}" download="${esc(x.fileName || '')}">${DL_SVG}Télécharger</a>`)}</article>`;
   return `<main class="os-wrap" style="gap:28px">
@@ -3367,7 +3412,7 @@ function osLivraison(c, id) {
       ${n > 1 ? `<a class="os-cta" href="${esc(OpenStudio.zipUrl(id))}">Tout télécharger (.zip)</a>` : ''}</div>
     <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
       <div style="flex:999 1 640px;min-width:0;display:flex;flex-direction:column;gap:16px">${o.status !== 'ready' ? bkOrderCard(o) : !f || f === 'loading' ? `<div class="os-empty">Chargement de vos fichiers…</div>` : f.err ? `<div class="os-empty">Fichiers inaccessibles : ${esc(f.err)} <button class="os-link" data-a="bk-files" data-arg="${id}">Réessayer</button></div>`
-        : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px">${vids.map(card).join('')}</div>${others.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap">${others.map(x => `<a class="os-pillbtn s" href="${esc(x.downloadUrl)}" download="${esc(x.fileName)}">${DL_SVG}Fichier .${esc(x.kind)}</a>`).join('')}</div>` : ''}${f[0] && f[0].expiresAt ? `<p class="mut" style="margin:0;font-size:13px">Fichiers conservés jusqu’au ${new Date(f[0].expiresAt).toLocaleDateString('fr-FR')}.</p>` : ''}`}</div>
+        : `<div class="liv-grid${fmt !== '16:9' && vids.length > 1 ? ' liv-side' : ''}">${vids.map(card).join('')}</div>${others.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap">${others.map(x => `<a class="os-pillbtn s" href="${esc(x.downloadUrl)}" download="${esc(x.fileName)}">${DL_SVG}Fichier .${esc(x.kind)}</a>`).join('')}</div>` : ''}${f[0] && f[0].expiresAt ? `<p class="mut" style="margin:0;font-size:13px">Fichiers conservés jusqu’au ${new Date(f[0].expiresAt).toLocaleDateString('fr-FR')}.</p>` : ''}`}</div>
       <aside style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:16px">
         <div style="background:#fff;border:1px solid var(--os-line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:12px"><h2 style="margin:0;font-size:16px;font-weight:600;font-family:Inter,sans-serif">Et ensuite ?</h2>
           ${kd !== 'teaser' ? `<button class="os-opt" style="padding:14px 16px;border-width:1px;background:var(--os-bg)" data-a="em-go" data-arg="teaser|${esc(o.options && o.options.videoId || '')}"><b>Faire un teaser de 15 s</b><span class="d">À partir de la même interview</span></button>` : ''}
