@@ -103,3 +103,38 @@ test('rendu réel : logos + sous-titres incrustés', { skip: !hasFfmpeg && 'ffmp
   }
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('logos dans le même coin : côte à côte, entreprise puis média', () => {
+  const { cornerShifts } = require('../src/media/ffmpeg');
+  // À droite, le dernier logo (média) touche le bord ; l'entreprise est décalée d'un logo + 20 %.
+  assert.deepEqual(cornerShifts([{ position: 'top-right' }, { position: 'top-right' }], 100), [120, 0]);
+  // À gauche, le premier logo (entreprise) touche le bord.
+  assert.deepEqual(cornerShifts([{ position: 'top-left' }, { position: 'top-left' }], 100), [0, 120]);
+  assert.deepEqual(cornerShifts([{ position: 'top-left' }, { position: 'bottom-right' }], 100), [0, 0]);
+});
+
+test('habillage : ouverture, vidéo et fin enchaînées en fondu', () => {
+  const { buildBumperGraph } = require('../src/media/ffmpeg');
+  const g = buildBumperGraph({ width: 1080, height: 1920, mainSec: 30, introSec: 2, outroSec: 2, fadeSec: 0.5, logoWidthRatio: 0.4, audio: true });
+  assert.equal(g.totalSec, 33);
+  assert.match(g.filter, /xfade=transition=fade:duration=0.5:offset=1.500/);
+  assert.match(g.filter, /xfade=transition=fade:duration=0.5:offset=31.000/);
+  assert.match(g.filter, /adelay=1500:all=1/);
+  assert.match(g.filter, /boxblur/);
+});
+
+test('rendu réel : habillage d’ouverture et de fin', { skip: !hasFfmpeg && 'ffmpeg absent' }, async () => {
+  const { addBumpers, probeDurationSec } = require('../src/media/ffmpeg');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bumper-'));
+  const src = path.join(dir, 'src.mp4');
+  const logo = path.join(dir, 'logo.png');
+  spawnSync(FFMPEG_PATH, ['-y', '-f', 'lavfi', '-i', 'color=green:size=360x640:rate=30:duration=4', '-f', 'lavfi', '-i', 'sine=duration=4', '-shortest', '-pix_fmt', 'yuv420p', src]);
+  spawnSync(FFMPEG_PATH, ['-y', '-f', 'lavfi', '-i', 'color=red:size=200x100', '-frames:v', '1', logo]);
+  const out = path.join(dir, 'out.mp4');
+  const r = await addBumpers({ input: src, output: out, introLogo: logo, outroLogo: logo });
+  assert.ok(Math.abs((await probeDurationSec(out)) - r.totalSec) < 0.2, 'durée attendue');
+  const center = (t) => { const p = spawnSync(FFMPEG_PATH, ['-ss', String(t), '-i', out, '-frames:v', '1', '-vf', 'crop=2:2:180:320,format=rgb24', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { maxBuffer: 1e6 }); return [...p.stdout]; };
+  const [r1, g1] = center(1); assert.ok(r1 > 150 && g1 < 90, `logo d'ouverture au centre à 1 s : ${r1},${g1}`);
+  const [r2, g2] = center(3); assert.ok(g2 > 90 && r2 < 90, `vidéo à 3 s : ${r2},${g2}`);
+  const [r3, g3] = center(r.totalSec - 1); assert.ok(r3 > 150 && g3 < 90, `logo de fin à la fin : ${r3},${g3}`);
+});

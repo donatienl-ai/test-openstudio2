@@ -167,6 +167,10 @@ CREATE TABLE IF NOT EXISTS credit_purchases (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS credit_purchases_client ON credit_purchases (client_id, created_at DESC);
+-- Logos des vidéos du client : entreprise et média, avec leur position (top-left, top-right, bottom-left, bottom-right)
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS media_logo_key TEXT;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS logo_position TEXT;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS media_logo_position TEXT;
 -- Suivi des paiements par carte : chronologie, origine des refus, abandons
 CREATE TABLE IF NOT EXISTS payment_events (
   id          BIGSERIAL PRIMARY KEY,

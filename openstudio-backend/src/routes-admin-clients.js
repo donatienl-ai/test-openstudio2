@@ -16,6 +16,10 @@ const importer = require('./admin/client-import');
 const { requireTeam } = require('./admin/session');
 const mapping = require('./opusclip.config');
 const stripe = require('./montage/stripe');
+const storage = require('./storage');
+const branding = require('./media/branding');
+const crypto = require('crypto');
+const path = require('path');
 
 const router = express.Router();
 const json = express.json({ limit: '50kb' });
@@ -177,6 +181,7 @@ router.get('/admin/clients/:id', requireTeam, wrap(async (req, res) => {
   res.json({
     client: await fresh(c.id),
     accessCode: access.readableCode(c),
+    logos: await logosView(c),
     emails: emails.rows,
     contents: contents.rows.map((o) => ({ ...o, programme: o.programme_id ? programmeTitle(o.programme_id) : null })),
     payments: await withEvents(montage.rows),
@@ -325,6 +330,84 @@ router.post('/admin/clients/:id/access/revoke', requireTeam, wrap(async (req, re
   if (!c) return res.status(404).json({ error: 'Client introuvable' });
   await audit.record(req, 'acces_coupe', { targetType: 'client', targetId: c.id });
   res.json({ client: await fresh(c.id) });
+}));
+
+/* ------------------------------------------------------------------ Logos des vidéos */
+
+const LOGO_EXTS = ['.png', '.jpg', '.jpeg', '.webp'];
+const LOGO_COLUMNS = { company: ['logo_key', 'logo_position'], media: ['media_logo_key', 'media_logo_position'] };
+const preview = (key) => (key ? storage.presignDownload(key, path.basename(key), 'inline', 3600).catch(() => null) : null);
+
+/** Logos du client (aperçus signés) + logo OpenMedias de l'écran de fin. */
+async function logosView(c) {
+  const set = branding.clientLogos(c);
+  const om = await branding.get();
+  return {
+    company: { url: await preview(set.company.key), position: set.company.position, fromProgramme: false },
+    media: { url: await preview(set.media.key), position: set.media.position, fromProgramme: !c.media_logo_key && Boolean(set.media.key) },
+    openmedias: { url: await preview(om.openmediasLogoKey), custom: Boolean(om.openmediasLogoKey) },
+    positions: branding.POSITIONS,
+    bumpers: mapping.bumpers ? { kinds: mapping.bumpers.kinds, introSec: mapping.bumpers.introSec, outroSec: mapping.bumpers.outroSec } : null,
+  };
+}
+
+function logoUpload(prefix, { fileName, contentType }) {
+  const ext = path.extname(String(fileName || '')).toLowerCase();
+  if (!LOGO_EXTS.includes(ext)) return { error: 'Format accepté : PNG (de préférence avec fond transparent), JPG ou WebP.' };
+  const ct = String(contentType || '');
+  if (!/^image\/(png|jpeg|webp)$/.test(ct)) return { error: 'Ce fichier n’est pas une image PNG, JPG ou WebP.' };
+  const key = `${prefix}/${new Date().toISOString().slice(0, 10)}-${crypto.randomUUID().slice(0, 8)}${ext}`;
+  return { key, ct };
+}
+
+/** Adresse d'envoi direct d'un logo (navigateur → stockage). */
+router.post('/admin/clients/:id/logos/upload', requireTeam, json, wrap(async (req, res) => {
+  const c = await clients.get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Client introuvable' });
+  const kind = (req.body || {}).kind;
+  if (!LOGO_COLUMNS[kind]) return res.status(400).json({ error: 'Logo inconnu' });
+  const r = logoUpload(`clients/${c.id}/logos/${kind}`, req.body || {});
+  if (r.error) return res.status(400).json({ error: r.error });
+  res.json({ key: r.key, uploadUrl: await storage.presignUpload(r.key, r.ct, 3600), method: 'PUT', headers: { 'Content-Type': r.ct } });
+}));
+
+/** Enregistre un logo déposé, le retire (key: null) ou change sa position. */
+router.post('/admin/clients/:id/logos', requireTeam, json, wrap(async (req, res) => {
+  const c = await clients.get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Client introuvable' });
+  const { kind, key, position } = req.body || {};
+  const cols = LOGO_COLUMNS[kind];
+  if (!cols) return res.status(400).json({ error: 'Logo inconnu' });
+  const sets = []; const params = [c.id]; const detail = { logo: kind === 'company' ? 'entreprise' : 'média' };
+  if (key !== undefined) {
+    if (key !== null && !String(key).startsWith(`clients/${c.id}/logos/${kind}/`)) return res.status(400).json({ error: 'Fichier de logo invalide' });
+    if (key && !((await storage.head(key).catch(() => null)) || {}).exists) return res.status(400).json({ error: 'Le logo n’a pas été reçu : recommencez l’envoi.' });
+    params.push(key); sets.push(`${cols[0]} = $${params.length}`); detail.action = key ? 'remplacé' : 'retiré';
+  }
+  if (position !== undefined) {
+    if (!branding.POSITIONS.includes(position)) return res.status(400).json({ error: 'Position inconnue' });
+    params.push(position); sets.push(`${cols[1]} = $${params.length}`); detail.position = position;
+  }
+  if (!sets.length) return res.status(400).json({ error: 'Rien à modifier' });
+  await db.query(`UPDATE clients SET ${sets.join(', ')} WHERE id = $1`, params);
+  await audit.record(req, 'logo_modifie', { targetType: 'client', targetId: c.id, detail });
+  res.json({ logos: await logosView(await clients.get(c.id)) });
+}));
+
+/** Logo OpenMedias de l'écran de fin (commun à tous les clients). */
+router.post('/admin/branding/openmedias-logo/upload', requireTeam, json, wrap(async (req, res) => {
+  const r = logoUpload('branding/openmedias', req.body || {});
+  if (r.error) return res.status(400).json({ error: r.error });
+  res.json({ key: r.key, uploadUrl: await storage.presignUpload(r.key, r.ct, 3600), method: 'PUT', headers: { 'Content-Type': r.ct } });
+}));
+
+router.post('/admin/branding/openmedias-logo', requireTeam, json, wrap(async (req, res) => {
+  const key = (req.body || {}).key ?? null;
+  if (key !== null && !String(key).startsWith('branding/openmedias/')) return res.status(400).json({ error: 'Fichier de logo invalide' });
+  if (key && !((await storage.head(key).catch(() => null)) || {}).exists) return res.status(400).json({ error: 'Le logo n’a pas été reçu : recommencez l’envoi.' });
+  await branding.setOpenmediasLogo(key, req.adminUser ? req.adminUser.name : null);
+  await audit.record(req, 'logo_openmedias_modifie', { detail: { action: key ? 'remplacé' : 'logo par défaut' } });
+  res.json({ ok: true });
 }));
 
 /* ------------------------------------------------------------------ Crédits */
