@@ -277,8 +277,90 @@ router.get('/admin/dashboard', requireTeam, wrap(async (req, res) => {
       days,
     },
     accessEmailFailures7d: mails.rows[0].n,
+    stats: await periodStats(req.query.days),
   });
 }));
+
+/** Libellé lisible d'une erreur de génération (raisons regroupées sur l'accueil). */
+function failureReason(msg) {
+  const m = String(msg || '').trim();
+  if (!m) return 'Erreur sans détail';
+  if (/logo/i.test(m)) return 'Logo de l’entreprise manquant';
+  if (/aucun extrait|aucun clip/i.test(m)) return 'Pas d’extrait assez long dans la vidéo';
+  if (/opus.*(budget|crédit|credit|quota)|insufficient credit/i.test(m)) return 'Crédits OpusClip épuisés';
+  if (/opus/i.test(m)) return 'Erreur OpusClip';
+  if (/ffmpeg|habillage|illisible|dimensions/i.test(m)) return 'Erreur de montage (ffmpeg)';
+  if (/redémarrage|interrompu|timeout|délai/i.test(m)) return 'Traitement interrompu';
+  if (/stockage|storage|backblaze|s3/i.test(m)) return 'Erreur de stockage';
+  return m.replace(/\s+/g, ' ').slice(0, 90);
+}
+
+/**
+ * Indicateurs de l'accueil sur une période (7, 30, 90 jours ou depuis le début) :
+ * comptes, connexions, vidéos générées par type, échecs et raisons, chiffre d'affaires, crédits.
+ */
+async function periodStats(daysParam) {
+  const days = [7, 30, 90].includes(Number(daysParam)) ? Number(daysParam) : daysParam === 'all' ? null : 30;
+  const since = days ? `now() - interval '${days} days'` : "'-infinity'::timestamptz";
+  const sinceDay = days ? `(now() AT TIME ZONE 'Europe/Paris')::date - ${days - 1}` : "'-infinity'::date";
+  const [acc, visits, vids, fails, rev, cred] = await Promise.all([
+    db.query(`SELECT COUNT(*)::int AS total,
+                     COUNT(*) FILTER (WHERE first_seen_at IS NOT NULL)::int AS activated,
+                     COUNT(*) FILTER (WHERE first_seen_at >= ${since})::int AS new_activated,
+                     COUNT(*) FILTER (WHERE created_at >= ${since})::int AS created
+              FROM clients`),
+    db.query(`SELECT COUNT(*)::int AS visits, COUNT(DISTINCT client_id)::int AS clients,
+                     COUNT(DISTINCT v.client_id) FILTER (WHERE EXISTS (SELECT 1 FROM client_visits p WHERE p.client_id = v.client_id AND p.day < v.day))::int AS returning
+              FROM client_visits v WHERE v.day >= ${sinceDay}`),
+    db.query(`SELECT CASE WHEN o.type = 'capsules' AND o.options->>'kind' = 'teaser' THEN 'teaser' ELSE o.type END AS kind,
+                     COUNT(*) FILTER (WHERE o.status = 'ready' AND o.ready_at >= ${since})::int AS ready,
+                     COUNT(*) FILTER (WHERE o.status IN ('paid', 'submitting', 'processing', 'postprocessing'))::int AS running,
+                     COALESCE(SUM((SELECT COUNT(*) FROM deliverables d WHERE d.order_id = o.id)) FILTER (WHERE o.status = 'ready' AND o.ready_at >= ${since}), 0)::int AS files
+              FROM orders o WHERE o.type IN ('capsules', 'subtitles')
+              GROUP BY 1`),
+    db.query(`SELECT o.id, o.type, o.options->>'kind' AS kind, o.error, o.updated_at, c.id AS client_id, c.name AS client_name
+              FROM orders o LEFT JOIN clients c ON c.id = o.client_id
+              WHERE o.status = 'error' AND o.updated_at >= ${since} ORDER BY o.updated_at DESC LIMIT 200`),
+    db.query(`SELECT kind, COUNT(*)::int AS n, COALESCE(SUM(ht), 0)::int AS ht, COALESCE(SUM(ttc), 0)::int AS ttc FROM (
+                SELECT 'recharge' AS kind, amount_ht_cents AS ht, amount_ttc_cents AS ttc FROM credit_purchases WHERE status = 'paid' AND paid_at >= ${since}
+                UNION ALL
+                SELECT 'montage', amount_ht_cents, amount_ttc_cents FROM montage_requests WHERE status = 'paid' AND paid_at >= ${since}
+              ) t GROUP BY kind`),
+    db.query(`SELECT COALESCE(-SUM(credits) FILTER (WHERE kind = 'debit'), 0)::int AS spent,
+                     COALESCE(SUM(credits) FILTER (WHERE kind = 'remboursement'), 0)::int AS refunded,
+                     COALESCE(-SUM(credits) FILTER (WHERE kind = 'expiration'), 0)::int AS expired
+              FROM client_credit_ledger WHERE created_at >= ${since}`),
+  ]);
+  const byKind = Object.fromEntries(vids.rows.map((r) => [r.kind, r]));
+  const video = (k) => ({ ready: (byKind[k] || {}).ready || 0, files: (byKind[k] || {}).files || 0, running: (byKind[k] || {}).running || 0 });
+  const reasons = {};
+  for (const f of fails.rows) {
+    const r = failureReason(f.error);
+    (reasons[r] = reasons[r] || { reason: r, count: 0, last: null }).count++;
+    if (!reasons[r].last || f.updated_at > reasons[r].last) reasons[r].last = f.updated_at;
+  }
+  const revenue = Object.fromEntries(rev.rows.map((r) => [r.kind, { count: r.n, ht: r.ht, ttc: r.ttc }]));
+  const z = { count: 0, ht: 0, ttc: 0 };
+  const recharge = revenue.recharge || z;
+  const montage = revenue.montage || z;
+  const c = cred.rows[0];
+  return {
+    days,
+    accounts: { total: acc.rows[0].total, activated: acc.rows[0].activated, newActivated: acc.rows[0].new_activated, created: acc.rows[0].created },
+    connections: { visits: visits.rows[0].visits, clients: visits.rows[0].clients, returning: visits.rows[0].returning },
+    videos: { capsules: video('capsules'), teaser: video('teaser'), subtitles: video('subtitles') },
+    failures: {
+      count: fails.rows.length,
+      reasons: Object.values(reasons).sort((a, b) => b.count - a.count),
+      recent: fails.rows.slice(0, 8).map((f) => ({
+        id: f.id, type: f.type === 'capsules' && f.kind === 'teaser' ? 'teaser' : f.type, reason: failureReason(f.error), error: f.error, at: f.updated_at,
+        clientId: f.client_id, clientName: f.client_name,
+      })),
+    },
+    revenue: { recharge, montage, total: { count: recharge.count + montage.count, ht: recharge.ht + montage.ht, ttc: recharge.ttc + montage.ttc } },
+    credits: { spent: c.spent - c.refunded, expired: c.expired },
+  };
+}
 
 /* ------------------------------------------------------------------ Factures */
 

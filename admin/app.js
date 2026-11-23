@@ -188,8 +188,12 @@
 
   function pageHome() {
     var d = S.dash;
+    var period = S.dashDays || '30';
+    var periods = [['7', '7 jours'], ['30', '30 jours'], ['90', '90 jours'], ['all', 'Depuis le début']];
     var head = '<div class="head"><div><h1>Bonjour ' + esc(S.user.name) + '</h1><p class="muted">Activité de la plateforme.</p></div>' +
-      '<button class="btn secondary" type="button" data-a="reload-dash">Actualiser</button></div>';
+      '<div class="btns"><div class="seg" role="group" aria-label="Période">' + periods.map(function (x) {
+        return '<button type="button" data-a="dash-period" data-id="' + x[0] + '" aria-pressed="' + (period === x[0]) + '"' + (period === x[0] ? ' class="on"' : '') + '>' + esc(x[1]) + '</button>';
+      }).join('') + '</div><button class="btn secondary" type="button" data-a="reload-dash">Actualiser</button></div></div>';
     if (!d) return head + errorBox() + '<div class="card empty">Chargement…</div>';
     var a = d.accounts;
     var p = d.payments;
@@ -197,8 +201,40 @@
       return '<' + (href ? 'a href="' + href + '"' : 'div') + ' class="tile ' + (tone || '') + '"><span class="tile-l">' + esc(label) + '</span><b class="tile-v">' + esc(value) + '</b>' +
         (sub ? '<span class="tile-s">' + esc(sub) + '</span>' : '') + '</' + (href ? 'a' : 'div') + '>';
     };
-    var tiles = '<div class="tiles">' +
-      tile('Comptes actifs', a.active, a.everConnected + ' se sont déjà connectés, sur ' + a.total + ' clients', '', '#clients') +
+    var st = d.stats;
+    var per = st.days ? 'sur ' + st.days + ' jours' : 'depuis le début';
+    var vids = st.videos;
+    var vidTotal = vids.capsules.ready + vids.teaser.ready + vids.subtitles.ready;
+    var pct = function (a, b) { return b ? Math.round((a / b) * 100) + ' %' : '—'; };
+    var kpis = '<div class="tiles five">' +
+      tile('Comptes actifs', st.accounts.activated, 'sur ' + st.accounts.total + ' comptes (' + pct(st.accounts.activated, st.accounts.total) + ') · ' + st.accounts.newActivated + ' nouveau' + (st.accounts.newActivated > 1 ? 'x' : '') + ' ' + per, '', '#clients') +
+      tile('Connexions ' + per, st.connections.visits, st.connections.clients + ' client' + (st.connections.clients > 1 ? 's' : '') + ' différent' + (st.connections.clients > 1 ? 's' : '') + ', dont ' + st.connections.returning + ' revenu' + (st.connections.returning > 1 ? 's' : ''), '') +
+      tile('Vidéos générées ' + per, vidTotal, vids.capsules.ready + ' capsule' + (vids.capsules.ready > 1 ? 's' : '') + ' · ' + vids.teaser.ready + ' teaser' + (vids.teaser.ready > 1 ? 's' : '') + ' · ' + vids.subtitles.ready + ' sous-titrée' + (vids.subtitles.ready > 1 ? 's' : ''), 'ok') +
+      tile('Échecs de génération ' + per, st.failures.count, st.failures.reasons.length ? 'Principale raison : ' + st.failures.reasons[0].reason : 'aucun échec', st.failures.count ? 'err' : '') +
+      tile('Chiffre d’affaires ' + per, euros(st.revenue.total.ht) + ' HT', euros(st.revenue.total.ttc) + ' TTC · ' + st.revenue.total.count + ' paiement' + (st.revenue.total.count > 1 ? 's' : ''), 'ok') +
+      '</div>';
+    var maxV = Math.max(1, vids.capsules.ready, vids.teaser.ready, vids.subtitles.ready);
+    var vrow = function (label, v, unit) {
+      return '<div class="hbar"><span class="hbar-l">' + esc(label) + '</span><div class="hbar-track"><div class="hbar-fill" data-w="' + Math.round((v.ready / maxV) * 100) + '"></div></div>' +
+        '<span class="hbar-v"><b>' + esc(v.ready) + '</b> <span class="small muted">commande' + (v.ready > 1 ? 's' : '') + ' · ' + esc(v.files) + ' ' + unit + (v.files > 1 ? 's' : '') + (v.running ? ' · ' + v.running + ' en cours' : '') + '</span></span></div>';
+    };
+    var videosCard = '<div class="card"><h2>Vidéos générées par type <span class="small muted">' + esc(per) + '</span></h2>' +
+      vrow('Projets de capsules', vids.capsules, 'vidéo') + vrow('Teasers', vids.teaser, 'vidéo') + vrow('Interviews sous-titrées', vids.subtitles, 'fichier') +
+      '<p class="small muted mt">Crédits consommés ' + esc(per) + ' : <b>' + nb(st.credits.spent) + '</b>' + (st.credits.expired ? ' · ' + nb(st.credits.expired) + ' crédits arrivés à échéance sans être utilisés' : '') + '.</p></div>';
+    var revCard = '<div class="card"><h2>Chiffre d’affaires <span class="small muted">' + esc(per) + '</span></h2><table class="compact"><thead><tr><th></th><th class="num">Paiements</th><th class="num">HT</th><th class="num">TTC</th></tr></thead><tbody>' +
+      [['Recharges de crédits', st.revenue.recharge], ['Montages sur mesure', st.revenue.montage]].map(function (r) {
+        return '<tr><td>' + esc(r[0]) + '</td><td class="num">' + esc(r[1].count) + '</td><td class="num nowrap">' + esc(euros(r[1].ht)) + '</td><td class="num nowrap">' + esc(euros(r[1].ttc)) + '</td></tr>';
+      }).join('') + '<tr class="total"><td><b>Total</b></td><td class="num"><b>' + esc(st.revenue.total.count) + '</b></td><td class="num nowrap"><b>' + esc(euros(st.revenue.total.ht)) + '</b></td><td class="num nowrap"><b>' + esc(euros(st.revenue.total.ttc)) + '</b></td></tr></tbody></table></div>';
+    var TYPES = { capsules: 'Capsules', teaser: 'Teaser', subtitles: 'Sous-titres' };
+    var failCard = section('Échecs de génération · ' + per, st.failures.count, st.failures.count
+      ? '<table class="compact"><thead><tr><th>Raison</th><th class="num">Nombre</th><th>Dernier</th></tr></thead><tbody>' + st.failures.reasons.map(function (r) {
+          return '<tr><td>' + esc(r.reason) + '</td><td class="num">' + esc(r.count) + '</td><td class="small nowrap">' + esc(fmtDate(r.last)) + '</td></tr>';
+        }).join('') + '</tbody></table><h3 class="mt">Derniers échecs</h3><table class="compact"><tbody>' + st.failures.recent.map(function (f) {
+          return '<tr><td class="small nowrap">' + esc(fmtDate(f.at)) + '</td><td>' + (f.clientId ? '<a href="#clients/' + esc(f.clientId) + '">' + esc(f.clientName) + '</a>' : '—') + '</td><td class="small">' + esc(TYPES[f.type] || f.type) +
+            '</td><td class="small" title="' + esc(f.error || '') + '">' + esc(f.reason) + '</td></tr>';
+        }).join('') + '</tbody></table><p class="small muted">Les crédits des créations en échec sont rendus automatiquement aux clients.</p>'
+      : emptyLine('Aucune génération en échec ' + per + '.'));
+    var tiles = '<div class="tiles three">' +
       tile('Connectés aujourd’hui', a.connectedToday, a.returningToday ? a.returningToday + ' revenus (déjà venus un autre jour)' : 'aucun retour aujourd’hui', '') +
       tile('Paiements reçus · 30 jours', p.paid, euros(p.paid_cents) + ' TTC' + (p.recharges ? ' · dont ' + p.recharges + ' recharge' + (p.recharges > 1 ? 's' : '') + ' de crédits' : ''), 'ok') +
       tile('Paiements non aboutis · 30 jours', p.failed + p.abandoned, p.abandoned + ' abandonné' + (p.abandoned > 1 ? 's' : '') + ', ' + p.failed + ' refusé' + (p.failed > 1 ? 's' : '') + ' · ' + p.awaiting + ' en cours', (p.failed + p.abandoned) ? 'err' : '') +
@@ -226,8 +262,9 @@
     if (p.unattached) alerts.push(p.unattached + ' paiement' + (p.unattached > 1 ? 's' : '') + ' reçu' + (p.unattached > 1 ? 's' : '') + ' sans client rattaché (demande faite hors espace client, e-mail inconnu).');
     if (d.accessEmailFailures7d) alerts.push(d.accessEmailFailures7d + ' envoi' + (d.accessEmailFailures7d > 1 ? 's' : '') + ' de code d’accès en échec ces 7 derniers jours (voir les fiches concernées).');
     if (p.to_quote) alerts.push(p.to_quote + ' demande' + (p.to_quote > 1 ? 's' : '') + ' de montage à chiffrer.');
-    return head + errorBox() + tiles + (alerts.length ? '<div class="warn mb">' + alerts.map(esc).join('<br>') + '</div>' : '') +
-      week + section('Montages à relancer · paiement non abouti (7 jours)', p.failures.length, fails);
+    return head + errorBox() + (alerts.length ? '<div class="warn mb">' + alerts.map(esc).join('<br>') + '</div>' : '') + kpis +
+      '<div class="two">' + videosCard + revCard + '</div>' + failCard +
+      '<h2 class="sec-title">Aujourd’hui et paiements en cours</h2>' + tiles + week + section('Montages à relancer · paiement non abouti (7 jours)', p.failures.length, fails);
   }
 
   var POS_LABELS = { 'top-left': 'Haut gauche', 'top-right': 'Haut droite', 'bottom-left': 'Bas gauche', 'bottom-right': 'Bas droite' };
@@ -679,6 +716,31 @@
     return '<span class="tag ' + (d.status.tone === 'err' ? 'err' : 'wait') + '">Manquante</span>' + drive;
   }
 
+  /** Haut de la rubrique Diffusions : indicateurs du jour et liste des diffusions du jour. */
+  function diffToday(all) {
+    var today = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris' }).format(new Date());
+    var tomorrow = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris' }).format(new Date(Date.now() + 864e5));
+    var list = all.filter(function (d) { return d.state !== 'cancelled' && d.dateDiffusion === today; });
+    var next = all.filter(function (d) { return d.state !== 'cancelled' && d.dateDiffusion === tomorrow; });
+    var bad = list.filter(function (d) { return d.status.tone === 'err' || d.status.tone === 'wait'; });
+    var miss = { 'vidéo': 0, 'e-mail du client': 0 };
+    bad.forEach(function (d) { (d.status.missing || []).forEach(function (m) { miss[m] = (miss[m] || 0) + 1; }); });
+    var missTxt = Object.keys(miss).filter(function (k) { return miss[k]; }).map(function (k) { return miss[k] + ' ' + k + (k === 'vidéo' ? (miss[k] > 1 ? 's manquantes' : ' manquante') : (miss[k] > 1 ? 's manquants' : ' manquant')); }).join(' · ');
+    var nextBad = next.filter(function (d) { return d.status.tone === 'err' || d.status.tone === 'wait'; }).length;
+    var check = !list.length ? '<span class="tag off">Pas de diffusion aujourd’hui</span>'
+      : bad.length ? '<span class="tag err">' + bad.length + ' à compléter</span><span class="small">' + esc(missTxt || 'voir la liste') + '</span>'
+      : '<span class="tag ok">Tout est en ordre</span><span class="small muted">Vidéos déposées et e-mails renseignés</span>';
+    var rows = list.length ? '<ul class="today-list">' + list.map(function (d) {
+      var c = d.client || {};
+      return '<li><a href="#clients/' + esc(c.id) + '"><b>' + esc(c.company || d.entreprise) + '</b></a><span class="small muted">' + esc([d.media, d.sousMedia].filter(Boolean).join(' ')) + (d.format ? ' · ' + esc(d.format) : '') + '</span>' +
+        '<span class="tag ' + esc(d.status.tone) + '">' + esc(d.status.label) + '</span></li>';
+    }).join('') + '</ul>' : '<p class="small muted">Aucune diffusion vidéo prévue aujourd’hui.</p>';
+    return '<div class="today"><div class="card today-kpi"><span class="tile-l">Diffusions aujourd’hui</span><b class="tile-v">' + list.length + '</b>' +
+      '<div class="today-check">' + check + '</div>' +
+      '<span class="small muted">Demain : ' + next.length + ' diffusion' + (next.length > 1 ? 's' : '') + (nextBad ? ', dont ' + nextBad + ' à compléter' : '') + '</span></div>' +
+      '<div class="card today-names"><span class="tile-l">Diffusions du jour</span>' + rows + '</div></div>';
+  }
+
   function pageDiffusions() {
     var head = '<div class="head"><div><h1>Diffusions</h1><p class="muted">Les diffusions vidéo du planning : vidéo reçue des monteurs et envoi du code d’accès au client, le jour J à partir de ' +
       esc((S.diff && S.diff.setup && S.diff.setup.sendHour) || 8) + ' h.</p></div><div class="btns">' +
@@ -712,7 +774,7 @@
     var views = DIFF_VIEWS.map(function (v) {
       return '<option value="' + v[0] + '"' + (S.diffFilter.view === v[0] ? ' selected' : '') + '>' + esc(v[1] + (v[0] === 'completer' && todo ? ' (' + todo + ')' : '')) + '</option>';
     }).join('');
-    return head + diffSetupNotes(st, last) + errorBox() + lastLine +
+    return head + diffSetupNotes(st, last) + errorBox() + diffToday(all) + lastLine +
       '<form data-form="diff-filter" class="filters" novalidate><input name="q" type="search" placeholder="Rechercher une entreprise, un e-mail, une émission…" aria-label="Rechercher" value="' + esc(S.diffFilter.q) + '">' +
       '<select name="view" aria-label="Diffusions affichées">' + views + '</select><span class="small muted">' + esc(list.length + ' diffusion' + (list.length > 1 ? 's' : '')) + '</span></form>' +
       '<div class="card flush">' + table + '</div>' +
@@ -994,6 +1056,7 @@
         : views[S.view]();
     restoreFields(saved);
     app.querySelectorAll('[data-h]').forEach(function (el) { el.style.height = el.dataset.h + '%'; });
+    app.querySelectorAll('[data-w]').forEach(function (el) { el.style.width = el.dataset.w + '%'; });
     var bar = document.getElementById('upload-bar');
     if (bar) bar.style.width = (S.upload ? S.upload.pct : 0) + '%';
     if (focus) {
@@ -1029,7 +1092,7 @@
   }
 
   function loadDashboard() {
-    return api('GET', '/admin/dashboard').then(function (d) { S.dash = d; render(); }).catch(function (e) { S.error = e.message; render(); });
+    return api('GET', '/admin/dashboard?days=' + encodeURIComponent(S.dashDays || '30')).then(function (d) { S.dash = d; render(); }).catch(function (e) { S.error = e.message; render(); });
   }
 
   function readHash() {
@@ -1251,6 +1314,7 @@
       }));
     },
     'reload-dash': function () { S.dash = null; loadPage(); },
+    'dash-period': function (p) { S.dashDays = p; S.dash = null; render(); loadDashboard(); },
     'tarifs-add': function () {
       var f = document.querySelector('form[data-form="credit-settings"]');
       var st = S.creditSettings; st.settings = readTarifs(f);
