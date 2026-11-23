@@ -29,7 +29,7 @@ function problem(cfg = config.mail) {
  * Construit le message Mailjet. Avec templateId : modèle Mailjet + variables.
  * Sans : sujet + texte fournis (contenu de secours tant que le modèle n'est pas créé).
  */
-function buildMessage({ to, subject, text, templateId, variables = {}, customId }, cfg = config.mail) {
+function buildMessage({ to, subject, text, html, templateId, variables = {}, customId }, cfg = config.mail) {
   const redirected = Boolean(cfg.redirectTo);
   // Un destinataire, ou plusieurs (alertes à l'équipe) : [{ email, name }]
   const list = Array.isArray(to) ? to : [to];
@@ -45,7 +45,8 @@ function buildMessage({ to, subject, text, templateId, variables = {}, customId 
   } else {
     msg.Subject = `${redirected ? '[TEST] ' : ''}${subject}${redirected ? ` (pour ${to.email})` : ''}`;
     msg.TextPart = text;
-    msg.HTMLPart = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;white-space:pre-wrap">${esc(text)}</div>`;
+    // E-mail mis en page (templates du dossier src/emails), sinon le texte simple en HTML minimal
+    msg.HTMLPart = html || `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;white-space:pre-wrap">${esc(text)}</div>`;
   }
   return msg;
 }

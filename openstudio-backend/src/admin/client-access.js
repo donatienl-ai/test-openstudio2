@@ -174,51 +174,43 @@ function frenchDate(day) {
  * validité des crédits offerts (30 jours après la diffusion). La vidéo n'est pas dans l'e-mail : le client la
  * retrouve dans son espace. creditsUntil : fin de validité des crédits (Date, chaîne ISO ou null).
  */
-function accessEmail(client, link, code, creditsUntil = null) {
-  const hello = client.name ? `Bonjour ${client.name},` : 'Bonjour,';
-  const until = creditsUntil ? new Date(creditsUntil).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' }) : '';
-  // Envoi à la main avant la diffusion (« envoyer le code tout de suite ») : pas de « diffusé aujourd'hui »
+/**
+ * E-mail du jour de diffusion (étape 1 · envoi 1, maquette « pass clair ») : code d'accès, crédits offerts,
+ * ce qu'ils permettent. Variante sans « aujourd'hui » si l'équipe l'envoie à la main avant la diffusion.
+ * @param {object} extra  { programme, media, credits, prices } (lus par sendByEmail)
+ */
+function accessEmail(client, link, code, creditsUntil = null, extra = {}) {
   const broadcast = isoDay(client.broadcast_date);
   const today = broadcast === parisParts().day;
-  const text = [
-    hello,
-    '',
-    today
-      ? `C’est le grand jour : votre passage à l’antenne est diffusé aujourd’hui, et votre espace OpenStudio est ouvert${client.company ? ` pour ${client.company}` : ''}.`
-      : `Votre espace OpenStudio est ouvert${client.company ? ` pour ${client.company}` : ''}.`,
-    '',
-    `Votre code d’accès personnel : ${code}`,
-    '',
-    'Pour vous connecter, ouvrez ce lien (le code est déjà rempli) :',
-    link,
-    '',
-    'Pourquoi utiliser OpenStudio ?',
-    '- Transformez votre émission en capsules courtes, prêtes pour LinkedIn, Instagram ou TikTok, en quelques clics.',
-    '- Vos logos et vos sous-titres sont intégrés automatiquement, pour un rendu professionnel sans monteur.',
-    '- Prolongez l’effet de votre passage TV : publiez des extraits sur vos réseaux et votre site pour renforcer votre crédibilité.',
-    '',
-    until ? `Vos crédits offerts sont valables 30 jours, jusqu’au ${until}. Profitez-en pour créer vos premières vidéos.`
-      : 'Vos crédits offerts sont valables 30 jours. Profitez-en pour créer vos premières vidéos.',
-    '',
-    'Ce code vous est réservé : ne le transmettez pas. Si vous le perdez, répondez simplement à cet e-mail.',
-    '',
-    'L’équipe OpenMedias',
-  ].join('\n');
+  const prices = extra.prices || { capsules: 300, teaser: 300, subtitlesPer5Min: 300 };
+  const m = require('../emails/accessDay').accessDayEmail({
+    name: client.name, code, link, today, broadcastDay: broadcast || null,
+    programme: extra.programme || null, media: extra.media || null,
+    credits: extra.credits != null ? extra.credits : 1000, creditsUntil, prices,
+  });
   return {
     to: { email: client.email, name: client.name || undefined },
-    subject: today ? 'Votre émission est diffusée aujourd’hui : votre espace OpenStudio est ouvert' : 'Votre espace OpenStudio est ouvert',
-    text,
-    templateId: config.mail.templateClientAccess || null,
-    variables: {
-      nom: client.name || '',
-      entreprise: client.company || '',
-      lien: link,
-      code: code || '',
-      date_diffusion: frenchDate(isoDay(client.broadcast_date)),
-      credits_jusqu_au: until,
-    },
+    subject: m.subject,
+    text: m.text,
+    html: m.html,
     customId: `acces-client-${client.id}`,
   };
+}
+
+/** Émission et média de la diffusion du client (planning), pour l'e-mail du jour J. */
+async function broadcastInfo(clientId) {
+  try {
+    const { rows } = await db.query(
+      `SELECT media, sous_media FROM diffusions WHERE client_id = $1 AND state <> 'cancelled'
+       ORDER BY (date_diffusion = (now() AT TIME ZONE 'Europe/Paris')::date) DESC, date_diffusion DESC NULLS LAST LIMIT 1`, [clientId]);
+    if (rows[0]) return { media: rows[0].media || null, programme: rows[0].sous_media || null };
+  } catch { /* table absente (tests) */ }
+  try {
+    const { rows } = await db.query('SELECT programme_id FROM client_videos WHERE client_id = $1 AND active = true ORDER BY created_at DESC LIMIT 1', [clientId]);
+    const p = rows[0] && require('../opusclip.config').programmes[rows[0].programme_id];
+    if (p) return { media: p.title, programme: null };
+  } catch { /* rien */ }
+  return {};
 }
 
 /** E-mail « code oublié » : le code d'accès (inchangé) et le lien de connexion, rien d'autre. */
@@ -276,12 +268,17 @@ async function sendByEmail(client, { req = null, automatic = false, send = maile
   const unavailable = mailer.problem();
   if (unavailable && send === mailer.send) {
     await recordFailure(client.id, unavailable);
-    await logEmail(client, { status: 'echec', subject: 'Votre émission est diffusée aujourd’hui : votre espace OpenStudio est ouvert', error: unavailable, automatic });
+    await logEmail(client, { status: 'echec', subject: 'C’est le jour J : votre espace OpenStudio est ouvert', error: unavailable, automatic });
     throw new Error(unavailable);
   }
   const code = await ensureCode(client.id);
   const creditsUntil = await require('../credits/service').expiryOf(client.id).catch(() => null);
-  const message = accessEmail(client, loginUrlFor(code), code, creditsUntil);
+  const tariff = await require('../credits/settings').get().catch(() => null);
+  const message = accessEmail(client, loginUrlFor(code), code, creditsUntil, {
+    ...(await broadcastInfo(client.id)),
+    credits: tariff ? tariff.included : undefined,
+    prices: tariff ? tariff.prices : undefined,
+  });
   try {
     const r = await send(message);
     await logEmail(client, { status: 'envoye', subject: message.subject, providerId: r && r.messageId, redirectedTo: r && r.redirectedTo, automatic });
