@@ -137,4 +137,9 @@ test('rendu réel : habillage d’ouverture et de fin', { skip: !hasFfmpeg && 'f
   const [r1, g1] = center(1); assert.ok(r1 > 150 && g1 < 90, `logo d'ouverture au centre à 1 s : ${r1},${g1}`);
   const [r2, g2] = center(3); assert.ok(g2 > 90 && r2 < 90, `vidéo à 3 s : ${r2},${g2}`);
   const [r3, g3] = center(r.totalSec - 1); assert.ok(r3 > 150 && g3 < 90, `logo de fin à la fin : ${r3},${g3}`);
+  // Fin : fond bleu nuit OpenMedias (bord de l'image), sans fondu au noir
+  const edge = (t) => { const p = spawnSync(FFMPEG_PATH, ['-ss', String(t), '-i', out, '-frames:v', '1', '-vf', 'crop=2:2:10:10,format=rgb24', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { maxBuffer: 1e6 }); return [...p.stdout]; };
+  const [rb, gb, bb] = edge(r.totalSec - 0.1); assert.ok(Math.abs(rb - 0x24) < 14 && Math.abs(gb - 0x24) < 14 && Math.abs(bb - 0x4a) < 14, `fond bleu nuit : ${rb},${gb},${bb}`);
+  // Ouverture : couleur d'origine de la vidéo (vert), pas assombrie
+  const [ri, gi] = edge(0.05); assert.ok(gi > 110 && ri < 60, `ouverture non assombrie : ${ri},${gi}`);
 });

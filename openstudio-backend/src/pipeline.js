@@ -212,7 +212,7 @@ async function applyBumpers(file, kind, logos, tmp, n) {
     if (!fs.existsSync(om)) await storage.downloadToFile(custom, om);
   }
   const out = path.join(tmp, `habille-${n}.mp4`);
-  await addBumpers({ input: file, output: out, introLogo: company ? company.path : om, outroLogo: om, introSec: b.introSec, outroSec: b.outroSec, fadeSec: b.fadeSec, logoWidthRatio: b.logoWidthRatio });
+  await addBumpers({ input: file, output: out, introLogo: company ? company.path : om, outroLogo: om, introSec: b.introSec, outroSec: b.outroSec, fadeSec: b.fadeSec, logoWidthRatio: b.logoWidthRatio, outroColor: b.outroColor });
   fs.renameSync(out, file);
 }
 

@@ -264,7 +264,7 @@
       one('media', 'Logo du média', 'BFM TV, BFM Business, Capital, Le Figaro… PNG à fond transparent de préférence.') +
       '<div class="logo-col"><h3>Aperçu</h3><div class="pv-frame">' + marks + '</div><span class="small muted">Vidéo verticale, logos à 14 % de la largeur.</span></div></div>' +
       (b ? '<div class="bumper-line"><div><b class="small">Habillage des ' + esc(b.kinds.map(function (k) { return k === 'teaser' ? 'teasers' : k; }).join(' et ')) + '</b>' +
-        '<span class="small muted">Ouverture en fondu (' + b.introSec + ' s) sur le logo de l’entreprise, fin en fondu (' + b.outroSec + ' s) sur le logo OpenMedias, sur l’image floutée de la vidéo.</span></div>' +
+        '<span class="small muted">Ouverture (' + b.introSec + ' s) : logo de l’entreprise sur l’image floutée de la vidéo, couleurs d’origine, puis fondu vers la vidéo. Fin (' + b.outroSec + ' s) : fondu vers le logo OpenMedias blanc sur le bleu nuit OpenMedias.</span></div>' +
         '<div class="om-logo"><span class="logo-box dark sm">' + (busy === 'openmedias' ? '<span class="small">Envoi…</span>' : '<img src="' + esc(L.openmedias.url || 'om-default.png') + '" alt="Logo OpenMedias">') + '</span>' +
         '<label class="btn small secondary file-btn">Remplacer<input type="file" accept="image/png,image/webp" data-logo="openmedias"' + (busy ? ' disabled' : '') + '></label>' +
         (L.openmedias.custom ? '<button class="btn small secondary" type="button" data-a="logo-om-reset"' + (S.busy ? ' disabled' : '') + '>Logo par défaut</button>' : '') +

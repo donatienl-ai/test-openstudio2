@@ -145,8 +145,8 @@ module.exports = {
     // logo du média ajouté si le client indique de quel programme vient la vidéo (programmeId).
     onSubtitledVideo: true,
   },
-  // Habillage des capsules et du teaser : ouverture en fondu sur le logo de l'entreprise, fin en fondu sur
-  // le logo OpenMedias, chacun sur l'image floutée de la vidéo.
+  // Habillage des capsules et du teaser : ouverture sur le logo de l'entreprise (image floutée de la vidéo,
+  // couleurs d'origine), puis fondu final vers le logo OpenMedias blanc sur le bleu nuit OpenMedias.
   bumpers: {
     enabled: true,
     kinds: ['capsules', 'teaser'],
@@ -154,5 +154,6 @@ module.exports = {
     outroSec: 2,
     fadeSec: 0.5,
     logoWidthRatio: 0.4, // largeur du logo centré / largeur de la vidéo
+    outroColor: '#24244A', // bleu nuit OpenMedias (bandeau d'openmedias.fr)
   },
 };
