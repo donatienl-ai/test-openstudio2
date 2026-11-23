@@ -212,3 +212,7 @@ td a.ext { color: var(--blue); text-decoration: underline; }
 .bumper-line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
 .bumper-line > div:first-child { display: flex; flex-direction: column; gap: 4px; max-width: 560px; }
 .om-logo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.prog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.prog-card { display: flex; flex-direction: column; gap: 12px; margin-bottom: 0; }
+.prog-card h2 { margin: 0; font-size: 16px; }
+.prog-card .tag { align-self: flex-start; }

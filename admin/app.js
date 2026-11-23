@@ -156,7 +156,7 @@
     ['accueil', 'Accueil', null],
     ['clients', 'Clients', null],
     ['diffusions', 'Diffusions', null],
-    ['emissions', 'Émissions et vidéos', 'lot 3'],
+    ['emissions', 'Émissions', null],
     ['commandes', 'Commandes', 'lot 3'],
     ['tarifs', 'Tarifs', null],
   ];
@@ -179,6 +179,7 @@
     else if (S.page === 'journal' && isSuper()) page = pageAudit();
     else if (S.page === 'accueil') page = pageHome();
     else if (S.page === 'tarifs' || S.page === 'credits') page = pageCredits();
+    else if (S.page === 'emissions') page = pageEmissions();
     else page = pageSoon();
     return '<div class="shell"><nav class="side" aria-label="Navigation">' + brand('Espace équipe') + nav + navSuper +
       '<div class="me"><span><b>' + esc(S.user.name) + '</b><br>' + (isSuper() ? 'Super admin' : 'Admin') + '</span>' +
@@ -244,9 +245,14 @@
       }).join('') + '</div>';
       return '<div class="logo-col"><h3>' + esc(title) + '</h3>' +
         '<div class="logo-box">' + (busy === kind ? '<span class="small muted">Envoi en cours…</span>' : x.url ? '<img src="' + esc(x.url) + '" alt="' + esc(title) + '">' : '<span class="small muted">Aucun logo</span>') + '</div>' +
-        (x.fromProgramme ? '<p class="small muted">Logo par défaut de l’émission.</p>' : '') +
-        '<div class="btns left"><label class="btn small secondary file-btn">' + (x.url ? 'Remplacer' : 'Ajouter le logo') + '<input type="file" accept="image/png,image/jpeg,image/webp" data-logo="' + kind + '"' + (busy ? ' disabled' : '') + '></label>' +
-        (x.url && !x.fromProgramme ? '<button class="btn small secondary" type="button" data-a="logo-remove" data-id="' + kind + '"' + (S.busy ? ' disabled' : '') + '>Retirer</button>' : '') + '</div>' +
+        (kind === 'media' ? '<p class="small ' + (x.url ? 'muted' : '') + '">' + (x.source === 'programme'
+          ? 'Logo de l’émission ' + esc(x.programmeTitle) + ', repris automatiquement.'
+          : x.source === 'client' ? 'Logo propre à ce client' + (x.programmeTitle ? ' (à la place de celui de ' + esc(x.programmeTitle) + ')' : '') + '.'
+          : x.programmeTitle ? 'Aucun logo pour l’émission ' + esc(x.programmeTitle) + ' : déposez-le dans <a href="#emissions">Émissions</a>, il servira à tous ses clients.'
+          : 'Émission pas encore connue : elle le sera avec la vidéo ou la diffusion du client.') + '</p>' : '') +
+        '<div class="btns left"><label class="btn small secondary file-btn">' + (kind === 'media' && x.source === 'programme' ? 'Remplacer pour ce client' : x.url ? 'Remplacer' : 'Ajouter le logo') + '<input type="file" accept="image/png,image/jpeg,image/webp" data-logo="' + kind + '"' + (busy ? ' disabled' : '') + '></label>' +
+        (kind === 'company' && x.url ? '<button class="btn small secondary" type="button" data-a="logo-remove" data-id="company"' + (S.busy ? ' disabled' : '') + '>Retirer</button>' : '') +
+        (kind === 'media' && x.source === 'client' ? '<button class="btn small secondary" type="button" data-a="logo-remove" data-id="media"' + (S.busy ? ' disabled' : '') + '>' + (x.programmeTitle ? 'Revenir au logo de l’émission' : 'Retirer') + '</button>' : '') + '</div>' +
         '<span class="small muted">' + esc(hint) + '</span>' +
         '<span class="small strong mt">Position sur la vidéo</span>' + picker + '</div>';
     }
@@ -261,7 +267,7 @@
     return '<div class="card"><div class="card-head"><h2>Logos</h2></div>' +
       (missing.length ? '<div class="warn mb">Il manque ' + esc(missing.join(' et ')) + ' : ' + (L.company.url ? 'les vidéos seront livrées sans le logo du média.' : 'le client ne pourra pas lancer de capsules tant qu’il manque.') + '</div>' : '') +
       '<div class="logos-grid">' + one('company', 'Logo de l’entreprise', 'PNG à fond transparent de préférence. Il apparaît aussi en ouverture des vidéos.') +
-      one('media', 'Logo du média', 'BFM TV, BFM Business, Capital, Le Figaro… PNG à fond transparent de préférence.') +
+      one('media', 'Logo du média', 'PNG à fond transparent de préférence.') +
       '<div class="logo-col"><h3>Aperçu</h3><div class="pv-frame">' + marks + '</div><span class="small muted">Vidéo verticale, logos à 14 % de la largeur.</span></div></div>' +
       (b ? '<div class="bumper-line"><div><b class="small">Habillage des ' + esc(b.kinds.map(function (k) { return k === 'teaser' ? 'teasers' : k; }).join(' et ')) + '</b>' +
         '<span class="small muted">Ouverture (' + b.introSec + ' s) : logo de l’entreprise sur l’image floutée de la vidéo, couleurs d’origine, puis fondu vers la vidéo. Fin (' + b.outroSec + ' s) : fondu vers le logo OpenMedias blanc sur le bleu nuit OpenMedias.</span></div>' +
@@ -272,7 +278,34 @@
       '</div>';
   }
 
+  /** Rubrique Émissions : un logo par émission, repris automatiquement sur les vidéos de tous ses clients. */
+  function pageEmissions() {
+    var head = '<div class="head"><div><h1>Émissions</h1><p class="muted">Le logo de chaque émission s’applique automatiquement aux vidéos de tous ses clients : rien à déposer à la création d’une fiche.</p></div></div>';
+    if (!S.progLogos) return head + errorBox() + '<div class="card empty">Chargement…</div>';
+    var busy = S.logoBusy || '';
+    return head + errorBox() + '<div class="prog-grid">' + S.progLogos.map(function (p) {
+      var k = 'prog:' + p.id;
+      return '<div class="card prog-card"><h2>' + esc(p.title) + '</h2>' +
+        '<div class="logo-box">' + (busy === k ? '<span class="small muted">Envoi en cours…</span>' : p.url ? '<img src="' + esc(p.url) + '" alt="Logo ' + esc(p.title) + '">' : '<span class="small muted">Aucun logo</span>') + '</div>' +
+        '<div class="btns left"><label class="btn small secondary file-btn">' + (p.url ? 'Remplacer' : 'Ajouter le logo') + '<input type="file" accept="image/png,image/jpeg,image/webp" data-logo="' + esc(k) + '"' + (busy ? ' disabled' : '') + '></label>' +
+        (p.uploaded ? '<button class="btn small secondary" type="button" data-a="prog-logo-remove" data-id="' + esc(p.id) + '"' + (S.busy ? ' disabled' : '') + '>Retirer</button>' : '') + '</div>' +
+        (!p.url ? '<span class="tag err">À déposer</span>' : '') + '</div>';
+    }).join('') + '</div>' +
+      '<p class="small muted">PNG à fond transparent de préférence. Pour un client particulier, le logo peut être remplacé sur sa fiche (bloc Logos). Le média de la diffusion (planning) ou la vidéo du client désigne son émission.</p>';
+  }
+
   function uploadLogo(kind, file) {
+    if (kind.indexOf('prog:') === 0) {
+      var pid = kind.slice(5);
+      if (file.size > 10 * 1024 * 1024) { S.error = 'Logo trop lourd (10 Mo maximum).'; return render(); }
+      S.logoBusy = kind;
+      return withBusy(api('POST', '/admin/programme-logos/upload', { programmeId: pid, fileName: file.name, contentType: file.type }).then(function (u) {
+        return putFile(u.uploadUrl, file, u.headers, function () {}).then(function () { return api('POST', '/admin/programme-logos', { programmeId: pid, key: u.key }); });
+      }).then(function () {
+        S.logoBusy = ''; toast('Logo de l’émission enregistré : il s’applique à tous ses clients');
+        return api('GET', '/admin/programme-logos').then(function (d) { S.progLogos = d.programmes; });
+      }, function (e) { S.logoBusy = ''; throw e; }));
+    }
     var c = S.client.client;
     var om = kind === 'openmedias';
     var base = om ? '/admin/branding/openmedias-logo' : '/admin/clients/' + encodeURIComponent(c.id) + '/logos';
@@ -433,6 +466,7 @@
     client_connexion: 'Connexion du client avec son code',
     logo_modifie: 'Logo modifié',
     logo_openmedias_modifie: 'Logo OpenMedias de fin modifié',
+    logo_emission_modifie: 'Logo d’émission modifié',
     acces_retabli: 'Accès rétabli',
     acces_coupe: 'Accès coupé',
     marketing_reponse: 'Réponse sur les campagnes marketing',
@@ -450,6 +484,7 @@
     var d = e.detail || {};
     if (d.identifiant && !d.email) return d.identifiant + (d.motif ? ' — ' + d.motif : '');
     if (d.email) return d.email + (d.role ? ' (' + (d.role === 'super_admin' ? 'super admin' : 'admin') + ')' : '') + (d.motif ? ' — ' + d.motif : '');
+    if (d.emission) return 'logo ' + d.emission + ' ' + (d.action || '');
     if (d.logo) return 'logo ' + d.logo + (d.action ? ' ' + d.action : '') + (d.position ? ' — position ' + (POS_LABELS[d.position] || d.position).toLowerCase() : '');
     if (d.credits !== undefined && d.motif) return (d.credits > 0 ? '+' : '') + nb(d.credits) + ' crédits — ' + d.motif + ' (solde ' + nb(d.solde) + ')';
     if (d.apres && d.apres.packs) return 'crédits par production et prix des recharges mis à jour' + (typeof d.stripe === 'string' ? ' — Stripe : ' + d.stripe : '');
@@ -975,6 +1010,10 @@
     if (S.page === 'clients') loadClients();
     if (S.page === 'diffusions') loadDiffusions();
     if (S.page === 'accueil') loadDashboard();
+    if (S.page === 'emissions') {
+      S.progLogos = null;
+      api('GET', '/admin/programme-logos').then(function (d) { S.progLogos = d.programmes; render(); }).catch(function (e) { S.error = e.message; render(); });
+    }
     if (S.page === 'tarifs' || S.page === 'credits') {
       S.creditSettings = null;
       api('GET', '/admin/credit-settings').then(function (d) { S.creditSettings = d; render(); }).catch(function (e) { S.error = e.message; render(); });
@@ -1247,6 +1286,12 @@
       var c = S.client.client;
       if (!window.confirm('Retirer ce logo ?')) return;
       withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/logos', { kind: kind, key: null }).then(function (d) { S.client.logos = d.logos; toast('Logo retiré'); }));
+    },
+    'prog-logo-remove': function (id) {
+      if (!window.confirm('Retirer le logo de cette émission ? Ses vidéos sortiront sans logo de média, sauf pour les clients qui ont leur propre logo.')) return;
+      withBusy(api('POST', '/admin/programme-logos', { programmeId: id, key: null }).then(function () {
+        return api('GET', '/admin/programme-logos').then(function (d) { S.progLogos = d.programmes; toast('Logo retiré'); });
+      }));
     },
     'logo-om-reset': function () {
       withBusy(api('POST', '/admin/branding/openmedias-logo', { key: null }).then(function () { toast('Logo OpenMedias par défaut rétabli'); return loadClients(); }));

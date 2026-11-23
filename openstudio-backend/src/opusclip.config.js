@@ -38,6 +38,12 @@ module.exports = {
       logoKey: null,
       sourceLang: 'fr',
     },
+    // Logos des émissions : à déposer dans le back-office (rubrique « Émissions »), ils remplacent ces clés.
+    time: {
+      title: 'Time',
+      logoKey: null,
+      sourceLang: 'fr',
+    },
   },
 
   // ---------------------------------------------------------------------------

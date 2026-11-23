@@ -159,7 +159,7 @@ async function prepareLogos(order, tmp, { requireClientLogo }) {
     logos.push({ path: p, position, role });
   };
   const client = order.client_id ? await clients.get(order.client_id) : null;
-  const set = branding.clientLogos(client || {}, order.options.programmeId);
+  const set = await branding.clientLogos(client || {}, order.options.programmeId);
   const clientLogo = order.options.clientLogoKey || set.company.key;
   if (clientLogo) await add(clientLogo, set.company.position, 'logo-client', 'company');
   if (set.media.key) await add(set.media.key, set.media.position, 'logo-programme', 'media');

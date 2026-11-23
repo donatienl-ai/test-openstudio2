@@ -340,11 +340,14 @@ const preview = (key) => (key ? storage.presignDownload(key, path.basename(key),
 
 /** Logos du client (aperçus signés) + logo OpenMedias de l'écran de fin. */
 async function logosView(c) {
-  const set = branding.clientLogos(c);
+  const set = await branding.clientLogos(c);
   const om = await branding.get();
   return {
-    company: { url: await preview(set.company.key), position: set.company.position, fromProgramme: false },
-    media: { url: await preview(set.media.key), position: set.media.position, fromProgramme: !c.media_logo_key && Boolean(set.media.key) },
+    company: { url: await preview(set.company.key), position: set.company.position },
+    media: {
+      url: await preview(set.media.key), position: set.media.position, source: set.media.source,
+      programmeId: set.media.programmeId, programmeTitle: set.media.programmeTitle,
+    },
     openmedias: { url: await preview(om.openmediasLogoKey), custom: Boolean(om.openmediasLogoKey) },
     positions: branding.POSITIONS,
     bumpers: mapping.bumpers ? { kinds: mapping.bumpers.kinds, introSec: mapping.bumpers.introSec, outroSec: mapping.bumpers.outroSec } : null,
@@ -392,6 +395,30 @@ router.post('/admin/clients/:id/logos', requireTeam, json, wrap(async (req, res)
   await db.query(`UPDATE clients SET ${sets.join(', ')} WHERE id = $1`, params);
   await audit.record(req, 'logo_modifie', { targetType: 'client', targetId: c.id, detail });
   res.json({ logos: await logosView(await clients.get(c.id)) });
+}));
+
+/** Logos des émissions (communs à tous les clients de l'émission). */
+router.get('/admin/programme-logos', requireTeam, wrap(async (req, res) => {
+  const progs = await branding.programmeLogos();
+  res.json({ programmes: await Promise.all(Object.values(progs).map(async (p) => ({ id: p.id, title: p.title, url: await preview(p.key), uploaded: p.uploaded }))) });
+}));
+
+router.post('/admin/programme-logos/upload', requireTeam, json, wrap(async (req, res) => {
+  const id = (req.body || {}).programmeId;
+  if (!mapping.programmes[id]) return res.status(400).json({ error: 'Émission inconnue' });
+  const r = logoUpload(`branding/emissions/${id}`, req.body || {});
+  if (r.error) return res.status(400).json({ error: r.error });
+  res.json({ key: r.key, uploadUrl: await storage.presignUpload(r.key, r.ct, 3600), method: 'PUT', headers: { 'Content-Type': r.ct } });
+}));
+
+router.post('/admin/programme-logos', requireTeam, json, wrap(async (req, res) => {
+  const { programmeId: id, key = null } = req.body || {};
+  if (!mapping.programmes[id]) return res.status(400).json({ error: 'Émission inconnue' });
+  if (key !== null && !String(key).startsWith(`branding/emissions/${id}/`)) return res.status(400).json({ error: 'Fichier de logo invalide' });
+  if (key && !((await storage.head(key).catch(() => null)) || {}).exists) return res.status(400).json({ error: 'Le logo n’a pas été reçu : recommencez l’envoi.' });
+  await branding.setProgrammeLogo(id, key, req.adminUser ? req.adminUser.name : null);
+  await audit.record(req, 'logo_emission_modifie', { detail: { emission: mapping.programmes[id].title, action: key ? 'remplacé' : 'retiré' } });
+  res.json({ ok: true });
 }));
 
 /** Logo OpenMedias de l'écran de fin (commun à tous les clients). */
