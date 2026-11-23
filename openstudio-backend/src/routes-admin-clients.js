@@ -410,6 +410,20 @@ router.post('/admin/clients/:id/access/send', requireTeam, wrap(async (req, res)
   }
 }));
 
+/** Aperçu de l'e-mail du code d'accès, envoyé à la personne connectée (le client ne reçoit rien). */
+router.post('/admin/clients/:id/access/preview', requireTeam, wrap(async (req, res) => {
+  const c = await clients.get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Client introuvable' });
+  if (!req.adminUser || !req.adminUser.email) return res.status(409).json({ error: 'Connectez-vous avec votre compte nominatif pour recevoir l’aperçu à votre adresse.' });
+  if (!config.clientSiteUrl) return res.status(503).json({ error: 'Adresse de l’espace client non configurée (CLIENT_SITE_URL).' });
+  try {
+    const r = await access.sendPreview(c, { email: req.adminUser.email, name: req.adminUser.name }, { req });
+    res.json(r);
+  } catch (e) {
+    res.status(502).json({ error: `L’aperçu n’est pas parti : ${e.message}` });
+  }
+}));
+
 router.post('/admin/clients/:id/access/restore', requireTeam, wrap(async (req, res) => {
   const c = await access.restore(req.params.id);
   if (!c) return res.status(404).json({ error: 'Client introuvable' });

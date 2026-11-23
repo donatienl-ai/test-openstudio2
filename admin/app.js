@@ -508,6 +508,7 @@
     commande_relancee: 'Commande relancée',
     clients_importes: 'Import de clients',
     acces_envoye: 'Code d’accès envoyé',
+    apercu_email_envoye: 'Aperçu de l’e-mail envoyé',
     acces_envoye_auto: 'Code d’accès envoyé automatiquement',
     acces_echec_envoi: 'Échec d’envoi du code d’accès',
     acces_lien_cree: 'Code d’accès généré à la main',
@@ -1030,7 +1031,9 @@
         ? '<p class="mt"><span class="tag off">Accès coupé</span> <span class="small muted">depuis le ' + esc(fmtDate(a.at)) + ' : le code ne permet plus de se connecter.</span></p>' +
           '<div class="btns left"><button class="btn" type="button" data-a="client-restore"' + (S.busy ? ' disabled' : '') + '>Rétablir l’accès</button></div>'
         : '<p class="small muted mt">' + esc(mailLine) + '</p>' +
-          '<div class="btns left"><button class="btn danger" type="button" data-a="client-revoke"' + (S.busy ? ' disabled' : '') + '>Couper l’accès</button></div>') +
+          '<div class="btns left"><button class="btn secondary" type="button" data-a="access-preview"' + (S.busy ? ' disabled' : '') + ' title="L’e-mail du jour J avec les données de ce client, envoyé à votre adresse ; le client ne reçoit rien">M’envoyer un aperçu de l’e-mail</button>' +
+          '<button class="btn" type="button" data-a="access-send"' + (S.busy || !c.email ? ' disabled' : '') + (c.email ? '' : ' title="Renseignez d’abord l’e-mail du client"') + '>Envoyer le code au client</button>' +
+          '<button class="btn danger" type="button" data-a="client-revoke"' + (S.busy ? ' disabled' : '') + '>Couper l’accès</button></div>') +
       marketingLine(c) + '</div>' +
       section('E-mails envoyés', d.emails.length, emails) + '</div></div>' +
       videoCard(d) +
@@ -1534,6 +1537,18 @@
     },
     'logo-om-reset': function () {
       withBusy(api('POST', '/admin/branding/openmedias-logo', { key: null }).then(function () { toast('Logo OpenMedias par défaut rétabli'); return loadClients(); }));
+    },
+    'access-preview': function () {
+      var c = S.client.client;
+      withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/access/preview').then(function (d) { toast('Aperçu envoyé à ' + d.to); }));
+    },
+    'access-send': function () {
+      var c = S.client.client;
+      if (!window.confirm('Envoyer maintenant le code d’accès à ' + c.name + ' (' + c.email + ') ? C’est le vrai e-mail du jour J.')) return;
+      withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/access/send').then(function (d) {
+        toast(d.redirectedTo ? 'Mode test : e-mail envoyé à ' + d.redirectedTo : 'Code envoyé à ' + c.email);
+        return loadClients();
+      }));
     },
     'client-revoke': function () {
       var c = S.client.client;

@@ -95,3 +95,17 @@ test('Factures : informations de facturation enregistrées sur la fiche, contrô
   assert.equal(me.client.billing.city, 'Lyon');
   assert.equal((await fetch(`${base}/me/billing`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
 });
+
+test('aperçu de l’e-mail du jour J : envoyé à l’équipe, données du client, rien ne change chez le client', { skip }, async () => {
+  let sent = null;
+  await db.query("UPDATE clients SET broadcast_date = '2099-05-01' WHERE id = $1", [client.id]);
+  const before = (await db.query('SELECT access_email_sent_at, access_email_attempts FROM clients WHERE id = $1', [client.id])).rows[0];
+  const r = await access.sendPreview(await clients.get(client.id), { email: 'lola@openmedias.test', name: 'Lola' }, { send: async (m) => { sent = m; return { messageId: '1' }; } });
+  assert.equal(r.to, 'lola@openmedias.test');
+  assert.deepEqual(sent.to, { email: 'lola@openmedias.test', name: 'Lola' });
+  assert.equal(sent.subject, '[Aperçu] C’est le jour J : votre espace OpenStudio est ouvert', 'toujours la version du jour J');
+  assert.ok(sent.html.includes(code), 'vrai code du client');
+  assert.ok(sent.html.includes('Votre émission est diffusée aujourd’hui.'));
+  const after = (await db.query('SELECT access_email_sent_at, access_email_attempts FROM clients WHERE id = $1', [client.id])).rows[0];
+  assert.deepEqual(after, before, 'fiche du client inchangée');
+});

@@ -197,6 +197,31 @@ function accessEmail(client, link, code, creditsUntil = null, extra = {}) {
   };
 }
 
+/** E-mail du code d'accès d'un client, avec ses données réelles (code, diffusion, crédits, barème). */
+async function buildAccessMessage(client) {
+  const code = await ensureCode(client.id);
+  const creditsUntil = await require('../credits/service').expiryOf(client.id).catch(() => null);
+  const tariff = await require('../credits/settings').get().catch(() => null);
+  return accessEmail(client, loginUrlFor(code), code, creditsUntil, {
+    ...(await broadcastInfo(client.id)),
+    credits: tariff ? tariff.included : undefined,
+    prices: tariff ? tariff.prices : undefined,
+  });
+}
+
+/**
+ * Aperçu de l'e-mail du jour J envoyé à un membre de l'équipe : données réelles du client, version
+ * « diffusé aujourd'hui », sans rien changer chez le client (ni historique d'envois, ni statut).
+ */
+async function sendPreview(client, to, { req = null, send = mailer.send } = {}) {
+  const unavailable = mailer.problem();
+  if (unavailable && send === mailer.send) throw new Error(unavailable);
+  const message = await buildAccessMessage({ ...client, broadcast_date: parisParts().day });
+  const r = await send({ ...message, to: { email: to.email, name: to.name || undefined }, subject: `[Aperçu] ${message.subject}`, customId: `apercu-acces-${client.id}` });
+  await audit.record(req, 'apercu_email_envoye', { targetType: 'client', targetId: client.id, detail: { email: to.email, ...(r && r.redirectedTo ? { redirige_vers: r.redirectedTo } : {}) } });
+  return { to: (r && r.redirectedTo) || to.email };
+}
+
 /** Émission et média de la diffusion du client (planning), pour l'e-mail du jour J. */
 async function broadcastInfo(clientId) {
   try {
@@ -271,14 +296,7 @@ async function sendByEmail(client, { req = null, automatic = false, send = maile
     await logEmail(client, { status: 'echec', subject: 'C’est le jour J : votre espace OpenStudio est ouvert', error: unavailable, automatic });
     throw new Error(unavailable);
   }
-  const code = await ensureCode(client.id);
-  const creditsUntil = await require('../credits/service').expiryOf(client.id).catch(() => null);
-  const tariff = await require('../credits/settings').get().catch(() => null);
-  const message = accessEmail(client, loginUrlFor(code), code, creditsUntil, {
-    ...(await broadcastInfo(client.id)),
-    credits: tariff ? tariff.included : undefined,
-    prices: tariff ? tariff.prices : undefined,
-  });
+  const message = await buildAccessMessage(client);
   try {
     const r = await send(message);
     await logEmail(client, { status: 'envoye', subject: message.subject, providerId: r && r.messageId, redirectedTo: r && r.redirectedTo, automatic });
@@ -365,4 +383,4 @@ async function runScheduled({ now = new Date(), send = mailer.send, log = consol
   return { sent, failed };
 }
 
-module.exports = { forgotCodeEmail, sendForgottenCode, readableCode, ensureCode, ensureAllCodes, restore, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
+module.exports = { buildAccessMessage, sendPreview, forgotCodeEmail, sendForgottenCode, readableCode, ensureCode, ensureAllCodes, restore, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
