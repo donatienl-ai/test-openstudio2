@@ -1396,6 +1396,7 @@ em,i:not([class]){font-style:normal}
   .offer-inc .icon{width:13px;height:13px}
   .offer-foot{padding-top:10px}
   .offer-price{font-size:16px}
+  .offer-foot .btn{height:34px;padding:0 13px;font-size:10.5px;letter-spacing:.05em}
   .page-head h1{font-size:28px}
   /* Fenêtres (pop-up) : titres et sous-titres réduits de 15 % */
   .modal-h{padding:22px 20px 0}
@@ -3123,7 +3124,7 @@ function mobBar(c, active) {
   const open = !!S.mbOpen;
   const nVid = osClips().length; const nEm = osLive() ? osPkgVideos().length : 0;
   const items = [['dashboard', 'Accueil', ''], ['emissions', 'Mes émissions', nEm ? String(nEm) : ''], ['medias', 'Mes créations', nVid ? String(nVid) : ''], ['commandes', 'Mes commandes', ''], ['performances', 'Performances', ''], ['factures', 'Factures', ''], ['offres', 'Nos offres', '']];
-  const bar = `<header class="mb"><button class="brand" data-a="nav" data-arg="dashboard" aria-label="Accueil OpenStudio">OPENSTUDIO</button>${crPill('dk mb-cr')}<button type="button" class="mb-burger" data-a="mb-menu" aria-expanded="${open}" aria-controls="mb-dr" aria-label="${open ? 'Fermer le menu' : 'Ouvrir le menu'}">${open ? MB_ICO.close : MB_ICO.menu}</button></header>`;
+  const bar = `<header class="mb"><button class="brand" data-a="nav" data-arg="dashboard" aria-label="Accueil OpenStudio">OPENSTUDIO</button>${crPill('dk mb-cr', true)}<button type="button" class="mb-burger" data-a="mb-menu" aria-expanded="${open}" aria-controls="mb-dr" aria-label="${open ? 'Fermer le menu' : 'Ouvrir le menu'}">${open ? MB_ICO.close : MB_ICO.menu}</button></header>`;
   if (!open) return bar;
   return bar + `<div class="mb-dr" id="mb-dr" role="dialog" aria-modal="true" aria-label="Menu">
     <nav class="mb-nav" aria-label="Navigation principale">${items.map(([k, l, n]) => `<a href="#" data-a="nav" data-arg="${k}" class="${active === k ? 'on' : ''}" ${active === k ? 'aria-current="page"' : ''}><span>${l}</span>${n ? `<span class="n">${n}</span>` : ''}</a>`).join('')}<a href="mailto:contact@openmedias.fr"><span>Aide</span></a></nav>
@@ -3241,7 +3242,7 @@ function osEmissions(c) {
 }
 /* ---------- Mes vidéos ---------- */
 function osVideos(c) {
-  const f = S.vf || 'all'; const fe = S.vfe || ''; const ff = S.vff || '';
+  const f = 'all'; const fe = S.vfe || ''; const ff = S.vff || '';
   const clips = osClips(); const prep = osPrep();
   const keep = x => (f === 'all' || (f === 'capsules' ? x.kd === 'capsules' : f === 'teasers' ? x.kd === 'teaser' : f === 'subtitles' ? x.kd === 'subtitles' : false)) && (!fe || (x.o.options && x.o.options.videoTitle) === fe) && (!ff || x.fmt === ff);
   const groups = {};
@@ -3253,7 +3254,7 @@ function osVideos(c) {
   const secs = Object.values(groups).map(g => `<section style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 class="os-h2">${esc(osTypeLabel(g.o))} · ${esc((g.o.options && g.o.options.videoTitle) || '')} · ${osDate(g.o.createdAt)}</h2>${g.list.length > 1 ? `<a href="${esc(OpenStudio.zipUrl(g.o.id))}" style="font-size:13px">Tout télécharger (.zip)</a>` : ''}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${g.list.map(card).join('')}</div></section>`);
   return `<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center">
-      <div class="os-filters"><label class="visually-hidden" for="vf-type">Type de vidéo</label><select id="vf-type" class="os-sel" data-in="vf-type">${[['all', 'Tous les types'], ['capsules', 'Capsules'], ['teasers', 'Teasers'], ['subtitles', 'Sous-titrées'], ['prep', 'En préparation']].map(([k, l]) => `<option value="${k}" ${f === k ? 'selected' : ''}>${l}</option>`).join('')}</select><label class="visually-hidden" for="vf-em">Émission</label><select id="vf-em" class="os-sel" data-in="vf-em"><option value="">Toutes les émissions</option>${titles.map(t => `<option ${fe === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
+      <div class="os-filters"><label class="visually-hidden" for="vf-em">Émission</label><select id="vf-em" class="os-sel" data-in="vf-em"><option value="">Toutes les émissions</option>${titles.map(t => `<option ${fe === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
       <label class="visually-hidden" for="vf-fmt">Format</label><select id="vf-fmt" class="os-sel" data-in="vf-fmt"><option value="">Tous les formats</option>${[['9:16', 'Vertical'], ['1:1', 'Carré'], ['16:9', 'Horizontal']].map(([v, l]) => `<option value="${v}" ${ff === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
     ${prepCards.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${prepCards.join('')}</div>` : ''}
     ${secs.join('') || (prepCards.length ? '' : `<div class="os-empty"><b style="color:var(--os-navy)">${osLive() ? 'Aucune vidéo pour le moment' : 'Aucun espace relié'}</b><span>${osLive() ? 'Vos capsules, teasers et interviews sous-titrées apparaîtront ici.' : "Ouvrez le lien d'accès envoyé par l'équipe OpenMedias."}</span><button class="os-cta" data-a="nav" data-arg="capsules">Créer une vidéo ↗</button></div>`)}`;
@@ -3401,8 +3402,8 @@ async function crLoad(force) {
   CR.loading = false;
   if (S.view === 'client') { S.keepScroll = true; render(); }
 }
-function crPill(cls = '') {
-  if (!osLive()) return '';
+function crPill(cls = '', always = false) {
+  if (!osLive()) return always ? `<button type="button" class="os-cr ${cls}" data-a="nav" data-arg="offres" aria-label="Mes crédits">${CR_ICO}<b>—</b><span>crédits</span></button>` : '';
   if (!CR.d && !CR.loading && !CR.err) setTimeout(crLoad, 0); // en cas d'erreur : pas de nouvel essai à chaque affichage
   const b = crBal(); const low = b != null && b < crPrices().capsules;
   return `<button type="button" class="os-cr ${cls}${low ? ' low' : ''}" data-a="cr-open" aria-label="${b == null ? 'Mes crédits' : `Mes crédits : ${crN(b)} disponibles`}">${CR_ICO}<b>${b == null ? '…' : crN(b)}</b><span>crédits</span></button>`;
@@ -5936,7 +5937,7 @@ document.addEventListener('click', e => {
   if (el.tagName === 'A' && el.getAttribute('href') === '#') e.preventDefault();
   A[act](el.dataset.arg, el, e);
 });
-document.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.in; if (k === 'flow-check' || k === 'vf-type' || k === 'vf-em' || k === 'vf-fmt') e.target.dispatchEvent(new Event('input', { bubbles: true })); });
+document.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.in; if (k === 'flow-check' || k === 'vf-em' || k === 'vf-fmt') e.target.dispatchEvent(new Event('input', { bubbles: true })); });
 document.addEventListener('input', e => {
   const el = e.target; const k = el.dataset && el.dataset.in; if (!k) return;
   if (k === 'a-q') { S.admin.q = el.value; const pos = el.selectionStart; S.keepScroll = true; render(); const n = document.querySelector('[data-in="a-q"]'); n.focus(); n.setSelectionRange(pos, pos); }
@@ -5950,7 +5951,6 @@ document.addEventListener('input', e => {
   else if (k === 'ord') { if (S.modal) S.modal[el.dataset.arg] = el.value; }
   else if (k === 'mt') { if (S.modal && S.modal.type === 'montage') S.modal.f[el.dataset.arg] = el.value; if (el.type === 'date') el.classList.toggle('empty', !el.value); }
   else if (k === 'flow-check') { S.cap.checked = el.checked; S.keepScroll = true; render(); }
-  else if (k === 'vf-type') { S.vf = el.value || 'all'; S.keepScroll = true; render(); }
   else if (k === 'vf-em') { S.vfe = el.value; S.keepScroll = true; render(); }
   else if (k === 'vf-fmt') { S.vff = el.value; S.keepScroll = true; render(); }
   else if (k === 'nf') { if (S.modal && S.modal.f) S.modal.f[el.dataset.arg] = el.value; }
