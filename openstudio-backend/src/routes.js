@@ -23,6 +23,9 @@ const credits = require('./credits/service');
 
 // Connexion par code : 10 essais par quart d'heure et par adresse IP
 const codeLimiter = new AttemptLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
+// « Code oublié ? » : 5 demandes par quart d'heure et par adresse IP, 3 par heure et par e-mail
+const forgotIpLimiter = new AttemptLimiter({ max: 5, windowMs: 15 * 60 * 1000 });
+const forgotMailLimiter = new AttemptLimiter({ max: 3, windowMs: 60 * 60 * 1000 });
 
 const router = express.Router();
 const json = express.json({ limit: '200kb' });
@@ -143,6 +146,9 @@ router.get('/me', wrap(async (req, res) => {
       firstSeenAt: client.first_seen_at || null, broadcastDate: client.broadcast_date || null,
       // null : pas encore répondu → l'espace client pose la question (fenêtre à la première connexion)
       marketing: client.marketing_optin === undefined ? null : client.marketing_optin,
+      // Code d'accès (lecture seule) : affiché dans « Mon accès » pour le retrouver au besoin
+      accessCode: require('./admin/client-access').readableCode(client),
+      billing: client.billing || null,
     },
     videos: videos.map(publicVideo),
     clientUploads: config.clientUploadsEnabled,
@@ -165,6 +171,25 @@ router.post('/client/login', json, wrap(async (req, res) => {
   clients.recordVisit(client.id, { force: true });
   await audit.record({ ip: req.ip, auditActorLabel: `Client (${client.name})` }, 'client_connexion', { targetType: 'client', targetId: client.id });
   res.json({ client: { id: client.id }, token });
+}));
+
+/**
+ * « Code oublié ? » : renvoie le code d'accès par e-mail, à l'adresse enregistrée sur la fiche.
+ * Réponse identique que l'adresse soit connue ou non.
+ */
+router.post('/client/forgot-code', json, wrap(async (req, res) => {
+  const email = String((req.body || {}).email || '').trim().toLowerCase().slice(0, 200);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Indiquez une adresse e-mail valide.' });
+  if (!forgotIpLimiter.hit(req.ip || 'inconnue') || !forgotMailLimiter.hit(email)) {
+    return res.status(429).json({ error: 'Trop de demandes. Patientez un moment avant de réessayer.' });
+  }
+  try {
+    const r = await require('./admin/client-access').sendForgottenCode(email, { req });
+    if (!r.sent && r.reason !== 'inconnu') console.warn(`[code oublié] non envoyé : ${r.reason}`);
+  } catch (e) {
+    console.error(`[code oublié] échec de l'envoi : ${e.message}`);
+  }
+  res.json({ ok: true, message: 'Si cette adresse correspond à un espace OpenStudio, votre code vient d’y être envoyé. Pensez à regarder dans les indésirables.' });
 }));
 
 /** Déconnexion de l'espace client sur ce navigateur. */
@@ -194,6 +219,32 @@ router.post('/me/marketing', json, wrap(async (req, res) => {
     targetType: 'client', targetId: client.id, detail: { marketing: optin ? 'oui' : 'non' },
   });
   res.json({ marketing: optin });
+}));
+
+/** Informations de facturation (Factures → Modifier) : enregistrées sur la fiche, visibles par l'équipe. */
+const BILLING_FIELDS = { company: 120, contact: 120, email: 200, address: 300, postalCode: 12, city: 80, country: 60, vat: 30, siret: 20, po: 60 };
+function cleanBilling(body) {
+  const b = {};
+  for (const [k, max] of Object.entries(BILLING_FIELDS)) b[k] = String((body || {})[k] == null ? '' : body[k]).replace(/\s+/g, ' ').trim().slice(0, max);
+  b.email = b.email.toLowerCase();
+  if (!b.company) return { error: 'Indiquez la raison sociale à faire figurer sur les factures.' };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(b.email)) return { error: 'Indiquez l’adresse e-mail qui recevra les factures.' };
+  if (!b.address || !b.postalCode || !b.city) return { error: 'Indiquez l’adresse de facturation complète.' };
+  if (b.siret && !/^\d{14}$/.test(b.siret.replace(/\s/g, ''))) return { error: 'Le SIRET compte 14 chiffres.' };
+  if (b.vat && !/^[A-Z]{2}[A-Z0-9]{2,13}$/i.test(b.vat.replace(/\s/g, ''))) return { error: 'Le numéro de TVA semble incorrect (ex. FR12345678901).' };
+  b.siret = b.siret.replace(/\s/g, '');
+  b.vat = b.vat.replace(/\s/g, '').toUpperCase();
+  if (!b.country) b.country = 'France';
+  return { value: b };
+}
+router.post('/me/billing', json, wrap(async (req, res) => {
+  const client = await requireClient(req, res);
+  if (!client) return;
+  const r = cleanBilling(req.body);
+  if (r.error) return res.status(400).json({ error: r.error });
+  await db.query('UPDATE clients SET billing = $2, billing_updated_at = now() WHERE id = $1', [client.id, JSON.stringify(r.value)]);
+  await audit.record({ ip: req.ip, auditActorLabel: `Client (${client.name})` }, 'facturation_modifiee', { targetType: 'client', targetId: client.id, detail: r.value });
+  res.json({ billing: r.value });
 }));
 
 /** Mode test : le client ajoute lui-même une vidéo (déjà envoyée via /api/uploads) à son package. */

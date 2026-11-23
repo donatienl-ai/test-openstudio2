@@ -195,12 +195,15 @@ async function captions(client, deliverableId, { regenerate = false } = {}) {
   const { rows } = await db.query('SELECT * FROM video_captions WHERE deliverable_id = $1', [d.id]);
   const existing = rows[0];
   const max = config.anthropic.regenerateMax;
-  if (existing && !regenerate) return publicCaptions(existing, max);
+  // Textes déjà rédigés par l'IA : relus tels quels. Textes de secours : refaits (gratuit), pour profiter
+  // des modèles à jour et de l'IA dès que sa clé est configurée.
+  if (existing && !regenerate && existing.source === 'ai') return publicCaptions(existing, max);
   if (existing && regenerate && existing.regen_count >= max) {
     throw new SocialError(`Vous avez déjà régénéré ces textes ${max} fois pour cette vidéo.`, 429, 'REGEN_LIMIT');
   }
   const ctx = { ...videoContext(client, d), transcript: await transcriptFor(d) };
-  const g = await captionsLib.generateCaptions(ctx);
+  const variant = existing ? existing.regen_count + (regenerate ? 1 : 0) : 0;
+  const g = await captionsLib.generateCaptions(ctx, { variant });
   const { rows: saved } = await db.query(
     `INSERT INTO video_captions (deliverable_id, captions, source, model, regen_count)
      VALUES ($1, $2, $3, $4, $5)

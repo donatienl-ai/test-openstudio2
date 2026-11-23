@@ -23,6 +23,7 @@ const { buildProjectPayload, interpretProjectStatus, estimateCredits, shortId, c
 const { isLiveOrder, liveTestGuard } = require('./opusclip/mode');
 const { probeDurationSec, renderFinal, buildForceStyle, addBumpers } = require('./media/ffmpeg');
 const { clipTranscript } = require('./social/transcript');
+const { capsuleTitle } = require('./media/keywords');
 const { mp4DurationSec } = require('./media/mp4duration');
 const subs = require('./media/subtitles');
 
@@ -198,6 +199,25 @@ function pickClipsForDuration(ranked, targetSec, toleranceSec) {
 }
 
 /**
+ * Plan de livraison : `max` capsules de `targetSec` secondes.
+ * 1. extraits assez longs (les mieux classés d'abord) ; 2. extraits plus courts à `toleranceSec` près ;
+ * 3. s'il en manque encore : suite d'un extrait assez long pour contenir une capsule de plus
+ *    (de targetSec à 2 × targetSec, etc.), pour que le client ait toujours son nombre de propositions.
+ * @returns {{ clip, startSec: number, part: number }[]}
+ */
+function planCapsules(ranked, targetSec, toleranceSec, max) {
+  const { long, short } = pickClipsForDuration(ranked, targetSec, toleranceSec);
+  const plan = [...long, ...short].slice(0, max).map((clip) => ({ clip, startSec: 0, part: 1 }));
+  for (let part = 2; plan.length < max && part <= 4; part += 1) {
+    for (const clip of long) {
+      if (plan.length >= max) break;
+      if (Number(clip.durationMs) >= part * targetSec * 1000 - 50) plan.push({ clip, startSec: (part - 1) * targetSec, part });
+    }
+  }
+  return plan;
+}
+
+/**
  * Habillage d'ouverture (logo de l'entreprise) et de fin (logo OpenMedias) en fondu, sur place.
  * Sans logo d'entreprise (mode test uniquement), le logo OpenMedias sert aussi à l'ouverture.
  */
@@ -227,27 +247,28 @@ async function finalizeCapsules(order, tmp) {
   // Durée choisie par le client, respectée à la seconde : extraits au moins aussi longs que la cible
   // (coupés ensuite exactement à la cible), puis, s'il en manque, extraits à moins de 1 s près.
   const target = Number(order.options.duration);
-  const { long, short } = pickClipsForDuration(ranked, target, mapping.capsules.durationToleranceSec ?? 1);
-  const clips = [...long, ...short].slice(0, delivery.maxClips);
-  if (!clips.length) {
+  const plan = planCapsules(ranked, target, mapping.capsules.durationToleranceSec ?? 1, delivery.maxClips);
+  if (!plan.length) {
     const got = all.map((c) => (Number.isFinite(c.durationMs) ? `${Math.round(c.durationMs / 1000)} s` : '?')).join(', ');
     throw new Error(`Aucun extrait OpusClip d'au moins ${target} s (reçus : ${got})`);
   }
-  console.log(`[order ${shortId(order.id)}] ${all.length} clip(s) proposés par OpusClip, ${clips.length} livré(s) à ${target} s`);
+  console.log(`[order ${shortId(order.id)}] ${all.length} clip(s) proposés par OpusClip, ${plan.length} livré(s) à ${target} s${plan.length < delivery.maxClips ? ` (${delivery.maxClips} attendus : extraits trop courts)` : ''}`);
   const done = await orders.existingClipIds(order.id);
   const base = slug(mapping.programmes[order.options.programmeId]?.title);
   const fmt = order.options.format.replace(':', 'x');
 
+  const titleCtx = { programme: mapping.programmes[order.options.programmeId]?.title || null };
+  const usedTitles = new Set();
   let n = 0;
-  for (const clip of clips) {
+  for (const { clip, startSec, part } of plan) {
     n += 1;
-    const clipId = String(clip.id || `${order.opus_project_id}-${n}`);
+    const clipId = String(clip.id || `${order.opus_project_id}-${n}`) + (part > 1 ? `#${part}` : '');
     if (done.has(clipId)) continue; // reprise après interruption
 
     const input = path.join(tmp, `clip-${n}.mp4`);
     const output = path.join(tmp, `final-${n}.mp4`);
     await downloadUrlToFile(clip.uriForExport, input);
-    await renderFinal({ input, output, logos, widthRatio: mapping.logos.widthRatio, marginRatio: mapping.logos.marginRatio, maxDurationSec: target });
+    await renderFinal({ input, output, logos, widthRatio: mapping.logos.widthRatio, marginRatio: mapping.logos.marginRatio, maxDurationSec: target, startSec });
     await applyBumpers(output, delivery.kind, logos, tmp, n);
     const finalSec = await probeDurationSec(output).catch(() => null);
 
@@ -256,18 +277,23 @@ async function finalizeCapsules(order, tmp) {
       : `${base}_capsule-${String(n).padStart(2, '0')}_${order.options.duration}s_${fmt}.mp4`;
     const key = `commandes/${order.id}/capsules/${fileName}`;
     const size = await storage.uploadFile(key, output);
+    // Titre : les mots-clés de ce qui est dit dans la partie livrée
+    const transcript = clipTranscript(clip, target, startSec) || null;
+    let title = await capsuleTitle(transcript, (part === 1 && clip.title) || (delivery.kind === 'teaser' ? 'Teaser' : `Capsule ${n}`), titleCtx);
+    if (usedTitles.has(title.toLowerCase())) title = `${title} (${n})`;
+    usedTitles.add(title.toLowerCase());
     await orders.addDeliverable({
       orderId: order.id,
       storageKey: key,
       fileName,
-      title: clip.title || (delivery.kind === 'teaser' ? 'Teaser' : `Capsule ${n}`),
+      title,
       // Durée réelle du fichier livré (et non celle de l'extrait OpusClip avant coupe)
       durationMs: finalSec ? Math.round(finalSec * 1000) : Number.isFinite(clip.durationMs) ? Math.min(Math.round(clip.durationMs), target * 1000) : null,
       sizeBytes: size,
       opusClipId: clipId,
       expiresAt: expiry(),
       // Texte prononcé dans la partie livrée : sert aux légendes des réseaux sociaux
-      transcript: clipTranscript(clip, target) || null,
+      transcript,
     });
     fs.rmSync(input, { force: true });
     fs.rmSync(output, { force: true });
@@ -351,4 +377,4 @@ async function finalizeSubtitles(order, tmp) {
   });
 }
 
-module.exports = { submit, poll, finalize, sourceKeyFor, pickClipsForDuration };
+module.exports = { submit, poll, finalize, sourceKeyFor, pickClipsForDuration, planCapsules };

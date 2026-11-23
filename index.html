@@ -391,6 +391,10 @@ tbody tr:hover td{background:color-mix(in srgb,var(--surface-2) 55%,transparent)
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
 
 /* Access */
+.forgot{margin-top:18px;padding:16px;border-radius:12px;background:var(--surface-2);display:flex;flex-direction:column;gap:10px}
+.forgot p{margin:0}
+.acc-code-v{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:12px 14px;border-radius:12px;background:var(--os-tint, #EEEEFF)}
+.acc-code-v .num{font-size:20px;font-weight:700;letter-spacing:.03em;white-space:nowrap;color:var(--os-navy, #1A1A2E)}
 .access-track{position:relative;height:10px;background:var(--surface-2);border-radius:5px;margin:34px 0 44px}
 .access-track .fill{position:absolute;left:0;top:0;bottom:0;background:var(--ink);border-radius:5px}
 .access-track .mk{position:absolute;top:-26px;transform:translateX(-50%);font-size:11.5px;color:var(--muted);white-space:nowrap;text-align:center}
@@ -1040,6 +1044,55 @@ em,i:not([class]){font-style:normal}
   .os-tbl.cmd .os-tr>:nth-child(6)>*,.os-tbl.em .os-tr>:nth-child(5)>*{flex:1;justify-content:center}
   .os-tbl.cmd .os-tr>:nth-child(5){font-weight:600}
 }
+/* Fenêtre de publication (centrée, 2 colonnes) */
+.soc-dr2{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:100%}
+.soc-side{background:var(--os-bg);padding:24px;display:flex;flex-direction:column;gap:14px;border-right:1px solid var(--os-line)}
+.soc-big{display:block;width:100%;aspect-ratio:9/16;max-height:440px;object-fit:cover;border-radius:16px;background:#000;box-shadow:0 12px 30px rgba(26,26,46,.18);position:sticky;top:0}
+.soc-big.r169{aspect-ratio:16/9}.soc-big.r11{aspect-ratio:1/1}.soc-big.ph{background:#3D3D6B}
+.soc-side-t{display:flex;flex-direction:column;gap:3px}.soc-side-t b{font-size:15px}.soc-side-t span{font-size:13px;color:var(--os-mut)}
+.soc-main{padding:24px 28px;display:flex;flex-direction:column;gap:28px;min-width:0}
+.soc-sec h4{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.soc-sec h4 .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--os-navy);color:#fff;font:600 12px Inter,sans-serif}
+.soc-auto{font:600 12px Inter,sans-serif;color:var(--os-blue);background:var(--os-tint);border-radius:999px;padding:4px 10px}
+.soc-chip .pl{font-style:normal;font-weight:700;margin-left:2px}
+.soc-tabs2{display:flex;gap:4px;padding:4px;background:var(--os-bg);border-radius:14px;overflow-x:auto;scrollbar-width:none}
+.soc-tabs2::-webkit-scrollbar{display:none}
+.soc-tabs2 button{flex:1 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;padding:0 14px;border:0;border-radius:10px;background:none;font:inherit;font-size:13.5px;font-weight:600;color:var(--os-mut);cursor:pointer;position:relative;white-space:nowrap}
+.soc-tabs2 button .ic svg{width:15px;height:15px;display:block}
+.soc-tabs2 button[aria-selected="true"]{background:#fff;color:var(--os-navy);box-shadow:0 1px 4px rgba(26,26,46,.12)}
+.soc-tabs2 button.youtube .ic{color:#FF0000}.soc-tabs2 button.instagram .ic{color:#E1306C}.soc-tabs2 button.tiktok .ic{color:#111}.soc-tabs2 button.linkedin .ic{color:#0A66C2}.soc-tabs2 button.facebook .ic{color:#1877F2}
+.soc-tabs2 .ov{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:#D2493A}
+.soc-post{border:1px solid var(--os-line);border-radius:16px;background:#fff;padding:16px 18px;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,box-shadow .15s}
+.soc-post:focus-within{border-color:var(--os-blue);box-shadow:0 0 0 4px var(--os-tint)}
+.soc-post-h{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.soc-post-h .av{width:36px;height:36px;border-radius:50%;background:var(--os-navy);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+.soc-post-h b{display:block;font-size:14px}
+.soc-post-h span{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--os-mut)}
+.soc-post-h .ic svg{width:13px;height:13px;display:block}
+.soc-post.youtube .soc-post-h .ic{color:#FF0000}.soc-post.instagram .soc-post-h .ic{color:#E1306C}.soc-post.linkedin .soc-post-h .ic{color:#0A66C2}.soc-post.facebook .soc-post-h .ic{color:#1877F2}
+.soc-ttl,.soc-ta{font:inherit;color:var(--os-navy);border:0;outline:none;background:none;padding:0;width:100%;box-sizing:border-box}
+.soc-ttl{font-size:17px;font-weight:700;padding:4px 0;border-bottom:1px dashed var(--os-line)}
+.soc-ta{font-size:15px;line-height:1.6;resize:vertical;min-height:120px}
+.soc-cnt{display:flex;justify-content:flex-end}
+.soc-count{font-size:12px;color:var(--os-mut);font-variant-numeric:tabular-nums}.soc-count.over{color:#C24A3A;font-weight:600}
+.soc-tipx{margin:6px 0 0;padding-top:10px;border-top:1px solid #EFEDE6;font-size:12.5px;line-height:1.5;color:var(--os-mut)}
+.soc-tipx::before{content:"💡 "}
+.soc-empty2{border:1.5px dashed var(--os-line2);border-radius:16px;padding:22px;font-size:14px;line-height:1.5;color:var(--os-mut);text-align:center}
+.soc-when{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+@media (max-width:860px){
+  .overlay.soc-ov{padding:0;place-items:end stretch}
+  .modal.soc-dw{max-height:94vh;border-radius:22px 22px 0 0}
+  .modal.soc-dw .modal-h{padding:18px 18px 12px}
+  .modal.soc-dw .modal-f{padding:12px 18px}
+  .soc-dr2{grid-template-columns:1fr}
+  .soc-side{flex-direction:row;align-items:center;padding:14px 18px;border-right:0;border-bottom:1px solid var(--os-line)}
+  .soc-big{width:56px;max-height:none;border-radius:10px;box-shadow:none;position:static;flex:none}.soc-big.r169{width:96px}.soc-big.r11{width:64px}
+  .soc-main{padding:18px;gap:24px}
+  .modal.soc-dw .modal-h h3{font-size:19px}
+  .soc-regen{white-space:nowrap;padding:6px 10px;font-size:12.5px}
+  .soc-sech{align-items:flex-start}
+  .soc-tabs2 button{padding:0 10px;font-size:13px}
+}
 /* Réseaux sociaux — zone « partage » de la carte vidéo et panneau de publication (version 2) */
 .vc-act{display:flex;flex-wrap:wrap;gap:8px}
 .vc-dl,.vc-pub{flex:1 1 112px;min-width:0;height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;font:inherit;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,transform .1s}
@@ -1122,9 +1175,26 @@ em,i:not([class]){font-style:normal}
 .mt-steps b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--os-line2);font-size:12px;font-weight:600}
 .mt-steps li.on{color:var(--os-navy);font-weight:600}.mt-steps li.on b{background:var(--os-blue);border-color:var(--os-blue);color:#fff}
 .mt-form{display:flex;flex-direction:column;gap:22px}
-.mt-sec{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:16px}
-.mt-sec legend{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:16px;color:var(--os-navy);padding:0;margin-bottom:12px}
+.mt-sec{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.mt-sec legend{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:15px;color:var(--os-navy);padding:0;margin-bottom:10px}
 .mt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.mt-list{display:flex;flex-direction:column;border:1px solid var(--os-line);border-radius:14px;overflow:hidden;background:#fff}
+.mt-row{font:inherit;text-align:left;cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 14px;border:0;border-top:1px solid var(--os-line);background:#fff;color:var(--os-navy);transition:background .12s}
+.mt-row:first-child{border-top:0}
+.mt-row:hover{background:var(--os-bg)}
+.mt-row[aria-checked="true"]{background:var(--os-tint)}
+.mt-row:focus-visible{outline:2px solid var(--os-blue);outline-offset:-2px}
+.mt-dot{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--os-line2);background:#fff;box-sizing:border-box}
+.mt-row[aria-checked="true"] .mt-dot{border:5px solid var(--os-blue)}
+.mt-name{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mt-name b{font-size:14px;font-weight:600}
+.mt-name small{font-size:12.5px;color:var(--os-mut);line-height:1.35}
+.mt-price{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right}
+.mt-price b{font-size:14px;font-weight:700;white-space:nowrap}
+.mt-price small{font-size:12px;color:var(--os-mut);white-space:nowrap}
+.bl-3{grid-template-columns:120px minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:640px){.bl-3{grid-template-columns:1fr}}
+.mt-who{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:var(--os-bg);font-size:14px;line-height:1.5}
 .mt-offers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .mt-offer{font:inherit;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:4px;padding:14px;border-radius:12px;border:1px solid var(--os-line2);background:#fff;color:var(--os-navy)}
 .mt-offer:hover{border-color:var(--os-navy)}
@@ -1166,9 +1236,10 @@ em,i:not([class]){font-style:normal}
 .soc-perf{font-size:12px;margin-left:auto}
 .soc-fail{margin:0;font-size:12px;color:#A34232}
 /* Panneau latéral */
-.overlay.soc-ov{place-items:stretch end;padding:0}
-.modal.soc-dw{max-width:520px;width:100%;height:100vh;max-height:100vh;border-radius:20px 0 0 20px;display:flex;flex-direction:column}
-.modal.soc-dw .modal-b{flex:1}
+.modal.soc-dw{max-width:980px;width:100%;max-height:min(92vh,880px);border-radius:24px;display:flex;flex-direction:column;overflow:hidden}
+.modal.soc-dw .modal-h{padding:24px 28px 16px;border-bottom:1px solid var(--os-line)}
+.modal.soc-dw .modal-b{flex:1;min-height:0;overflow:auto;padding:0}
+.modal.soc-dw .modal-f{padding:14px 28px;border-top:1px solid var(--os-line);background:#fff}
 .soc-drawer{display:flex;flex-direction:column;gap:18px}
 .soc-prev{display:block;width:auto;max-width:100%;max-height:300px;margin:0 auto;border-radius:10px;background:#000;aspect-ratio:9/16}
 .soc-prev.r169{aspect-ratio:16/9;width:100%}.soc-prev.r11{aspect-ratio:1/1}
@@ -1226,7 +1297,6 @@ em,i:not([class]){font-style:normal}
   .soc-tr{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:4px}
   .soc-tr .soc-nw{grid-column:1/-1;font-weight:600}
   .soc-tr [data-l]::before{content:attr(data-l) " : ";color:var(--os-mut);font-size:12px}
-  .modal.soc-dw{max-width:none;border-radius:0}
   .soc-prev{max-height:200px}
   .soc-perf{margin-left:0}
 }
@@ -2462,10 +2532,31 @@ function viewLogin() {
     </div>
     <button class="btn btn-ghost" style="width:100%;margin-top:16px" data-a="quick-test">${I('video')}Tester directement avec une de mes vidéos</button>
     <button class="btn btn-ghost" style="width:100%;margin-top:8px" data-a="quick-subs">${I('quote')}Sous-titrer une de mes vidéos</button>
-    <p class="small muted" style="margin-top:18px">Code perdu ? Contactez votre chargé de projet ou écrivez à <a href="mailto:contact@openmedias.fr">contact@openmedias.fr</a>.</p>
+    ${forgotHtml()}
     <p class="small" style="margin-top:10px"><a href="#" data-a="demo-admin">Accès équipe OpenMedias</a></p>
     <p class="small" style="margin-top:6px"><a href="#" data-a="demo-reset" class="muted">Réinitialiser la démonstration</a></p>
   </section></main>` + siteFooter();
+}
+/* « Code oublié ? » : le code est renvoyé par e-mail à l'adresse enregistrée par OpenMedias */
+function forgotHtml() {
+  const f = S.forgot;
+  if (!f) return `<p class="small muted" style="margin-top:18px"><button class="os-link" style="font-size:inherit" data-a="forgot-open">Code oublié ?</button></p>`;
+  if (f.done) return `<div class="forgot" role="status"><b>Demande envoyée</b><p class="small muted">${esc(f.done)}</p><button class="os-link" style="font-size:13px" data-a="forgot-close">Revenir à la connexion</button></div>`;
+  return `<div class="forgot"><b>Code oublié ?</b><p class="small muted">Indiquez l’adresse e-mail à laquelle OpenMedias vous a envoyé votre accès : nous vous renvoyons votre code.</p>
+    <label class="visually-hidden" for="forgot-mail">Adresse e-mail</label><input id="forgot-mail" class="input" type="email" autocomplete="email" placeholder="vous@entreprise.fr" value="${esc(f.email || '')}" data-in="forgot-mail">
+    ${f.err ? `<p class="err-msg" role="alert">${esc(f.err)}</p>` : ''}
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn btn-primary" data-a="forgot-send" ${f.busy ? 'disabled' : ''}>${f.busy ? 'Envoi…' : 'Recevoir mon code'}</button><button class="os-link" style="font-size:13px" data-a="forgot-close">Annuler</button></div></div>`;
+}
+async function forgotSend() {
+  const f = S.forgot; if (!f || f.busy) return;
+  const email = String(f.email || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { f.err = 'Indiquez une adresse e-mail valide.'; S.keepScroll = true; render(); return; }
+  f.busy = true; f.err = ''; S.keepScroll = true; render();
+  try {
+    if (!window.OpenStudio || !OpenStudio.forgotCode) throw new Error('Service indisponible pour le moment. Écrivez à contact@openmedias.fr.');
+    const r = await OpenStudio.forgotCode(email); f.done = r.message || 'Si cette adresse correspond à un espace, votre code vient d’y être envoyé.';
+  } catch (e) { f.err = e.message; }
+  f.busy = false; S.keepScroll = true; render();
 }
 function normCode(v) {
   const s = v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
@@ -2811,32 +2902,43 @@ function socApplyCaptions(r) {
 }
 function socLimit(p, f) { const d = SOC.d; return d && d.meta && d.meta.limits && d.meta.limits[p] ? d.meta.limits[p][f] : 2200; }
 function socCount(p, f) { const n = ((SOC.d.texts && SOC.d.texts[p] && SOC.d.texts[p][f]) || '').length; const lim = socLimit(p, f); return `<span class="soc-count ${n > lim ? 'over' : ''}" data-cnt="${p}|${f}">${n} / ${lim}</span>`; }
+const SOC_TIPS = {
+  youtube: 'Titre court avec le mot-clé au début · description de 2 à 3 phrases · #Shorts pour les vidéos verticales.',
+  instagram: 'La 1ʳᵉ ligne est la seule visible avant « plus » : soignez l’accroche · 3 à 5 hashtags.',
+  tiktok: 'Une à deux lignes, ton direct, une question pour faire réagir · 3 à 5 hashtags.',
+  linkedin: 'Accroche dès la 1ʳᵉ ligne, paragraphes courts, une question pour finir · 3 hashtags maximum.',
+  facebook: 'Ton accessible, 2 à 4 phrases et un appel à l’action clair.'
+};
 function socDrawerHtml() {
   const d = SOC.d; if (!d) return '';
-  const info = d.info;
-  const head = `<div class="soc-hd">${info ? `<video class="soc-mini ${osFmtCls(info.fmt)}" src="${esc(info.x.previewUrl)}" controls playsinline preload="metadata"></video>` : ''}<div class="soc-hd-t"><b>${esc(info ? info.title : 'Vidéo')}</b><span>${esc([info && info.o.options && info.o.options.videoTitle, info && osMMSS(info.x.durationMs)].filter(Boolean).join(' · '))}</span></div></div>`;
+  const info = d.info; const c = client();
+  const side = `<aside class="soc-side">${info ? `<video class="soc-big ${osFmtCls(info.fmt)}" src="${esc(info.x.previewUrl)}" controls playsinline preload="metadata"></video>` : '<div class="soc-big ph"></div>'}<div class="soc-side-t"><b>${esc(info ? info.title : 'Vidéo')}</b><span>${esc([info && info.o.options && info.o.options.videoTitle, info && osMMSS(info.x.durationMs)].filter(Boolean).join(' · '))}</span></div></aside>`;
   const chips = SOC_NETS.map(p => {
     const a = socAcc(p);
     if (socOk(p)) { const on = d.checked.includes(p); return `<button type="button" class="soc-chip ${p}${on ? ' sel' : ''}" data-a="soc-toggle" data-arg="${p}" aria-pressed="${on}"><span class="ic">${SOC_ICON[p]}</span>${SOC_LABEL[p]}<i class="ck" aria-hidden="true">✓</i></button>`; }
-    return `<button type="button" class="soc-chip add" data-a="soc-net" data-arg="${p}|${esc(d.videoId)}"><span class="ic">${SOC_ICON[p]}</span>${a.reauthRequired ? 'Reconnecter' : 'Connecter'} ${SOC_LABEL[p]}</button>`;
+    return `<button type="button" class="soc-chip add" data-a="soc-net" data-arg="${p}|${esc(d.videoId)}"><span class="ic">${SOC_ICON[p]}</span>${a.reauthRequired ? 'Reconnecter' : 'Connecter'} ${SOC_LABEL[p]}<i class="pl" aria-hidden="true">+</i></button>`;
   }).join('');
-  const where = `<section class="soc-sec"><h4>Où publier ?</h4><div class="soc-chips">${chips}</div>${d.checked.includes('facebook') && SOC.acc.facebookPage ? `<p class="soc-note">Facebook : publication sur la Page « ${esc(SOC.acc.facebookPage.name || 'sélectionnée')} ».</p>` : ''}</section>`;
+  const where = `<section class="soc-sec"><h4><span class="n">1</span>Où publier ?</h4><div class="soc-chips">${chips}</div>${d.checked.includes('facebook') && SOC.acc.facebookPage ? `<p class="soc-note">Facebook : publication sur la Page « ${esc(SOC.acc.facebookPage.name || 'sélectionnée')} ».</p>` : ''}</section>`;
+  const tab = d.checked.includes(d.tab) ? d.tab : d.checked[0];
   let texts = '';
-  if (!d.checked.length) texts = `<p class="soc-note">${SOC_NETS.some(socOk) ? 'Sélectionnez au moins un réseau.' : 'Connectez un réseau pour commencer : une fenêtre officielle du réseau s’ouvre, puis vous revenez ici.'}</p>`;
-  else if (d.loading) texts = `<div class="soc-load" aria-live="polite"><span class="bk-spin" aria-hidden="true"></span>${d.regen ? 'Nouvelle rédaction des textes…' : 'Préparation des textes…'}</div>`;
-  else if (d.texts) texts = d.checked.map(p => {
-    const t = d.texts[p] || {};
-    const body = p === 'youtube'
-      ? `<label class="soc-lab" for="soc-yt-t">Titre ${socCount('youtube', 'title')}</label><input class="soc-in" id="soc-yt-t" data-in="soc-txt" data-arg="youtube|title" value="${esc(t.title || '')}"><label class="soc-lab" for="soc-yt-d">Description ${socCount('youtube', 'description')}</label><textarea class="soc-in" id="soc-yt-d" rows="4" data-in="soc-txt" data-arg="youtube|description">${esc(t.description || '')}</textarea>`
-      : `<textarea class="soc-in" id="soc-tx-${p}" rows="4" aria-label="Texte ${SOC_LABEL[p]}" data-in="soc-txt" data-arg="${p}|caption">${esc(t.caption || '')}</textarea>`;
-    return `<div class="soc-card ${p}"><div class="soc-card-h"><span class="ic">${SOC_ICON[p]}</span><b>${SOC_LABEL[p]}</b>${p === 'youtube' ? '' : socCount(p, 'caption')}</div>${body}</div>`;
-  }).join('');
-  const regen = d.texts && !d.loading && d.checked.length ? `<button type="button" class="soc-regen" data-a="soc-regen" ${d.meta && d.meta.regenerationsLeft > 0 ? '' : 'disabled'} title="${d.meta ? `${d.meta.regenerationsLeft} restante${d.meta.regenerationsLeft > 1 ? 's' : ''}` : ''}">↻ Régénérer</button>` : '';
-  const textSec = `<section class="soc-sec"><div class="soc-sech"><h4>Textes</h4>${regen}</div>${texts}${d.texts && d.checked.length && !d.loading ? `<p class="soc-note">${d.meta && d.meta.source === 'fallback' ? 'Textes proposés à partir du titre : personnalisez-les librement.' : 'Rédigés à partir de la vidéo, adaptés à chaque réseau : relisez-les et modifiez-les librement.'}</p>` : ''}</section>`;
+  if (!d.checked.length) texts = `<div class="soc-empty2">${SOC_NETS.some(socOk) ? 'Sélectionnez au moins un réseau.' : 'Connectez un réseau pour commencer : une fenêtre officielle du réseau s’ouvre, puis vous revenez ici avec un texte déjà rédigé.'}</div>`;
+  else if (d.loading) texts = `<div class="soc-load" aria-live="polite"><span class="bk-spin" aria-hidden="true"></span>${d.regen ? 'Nouvelle rédaction des textes…' : 'Rédaction de vos textes pour chaque réseau…'}</div>`;
+  else if (d.texts) {
+    const over = q => (q === 'youtube' ? ['title', 'description'] : ['caption']).some(f => (((d.texts[q] || {})[f]) || '').length > socLimit(q, f));
+    const tabs = d.checked.length > 1 ? `<div class="soc-tabs2" role="tablist" aria-label="Texte par réseau">${d.checked.map(q => `<button type="button" role="tab" class="${q}" data-a="soc-tab" data-arg="${q}" aria-selected="${q === tab}"><span class="ic">${SOC_ICON[q]}</span>${SOC_LABEL[q]}${over(q) ? '<i class="ov" aria-label="texte trop long"></i>' : ''}</button>`).join('')}</div>` : '';
+    const t = d.texts[tab] || {};
+    const body = tab === 'youtube'
+      ? `<input class="soc-ttl" id="soc-yt-t" data-in="soc-txt" data-arg="youtube|title" value="${esc(t.title || '')}" aria-label="Titre YouTube" placeholder="Titre de la vidéo"><div class="soc-cnt">${socCount('youtube', 'title')}</div><textarea class="soc-ta" id="soc-yt-d" rows="6" data-in="soc-txt" data-arg="youtube|description" aria-label="Description YouTube" placeholder="Description">${esc(t.description || '')}</textarea><div class="soc-cnt">${socCount('youtube', 'description')}</div>`
+      : `<textarea class="soc-ta" id="soc-tx-${tab}" rows="${tab === 'linkedin' ? 10 : 7}" aria-label="Texte ${SOC_LABEL[tab]}" data-in="soc-txt" data-arg="${tab}|caption">${esc(t.caption || '')}</textarea><div class="soc-cnt">${socCount(tab, 'caption')}</div>`;
+    texts = `${tabs}<div class="soc-post ${tab}" role="tabpanel"><div class="soc-post-h"><span class="av" aria-hidden="true">${esc(osInitials(c.name))}</span><div><b>${esc(c.name)}</b><span><span class="ic">${SOC_ICON[tab]}</span>${SOC_LABEL[tab]}</span></div></div>${body}<p class="soc-tipx">${SOC_TIPS[tab]}</p></div>`;
+  }
+  const auto = d.texts && !d.loading && d.checked.length ? `<span class="soc-auto">✦ Proposés automatiquement</span>` : '';
+  const regen = d.texts && !d.loading && d.checked.length ? `<button type="button" class="soc-regen" data-a="soc-regen" ${d.meta && d.meta.regenerationsLeft > 0 ? '' : 'disabled'} title="${d.meta ? `${d.meta.regenerationsLeft} restante${d.meta.regenerationsLeft > 1 ? 's' : ''}` : ''}">↻ Autre proposition</button>` : '';
+  const textSec = `<section class="soc-sec"><div class="soc-sech"><h4><span class="n">2</span>Vos textes ${auto}</h4>${regen}</div>${texts}</section>`;
   const minAt = socLocal(new Date(Date.now() + 10 * 60000)); const maxAt = socLocal(new Date(Date.now() + 7 * 86400000));
-  const when = `<section class="soc-sec"><h4>Quand ?</h4><div class="os-seg soc-seg" role="group" aria-label="Quand publier"><button type="button" data-a="soc-when-set" data-arg="now" aria-pressed="${d.when === 'now'}">Maintenant</button><button type="button" data-a="soc-when-set" data-arg="later" aria-pressed="${d.when === 'later'}">Programmer</button></div>
-    ${d.when === 'later' ? `<div class="soc-at"><input type="datetime-local" class="soc-in" data-in="soc-at" min="${minAt}" max="${maxAt}" value="${esc(d.at || '')}" aria-label="Date et heure de publication"><span class="soc-note">Heure de Paris · jusqu’à 7 jours à l’avance</span></div>` : ''}</section>`;
-  return `<div class="soc-dr">${head}${where}${textSec}${when}${d.err ? `<p class="soc-err" role="alert">${esc(d.err)}</p>` : ''}</div>`;
+  const when = `<section class="soc-sec"><h4><span class="n">3</span>Quand ?</h4><div class="soc-when"><div class="os-seg soc-seg" role="group" aria-label="Quand publier"><button type="button" data-a="soc-when-set" data-arg="now" aria-pressed="${d.when === 'now'}">Maintenant</button><button type="button" data-a="soc-when-set" data-arg="later" aria-pressed="${d.when === 'later'}">Programmer</button></div>
+    ${d.when === 'later' ? `<div class="soc-at"><input type="datetime-local" class="soc-in" data-in="soc-at" min="${minAt}" max="${maxAt}" value="${esc(d.at || '')}" aria-label="Date et heure de publication"><span class="soc-note">Heure de Paris · jusqu’à 7 jours à l’avance</span></div>` : ''}</div></section>`;
+  return `<div class="soc-dr2">${side}<div class="soc-main">${where}${textSec}${when}${d.err ? `<p class="soc-err" role="alert">${esc(d.err)}</p>` : ''}</div></div>`;
 }
 const socLocal = dt => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(dt).replace(' ', 'T');
 function socDrawerFoot() {
@@ -3076,6 +3178,39 @@ function osCommandes(c) {
     <p class="mut" style="margin:0;font-size:14px">Les factures de chaque commande sont dans <a href="#" data-a="nav" data-arg="factures">Factures</a>.</p>`;
 }
 /* ---------- Factures ---------- */
+const billData = c => (osLive() && BK.client && BK.client.billing) || S.billing || null;
+function billRows(c) {
+  const b = billData(c);
+  if (!b) return [['Société', c.name], ['Contact', c.contact], ['E-mail', c.email], ['Chargée de projet', c.manager]].filter(x => x[1]);
+  return [['Raison sociale', b.company], ['Contact', b.contact], ['E-mail de facturation', b.email], ['Adresse', [b.address, `${b.postalCode} ${b.city}`, b.country && b.country !== 'France' ? b.country : ''].filter(Boolean).join('\n')], ['N° de TVA', b.vat], ['SIRET', b.siret], ['Référence de commande', b.po]].filter(x => x[1]);
+}
+function billStart() {
+  const c = client() || {}; const b = billData(c) || {};
+  S.modal = { type: 'billing', err: '', saving: false, f: { company: b.company || c.name || '', contact: b.contact || c.contact || '', email: b.email || c.email || '', address: b.address || '', postalCode: b.postalCode || '', city: b.city || '', country: b.country || 'France', vat: b.vat || '', siret: b.siret || '', po: b.po || '' } };
+  render();
+}
+function billHtml(m) {
+  const f = m.f;
+  const fld = (k, label, attrs = '', opt = false) => `<div class="os-field"><label for="bl-${k}">${label}${opt ? ' <span class="mut" style="font-weight:400">(facultatif)</span>' : ''}</label><input id="bl-${k}" class="os-in" data-in="bill" data-arg="${k}" value="${esc(f[k])}" ${attrs}></div>`;
+  return `<p class="mut" style="margin:0 0 18px">Ces informations figureront sur vos prochaines factures OpenMedias.</p>
+  <div class="mt-form"><div class="mt-grid">
+    ${fld('company', 'Raison sociale', 'autocomplete="organization"')}${fld('contact', 'Contact facturation', 'autocomplete="name"', true)}
+    ${fld('email', 'E-mail qui reçoit les factures', 'type="email" autocomplete="email"')}${fld('po', 'Référence de commande', '', true)}
+  </div>
+  ${fld('address', 'Adresse', 'autocomplete="street-address"')}
+  <div class="mt-grid bl-3">${fld('postalCode', 'Code postal', 'autocomplete="postal-code" inputmode="numeric"')}${fld('city', 'Ville', 'autocomplete="address-level2"')}${fld('country', 'Pays', 'autocomplete="country-name"')}</div>
+  <div class="mt-grid">${fld('vat', 'N° de TVA', 'placeholder="FR12345678901"', true)}${fld('siret', 'SIRET', 'inputmode="numeric" placeholder="14 chiffres"', true)}</div>
+  ${m.err ? `<p class="mt-err" role="alert">${esc(m.err)}</p>` : ''}</div>`;
+}
+async function billSave() {
+  const m = S.modal; if (!m || m.type !== 'billing' || m.saving) return;
+  m.saving = true; m.err = ''; S.keepScroll = true; render();
+  try {
+    if (osLive()) { const r = await OpenStudio.setBilling(m.f); BK.client.billing = r.billing; }
+    else S.billing = { ...m.f };
+    S.modal = null; render(); toast('Informations de facturation enregistrées.');
+  } catch (e) { m.saving = false; m.err = e.message; S.keepScroll = true; render(); }
+}
 /** Recharges de crédits payées par carte, avec leur facture Stripe. */
 function crFacturesHtml() {
   if (!osLive()) return '';
@@ -3096,8 +3231,8 @@ function osFactures(c) {
         : `<div class="os-empty"><b style="color:var(--os-navy)">Aucune facture pour le moment</b><span>Vos commandes apparaîtront ici avec leur facturation.</span></div>`}${crFacturesHtml()}</div>
       <aside aria-labelledby="fact-info" style="flex:1 1 280px;min-width:0;background:#fff;border:1px solid var(--os-line);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:16px">
         <h2 id="fact-info" style="margin:0;font-size:16px;font-weight:600;font-family:Inter,sans-serif">Informations de facturation</h2>
-        <dl style="margin:0;display:flex;flex-direction:column;gap:12px;font-size:14px">${[['Société', c.name], ['Contact', c.contact], ['E-mail', c.email], ['Chargée de projet', c.manager]].filter(x => x[1]).map(([k, v]) => `<div style="display:flex;flex-direction:column;gap:2px"><dt class="mut" style="font-size:13px">${k}</dt><dd style="margin:0">${esc(v)}</dd></div>`).join('')}</dl>
-        <a class="os-pillbtn s" style="justify-content:center;height:44px" href="mailto:${esc(c.managerEmail || 'contact@openmedias.fr')}?subject=${encodeURIComponent('Informations de facturation – ' + c.name)}">Modifier</a>
+        <dl style="margin:0;display:flex;flex-direction:column;gap:12px;font-size:14px">${billRows(c).map(([k, v]) => `<div style="display:flex;flex-direction:column;gap:2px"><dt class="mut" style="font-size:13px">${k}</dt><dd style="margin:0;white-space:pre-line">${esc(v)}</dd></div>`).join('')}</dl>
+        <button class="os-pillbtn s" style="justify-content:center;height:44px" data-a="bill-edit">Modifier</button>
       </aside></div>`;
 }
 /* ---------- Vidéos prêtes (maquette 6) ---------- */
@@ -3158,7 +3293,7 @@ async function crLoad(force) {
 }
 function crPill(cls = '') {
   if (!osLive()) return '';
-  if (!CR.d && !CR.loading) setTimeout(crLoad, 0);
+  if (!CR.d && !CR.loading && !CR.err) setTimeout(crLoad, 0); // en cas d'erreur : pas de nouvel essai à chaque affichage
   const b = crBal(); const low = b != null && b < crPrices().capsules;
   return `<button type="button" class="os-cr ${cls}${low ? ' low' : ''}" data-a="cr-open" aria-label="${b == null ? 'Mes crédits' : `Mes crédits : ${crN(b)} disponibles`}">${CR_ICO}<b>${b == null ? '…' : crN(b)}</b><span>crédits</span></button>`;
 }
@@ -3252,24 +3387,29 @@ function mtHtml(m) {
   const f = m.f; const vids = osPkgVideos();
   const progs = (vids.length ? vids.map(v => [v.media, v.title].filter(Boolean).join(' — ')) : []).concat(['Plusieurs émissions', 'Autre (à préciser)']);
   const offers = !MT.offers ? `<div class="mt-load"><span class="bk-spin" aria-hidden="true"></span>Chargement des prestations…</div>`
-    : `<div class="mt-offers" role="radiogroup" aria-label="Prestation">${MT.offers.map(o => `<button type="button" role="radio" class="mt-offer" data-a="mt-offer" data-arg="${esc(o.id)}" aria-checked="${f.offerId === o.id}"><span class="t">${esc(o.title)}</span><span class="d">${esc(o.desc)}</span><span class="p">${o.priceHT == null ? 'Prix à définir avec vous' : `${mtEur(o.priceHT)} HT <small>soit ${mtEur(o.priceTTC)} TTC</small>`}</span></button>`).join('')}</div>`;
-  return `<ol class="mt-steps" aria-label="Étapes"><li class="on" aria-current="step"><b>1</b>Votre demande</li><li><b>2</b>Paiement sécurisé</li></ol>
-  <p class="mut" style="margin:0 0 20px">Un monteur de l'équipe OpenMedias réalise votre vidéo à la main. Décrivez-nous votre projet : vous réglez ensuite en ligne et nous lançons le montage.</p>
-  <div class="mt-form">
-    <fieldset class="mt-sec"><legend>Vos coordonnées</legend>
-      <div class="mt-grid">
+    : `<div class="mt-list" role="radiogroup" aria-label="Prestation">${MT.offers.map(o => `<button type="button" role="radio" class="mt-row" data-a="mt-offer" data-arg="${esc(o.id)}" aria-checked="${f.offerId === o.id}"><span class="mt-dot" aria-hidden="true"></span><span class="mt-name"><b>${esc(o.title)}</b><small>${esc(o.desc)}</small></span><span class="mt-price">${o.priceHT == null ? '<b>Sur mesure</b><small>prix fixé ensemble</small>' : `<b>${mtEur(o.priceHT)} HT</b><small>${mtEur(o.priceTTC)} TTC</small>`}</span></button>`).join('')}</div>`;
+  // Coordonnées reprises de l'espace client : résumé sur une ligne, modifiable au besoin
+  const known = f.company.trim() && f.name.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim());
+  const contact = known && !m.editContact
+    ? `<div class="mt-who"><span><b>${esc(f.name)}</b> · ${esc(f.company)}<br><span class="mut">${esc(f.email)}${f.phone ? ` · ${esc(f.phone)}` : ''}</span></span><button type="button" class="os-link" style="font-size:13px" data-a="mt-edit-contact">Modifier</button></div>`
+    : `<div class="mt-grid">
         <div class="os-field"><label for="mt-co">Entreprise</label><input id="mt-co" class="os-in" autocomplete="organization" data-in="mt" data-arg="company" value="${esc(f.company)}"></div>
         <div class="os-field"><label for="mt-na">Nom et prénom</label><input id="mt-na" class="os-in" autocomplete="name" data-in="mt" data-arg="name" value="${esc(f.name)}"></div>
         <div class="os-field"><label for="mt-em">E-mail</label><input id="mt-em" type="email" class="os-in" autocomplete="email" data-in="mt" data-arg="email" value="${esc(f.email)}"></div>
         <div class="os-field"><label for="mt-ph">Téléphone <span class="mut" style="font-weight:400">(facultatif)</span></label><input id="mt-ph" type="tel" class="os-in" autocomplete="tel" data-in="mt" data-arg="phone" value="${esc(f.phone)}"></div>
-      </div></fieldset>
+      </div>`;
+  return `<ol class="mt-steps" aria-label="Étapes"><li class="on" aria-current="step"><b>1</b>Votre demande</li><li><b>2</b>Paiement sécurisé</li></ol>
+  <div class="mt-form">
+    <fieldset class="mt-sec"><legend>Quelle prestation ?</legend>${offers}</fieldset>
     <fieldset class="mt-sec"><legend>Votre vidéo</legend>
-      <div class="os-field"><span>Prestation</span>${offers}</div>
-      <div class="os-field"><label for="mt-pr">À partir de quelle émission ?</label><select id="mt-pr" class="os-in" data-in="mt" data-arg="programme">${progs.map(t => `<option ${f.programme === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
-      <div class="os-field"><label for="mt-de">Décrivez la vidéo souhaitée</label><textarea id="mt-de" class="os-in" rows="5" data-in="mt" data-arg="description" placeholder="Ex. : trois capsules de 30 secondes pour LinkedIn, centrées sur notre nouvelle usine, avec le passage où nous parlons de recrutement.">${esc(f.description)}</textarea></div>
-      <div class="os-field"><span>Formats souhaités</span><div class="os-chipsel" role="group" aria-label="Formats souhaités">${MT_FORMATS.map(l => `<button type="button" data-a="mt-fmt" data-arg="${l}" aria-pressed="${f.formats.includes(l)}">${l}</button>`).join('')}</div></div>
-      <div class="os-field"><label for="mt-dl">Pour quand ? <span class="mut" style="font-weight:400">(facultatif)</span></label><input id="mt-dl" type="date" class="os-in" style="max-width:240px" min="${new Date().toISOString().slice(0, 10)}" data-in="mt" data-arg="deadline" value="${esc(f.deadline)}"></div>
+      <div class="os-field"><label for="mt-de">Décrivez la vidéo souhaitée</label><textarea id="mt-de" class="os-in" rows="3" data-in="mt" data-arg="description" placeholder="Ex. : trois capsules de 30 s pour LinkedIn, sur notre nouvelle usine.">${esc(f.description)}</textarea></div>
+      <div class="mt-grid">
+        <div class="os-field"><label for="mt-pr">Émission</label><select id="mt-pr" class="os-in" data-in="mt" data-arg="programme">${progs.map(t => `<option ${f.programme === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
+        <div class="os-field"><label for="mt-dl">Pour quand ? <span class="mut" style="font-weight:400">(facultatif)</span></label><input id="mt-dl" type="date" class="os-in" min="${new Date().toISOString().slice(0, 10)}" data-in="mt" data-arg="deadline" value="${esc(f.deadline)}"></div>
+      </div>
+      <div class="os-field"><span>Formats <span class="mut" style="font-weight:400">(facultatif)</span></span><div class="os-chipsel" role="group" aria-label="Formats souhaités">${MT_FORMATS.map(l => `<button type="button" data-a="mt-fmt" data-arg="${l}" aria-pressed="${f.formats.includes(l)}">${l}</button>`).join('')}</div></div>
     </fieldset>
+    <fieldset class="mt-sec"><legend>Vos coordonnées</legend>${contact}</fieldset>
     ${m.err ? `<p class="mt-err" role="alert">${esc(m.err)}</p>` : ''}
   </div>`;
 }
@@ -3283,7 +3423,7 @@ async function mtSend() {
   const f = m.f; const o = mtOffer(m);
   const miss = !o ? 'Choisissez la prestation souhaitée.' : !f.company.trim() ? 'Indiquez le nom de votre entreprise.' : !f.name.trim() ? 'Indiquez vos nom et prénom.'
     : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim()) ? 'Indiquez une adresse e-mail valide.' : f.description.trim().length < 10 ? 'Décrivez en quelques mots la vidéo souhaitée.' : '';
-  if (miss) { m.err = miss; S.keepScroll = true; render(); return; }
+  if (miss) { m.err = miss; if (/entreprise|nom|e-mail/.test(miss)) m.editContact = true; S.keepScroll = true; render(); return; }
   m.err = ''; m.sending = true; S.keepScroll = true; render();
   try {
     const r = await OpenStudio.montage.request({ offerId: f.offerId, contact: { company: f.company, name: f.name, email: f.email, phone: f.phone }, brief: { description: f.description, programme: f.programme, formats: f.formats, deadline: f.deadline } });
@@ -5055,19 +5195,20 @@ function pDownloads(c) {
 /* ---- Accès ---- */
 function pAccess(c) {
   const total = Math.round((c.expiresAt - c.activatedAt) / DAY); const used = Math.round((TODAY - c.activatedAt) / DAY); const left = daysLeft(c);
-  const mk = [[3, 'Rappel J+3'], [15, 'Idées J+15'], [total - 5, 'Rappel J-5']];
+  const code = osLive() ? (BK.client && BK.client.accessCode) : c.code;
   return `<div class="page-head"><div><h1>Mon accès</h1><p>Votre espace reste ouvert ${total} jours après votre première connexion.</p></div></div>
   <div class="grid accgrid">
     <div class="panel">
       <div class="row" style="gap:26px;align-items:center">${ring(left, total, 120)}<div><h2>Il vous reste ${left} jours</h2><p class="muted" style="margin-top:6px">Accès activé le ${fmtD(c.activatedAt)}, valable jusqu'au ${fmtD(c.expiresAt)} inclus.</p></div></div>
-      <div class="access-track" aria-hidden="true"><span class="fill" style="width:${used / total * 100}%"></span>${mk.map(([d, l]) => `<span class="mk" style="left:${d / total * 100}%">${l}</span>`).join('')}<span class="now" style="left:${used / total * 100}%"></span><span class="ends" style="left:0">${fmtShort(c.activatedAt)}</span><span class="ends" style="right:0">${fmtShort(c.expiresAt)}</span></div>
-      <h3>Ce qui se passe à l'expiration</h3>
+      <h3 style="margin-top:26px">Ce qui se passe à l'expiration</h3>
       <p class="muted" style="margin-top:6px;max-width:62ch">Votre espace passe en lecture seule pendant 7 jours pour vous laisser récupérer vos fichiers, puis il est fermé. Vos contenus sont ensuite supprimés de nos serveurs, conformément à notre politique de confidentialité. Pensez à télécharger vos capsules avant cette date.</p>
       <div class="row" style="margin-top:18px"><button class="btn btn-primary" data-a="ext-modal">${I('clock')}Demander une prolongation</button><button class="btn btn-ghost" data-a="nav" data-arg="downloads">${I('down')}Mes téléchargements</button></div>
     </div>
     <div class="stack">
       <div class="panel"><h3>Votre chargée de projet</h3><div class="row" style="margin-top:14px;flex-wrap:nowrap"><span class="logo-tile" style="background:#3B3BFA;color:#fff;border-radius:50%">LD</span><div><b>${esc(c.manager)}</b><div class="small muted">OpenMedias</div></div></div>
         <div class="stack" style="margin-top:14px;gap:8px"><a class="btn btn-ghost btn-sm" href="mailto:lola@openmedias.fr">${I('mail')}lola@openmedias.fr</a><a class="btn btn-ghost btn-sm" href="tel:+33785880962">07 85 88 09 62</a></div></div>
+      <div class="panel acc-code"><h3>Votre code d'accès</h3>${code ? `<div class="acc-code-v"><span class="num" id="acc-code">${esc(code)}</span><button class="btn btn-ghost btn-sm" data-a="copy-code" data-arg="${esc(code)}">${I('copy')}Copier</button></div>` : `<p class="muted small" style="margin-top:8px">${osLive() && !BK.client ? 'Chargement…' : 'Votre code vous a été envoyé par e-mail par l’équipe OpenMedias.'}</p>`}
+        <p class="muted small" style="margin-top:10px">C'est ce code qui vous permet de vous connecter. Il ne peut pas être modifié. En cas d'oubli, cliquez sur « Code oublié ? » sur la page de connexion : il vous sera renvoyé par e-mail.</p></div>
       <div class="panel"><h3>Sécurité de votre espace</h3><p class="muted small" style="margin-top:6px">Votre code est personnel : ne le partagez pas en dehors de votre entreprise. Seules les personnes disposant du code peuvent voir vos contenus, et chaque téléchargement utilise un lien temporaire.</p></div>
     </div>
   </div>`;
@@ -5213,6 +5354,10 @@ function modalHtml() {
     title = flowKind() === 'subtitles' ? 'Modifier les sous-titres' : 'Modifier le format';
     h = `<p class="muted" style="margin:0 0 20px">Vos choix sont repris dans le récapitulatif.</p>` + flowModHtml();
     foot = `<button class="os-pillbtn s" style="height:48px;padding:0 22px" data-a="close">Annuler</button><button class="os-cta" data-a="close">Enregistrer</button>`;
+  } else if (m.type === 'billing') {
+    title = 'Informations de facturation';
+    h = billHtml(m);
+    foot = `<button class="os-pillbtn s" style="height:48px;padding:0 22px" data-a="close">Annuler</button><button class="os-cta" data-a="bill-save" ${m.saving ? 'disabled' : ''}>${m.saving ? 'Enregistrement…' : 'Enregistrer'}</button>`;
   } else if (m.type === 'soc-pub') {
     title = 'Publier sur vos réseaux';
     h = socDrawerHtml();
@@ -5564,6 +5709,7 @@ const A = {
   'em-go': a => { const [kind, vid] = String(a).split('|'); S.cap.flowKind = kind; if (vid) S.cap.bkVideoId = vid; S.cap.bkOrderId = null; S.cap.checked = false; S.cap.bkStep = S.cap.bkVideoId ? 3 : 1; S.modal = null; go('client', 'capsules'); },
   /* Confier ma vidéo à un monteur */
   'mt-open': () => mtStart(),
+  'mt-edit-contact': () => { const m = S.modal; if (!m || m.type !== 'montage') return; m.editContact = true; S.keepScroll = true; render(); const i = document.getElementById('mt-co'); if (i) i.focus(); },
   'mt-offer': a => { const m = S.modal; if (!m || m.type !== 'montage') return; m.f.offerId = a; m.err = ''; S.keepScroll = true; render(); },
   'mt-fmt': a => { const m = S.modal; if (!m || m.type !== 'montage') return; m.f.formats = m.f.formats.includes(a) ? m.f.formats.filter(x => x !== a) : [...m.f.formats, a]; S.keepScroll = true; render(); },
   'mt-send': () => mtSend(),
@@ -5571,6 +5717,12 @@ const A = {
   'bk-orders-reload': () => { bkLoadOrders(true); },
   'bk-reload': () => { BK.videos = null; BK.err = ''; render(); bkLoadVideos(true); },
   'bk-subs': () => { if (SUB.lang !== 'fr' && !unlocked('st-lang')) { needOffer('st-lang'); return; } if (SUB.lang === 'fr' && !canStFr(SUB.name)) { needOffer('st-fr'); return; } if (SUB.lang === 'fr') ent().stFrVideo = SUB.name; bkSubmitSubtitles(); },
+  'bill-edit': () => billStart(),
+  'bill-save': () => billSave(),
+  'forgot-open': () => { S.forgot = { email: '' }; S.keepScroll = true; render(); const i = document.getElementById('forgot-mail'); if (i) i.focus(); },
+  'forgot-close': () => { S.forgot = null; S.keepScroll = true; render(); },
+  'forgot-send': () => forgotSend(),
+  'copy-code': a => { try { navigator.clipboard.writeText(a); toast('Code copié.'); } catch (e) { toast(a); } },
   'do-login': () => { const inp = document.getElementById('code'); doLogin(normCode(inp ? inp.value : '')); },
   'quick-test': () => { const c = CLIENTS.find(x => x.id === 'c1'); S.clientId = 'c1'; S.asAdmin = false; S.preview = null; c.lastLogin = new Date(TODAY); resetClientState(); go('client', 'test'); },
   't-nosubs': () => { T.cues = []; T.cuesName = ''; T.results = null; S.keepScroll = true; render(); },
@@ -5667,6 +5819,8 @@ document.addEventListener('input', e => {
   else if (k === 'm-f') { const m = mediaById(S.admin.arg); m[el.dataset.arg] = el.value; clearTimeout(window.__ms); window.__ms = setTimeout(saveMedias, 600); if (el.type === 'color') { const hx = document.querySelector(`[data-in="m-hex"][data-arg="${el.dataset.arg}"]`); if (hx) hx.value = el.value; } refreshMediaPreview(); }
   else if (k === 'm-hex') { if (/^#[0-9a-fA-F]{6}$/.test(el.value)) { const m = mediaById(S.admin.arg); m[el.dataset.arg] = el.value; saveMedias(); const cp = document.getElementById('mc-' + el.dataset.arg); if (cp) cp.value = el.value; refreshMediaPreview(); } }
   else if (k === 'soc-txt' && SOC.d && SOC.d.texts) { const [p, f] = el.dataset.arg.split('|'); SOC.d.texts[p] = SOC.d.texts[p] || {}; SOC.d.texts[p][f] = el.value; const c = document.querySelector(`[data-cnt="${p}|${f}"]`); if (c) { const lim = socLimit(p, f); c.textContent = `${el.value.length} / ${lim}`; c.classList.toggle('over', el.value.length > lim); } }
+  else if (k === 'bill') { if (S.modal && S.modal.type === 'billing') S.modal.f[el.dataset.arg] = el.value; }
+  else if (k === 'forgot-mail') { if (S.forgot) S.forgot.email = el.value; }
   else if (k === 't-ctx') { T.context = el.value; }
   else if (k === 'ord') { if (S.modal) S.modal[el.dataset.arg] = el.value; }
   else if (k === 'mt') { if (S.modal && S.modal.type === 'montage') S.modal.f[el.dataset.arg] = el.value; }

@@ -175,12 +175,12 @@ function buildForceStyle({ fontName, fontSize, outline, outlineColour, primaryCo
  * @param {null|{srtPath: string, forceStyle: string}} [p.subtitles]
  * @param {number} [p.maxDurationSec]  coupe la vidéo à cette durée exacte (fondu sonore de fin)
  */
-async function renderFinal({ input, output, logos, widthRatio, marginRatio, subtitles = null, maxDurationSec = null }) {
+async function renderFinal({ input, output, logos, widthRatio, marginRatio, subtitles = null, maxDurationSec = null, startSec = 0 }) {
   const size = logos.length ? await probeVideoSize(input) : null;
   if (logos.length && !size) throw new Error('Vidéo illisible : dimensions introuvables');
   const { filter, outLabel } = buildFilterGraph({ logos, widthRatio, marginRatio, subtitles, videoWidth: size && size.width });
   // Mémoire limitée sur Render (512 Mo en offre gratuite) : peu de threads et une petite anticipation x264.
-  const args = ['-hide_banner', '-y', '-filter_complex_threads', '1', '-i', input];
+  const args = ['-hide_banner', '-y', '-filter_complex_threads', '1', ...(startSec > 0 ? ['-ss', String(startSec)] : []), '-i', input];
   for (const l of logos) args.push('-i', l.path);
   args.push(
     '-filter_complex', filter,
@@ -210,7 +210,7 @@ async function hasAudio(input) {
 
 /**
  * Filtergraph de l'habillage d'ouverture et de fin (fonction pure, testée).
- * Entrées : 0 = vidéo, 1 = vidéo (première image), 2 = logo d'ouverture, 3 = logo de fin.
+ * Entrées : 0 = vidéo, 1 = première image de la vidéo (PNG bouclé sur introSec), 2 = logo d'ouverture, 3 = logo de fin.
  * Ouverture : logo sur la première image floutée, couleurs d'origine (ni assombrie ni fondu au noir).
  * Fin : fondu vers un fond uni (bleu nuit OpenMedias) avec le logo de fin, sans fondu au noir.
  */
@@ -226,7 +226,8 @@ function buildBumperGraph({ width, height, mainSec, introSec, outroSec, fadeSec,
   const total = introSec + mainSec + outroSec - 2 * fadeSec;
   const parts = [
     `[0:v]${norm}[main]`,
-    `[1:v]trim=end_frame=1,setpts=PTS-STARTPTS,scale=${W}:${H},boxblur=${blur}:2,loop=loop=-1:size=1:start=0,trim=duration=${introSec},${norm}[ibg]`,
+    // Première image fournie en PNG bouclé (et non extraite ici avec loop=-1, qui bloquait ffmpeg 7.0.2 dès le départ)
+    `[1:v]scale=${W}:${H},boxblur=${blur}:2,trim=duration=${introSec},${norm}[ibg]`,
     `[2:v]scale=${lw}:-1,format=rgba[ilogo]`,
     `[ibg][ilogo]overlay=x=(W-w)/2:y=(H-h)/2:eof_action=repeat:shortest=1,format=yuv420p[intro]`,
     `color=c=${color}:s=${W}x${H}:r=${fps}:d=${outroSec},${norm}[obg]`,
@@ -252,14 +253,19 @@ async function addBumpers({ input, output, introLogo, outroLogo, introSec = 2, o
   const [size, mainSec, audio] = await Promise.all([probeVideoSize(input), probeDurationSec(input), hasAudio(input)]);
   if (!size || !mainSec) throw new Error('Vidéo illisible : habillage impossible');
   const g = buildBumperGraph({ width: size.width, height: size.height, mainSec: Math.max(fadeSec * 2 + 0.1, mainSec - 0.05), introSec, outroSec, fadeSec, logoWidthRatio, audio, outroColor });
+  // Première image de la vidéo, en PNG : fond flouté de l'ouverture
+  const first = `${output}.premiere-image.png`;
+  const fr = await run(['-hide_banner', '-y', '-i', input, '-frames:v', '1', first], { timeoutMs: 120_000 });
+  if (fr.code !== 0 || !require('fs').existsSync(first)) throw new Error(`habillage : première image illisible (code ${fr.code})`);
   const args = ['-hide_banner', '-y', '-filter_complex_threads', '1',
-    '-i', input, '-i', input, '-loop', '1', '-i', introLogo, '-loop', '1', '-i', outroLogo,
+    '-i', input, '-loop', '1', '-framerate', '30', '-t', String(introSec), '-i', first, '-loop', '1', '-i', introLogo, '-loop', '1', '-i', outroLogo,
     '-filter_complex', g.filter, '-map', `[${g.video}]`];
   if (g.audio) args.push('-map', `[${g.audio}]`);
   args.push('-t', g.totalSec.toFixed(3),
     '-c:v', 'libx264', '-preset', 'veryfast', '-threads', '2', '-x264-params', 'rc-lookahead=10', '-crf', '20', '-pix_fmt', 'yuv420p',
     ...(g.audio ? ['-c:a', 'aac', '-b:a', '160k'] : []), '-movflags', '+faststart', output);
   const { code, stderr } = await run(args);
+  require('fs').rmSync(first, { force: true });
   if (code !== 0) throw new Error(`habillage ffmpeg échoué (code ${code}) : ${stderr.slice(-1500)}`);
   return { totalSec: g.totalSec };
 }

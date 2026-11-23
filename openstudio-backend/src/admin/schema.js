@@ -114,6 +114,9 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_code_hash TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS clients_access_code ON clients (access_code_hash) WHERE access_code_hash IS NOT NULL;
 -- Le même code, chiffré (ADMIN_ENCRYPTION_KEY), pour l'afficher sur la fiche du back-office
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_code_enc TEXT;
+-- Informations de facturation saisies par le client dans son espace (Factures → Modifier)
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS billing JSONB;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS billing_updated_at TIMESTAMPTZ;
 -- Sessions ouvertes avec le code : le client reste connecté sur son navigateur
 CREATE TABLE IF NOT EXISTS client_sessions (
   token_hash    TEXT PRIMARY KEY,
