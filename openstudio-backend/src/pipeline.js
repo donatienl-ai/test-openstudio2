@@ -17,10 +17,11 @@ const mapping = require('./opusclip.config');
 const orders = require('./orders');
 const clients = require('./clients');
 const storage = require('./storage');
+const branding = require('./media/branding');
 const opus = require('./opusclip/client');
 const { buildProjectPayload, interpretProjectStatus, estimateCredits, shortId, capsuleDelivery } = require('./opusclip/payload');
 const { isLiveOrder, liveTestGuard } = require('./opusclip/mode');
-const { probeDurationSec, renderFinal, buildForceStyle } = require('./media/ffmpeg');
+const { probeDurationSec, renderFinal, buildForceStyle, addBumpers } = require('./media/ffmpeg');
 const { clipTranscript } = require('./social/transcript');
 const { mp4DurationSec } = require('./media/mp4duration');
 const subs = require('./media/subtitles');
@@ -146,24 +147,26 @@ function slug(s) {
     .slice(0, 40);
 }
 
-/** Logos à incruster : programme (média) + entreprise du client. */
+/**
+ * Logos à incruster, dans l'ordre de gauche à droite : entreprise du client, puis média.
+ * Positions réglées sur la fiche client (bloc « Logos » du back-office).
+ */
 async function prepareLogos(order, tmp, { requireClientLogo }) {
   const logos = [];
-  const add = async (key, position, name) => {
+  const add = async (key, position, name, role) => {
     const p = path.join(tmp, `${name}${path.extname(key) || '.png'}`);
     await storage.downloadToFile(key, p);
-    logos.push({ path: p, position });
+    logos.push({ path: p, position, role });
   };
-  const programmeLogo = mapping.programmes[order.options.programmeId]?.logoKey;
-  if (programmeLogo) await add(programmeLogo, mapping.logos.programmePosition, 'logo-programme');
-
   const client = order.client_id ? await clients.get(order.client_id) : null;
-  const clientLogo = order.options.clientLogoKey || client?.logo_key || null;
-  if (clientLogo) await add(clientLogo, mapping.logos.clientPosition, 'logo-client');
-  else if (requireClientLogo && config.opus.dryRun) {
+  const set = branding.clientLogos(client || {}, order.options.programmeId);
+  const clientLogo = order.options.clientLogoKey || set.company.key;
+  if (clientLogo) await add(clientLogo, set.company.position, 'logo-client', 'company');
+  if (set.media.key) await add(set.media.key, set.media.position, 'logo-programme', 'media');
+  if (!clientLogo && requireClientLogo && config.opus.dryRun) {
     // Tests (envoi réel ciblé) : le client de test n'a pas forcément de logo ; on livre sans, en le signalant.
     console.warn(`[order ${shortId(order.id)}] pas de logo client : capsules livrées sans (mode test uniquement)`);
-  } else if (requireClientLogo) throw new Error("Logo de l'entreprise cliente manquant (à ajouter dans la fiche client)");
+  } else if (!clientLogo && requireClientLogo) throw new Error("Logo de l'entreprise cliente manquant (à ajouter dans la fiche client)");
   return logos;
 }
 
@@ -192,6 +195,25 @@ function pickClipsForDuration(ranked, targetSec, toleranceSec) {
   const long = ranked.filter((c) => !Number.isFinite(ms(c)) || ms(c) >= targetSec * 1000 - 50);
   const short = ranked.filter((c) => Number.isFinite(ms(c)) && ms(c) < targetSec * 1000 - 50 && ms(c) >= (targetSec - toleranceSec) * 1000);
   return { long, short };
+}
+
+/**
+ * Habillage d'ouverture (logo de l'entreprise) et de fin (logo OpenMedias) en fondu, sur place.
+ * Sans logo d'entreprise (mode test uniquement), le logo OpenMedias sert aussi à l'ouverture.
+ */
+async function applyBumpers(file, kind, logos, tmp, n) {
+  const b = mapping.bumpers;
+  if (!b || !b.enabled || !b.kinds.includes(kind)) return;
+  const company = logos.find((l) => l.role === 'company');
+  let om = branding.DEFAULT_OM_LOGO;
+  const custom = (await branding.get()).openmediasLogoKey;
+  if (custom) {
+    om = path.join(tmp, `logo-openmedias${path.extname(custom) || '.png'}`);
+    if (!fs.existsSync(om)) await storage.downloadToFile(custom, om);
+  }
+  const out = path.join(tmp, `habille-${n}.mp4`);
+  await addBumpers({ input: file, output: out, introLogo: company ? company.path : om, outroLogo: om, introSec: b.introSec, outroSec: b.outroSec, fadeSec: b.fadeSec, logoWidthRatio: b.logoWidthRatio });
+  fs.renameSync(out, file);
 }
 
 async function finalizeCapsules(order, tmp) {
@@ -226,6 +248,7 @@ async function finalizeCapsules(order, tmp) {
     const output = path.join(tmp, `final-${n}.mp4`);
     await downloadUrlToFile(clip.uriForExport, input);
     await renderFinal({ input, output, logos, widthRatio: mapping.logos.widthRatio, marginRatio: mapping.logos.marginRatio, maxDurationSec: target });
+    await applyBumpers(output, delivery.kind, logos, tmp, n);
     const finalSec = await probeDurationSec(output).catch(() => null);
 
     const fileName = delivery.kind === 'teaser'

@@ -137,11 +137,22 @@ module.exports = {
   logos: {
     widthRatio: 0.14, // largeur du logo / largeur de la vidéo
     marginRatio: 0.03,
-    // Comme l'aperçu de la page Capsules : entreprise en haut à gauche, média en haut à droite.
+    // Positions par défaut (modifiables client par client dans le back-office, bloc « Logos ») :
+    // les deux en haut à droite, côte à côte, entreprise puis média.
     programmePosition: 'top-right',
-    clientPosition: 'top-left',
+    clientPosition: 'top-right',
     // Logos aussi sur la vidéo sous-titrée (page Sous-titres) : logo de l'entreprise obligatoire,
     // logo du média ajouté si le client indique de quel programme vient la vidéo (programmeId).
     onSubtitledVideo: true,
+  },
+  // Habillage des capsules et du teaser : ouverture en fondu sur le logo de l'entreprise, fin en fondu sur
+  // le logo OpenMedias, chacun sur l'image floutée de la vidéo.
+  bumpers: {
+    enabled: true,
+    kinds: ['capsules', 'teaser'],
+    introSec: 2,
+    outroSec: 2,
+    fadeSec: 0.5,
+    logoWidthRatio: 0.4, // largeur du logo centré / largeur de la vidéo
   },
 };

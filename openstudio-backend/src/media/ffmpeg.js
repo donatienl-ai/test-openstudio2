@@ -68,19 +68,44 @@ function q(value) {
   return `'${String(value).replace(/\\/g, '/').replace(/'/g, "'\\''")}'`;
 }
 
-function overlayPosition(position, marginRatio) {
+const POSITIONS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+
+/**
+ * Position d'un logo. Plusieurs logos dans le même coin se rangent côte à côte :
+ * `shift` = décalage horizontal (px) vers l'intérieur de l'image.
+ */
+function overlayPosition(position, marginRatio, shift = 0) {
   const m = `W*${marginRatio}`;
+  const left = shift ? `${m}+${shift}` : m;
+  const right = shift ? `W-w-${m}-${shift}` : `W-w-${m}`;
   switch (position) {
     case 'top-right':
-      return { x: `W-w-${m}`, y: m };
+      return { x: right, y: m };
     case 'bottom-left':
-      return { x: m, y: `H-h-${m}` };
+      return { x: left, y: `H-h-${m}` };
     case 'bottom-right':
-      return { x: `W-w-${m}`, y: `H-h-${m}` };
+      return { x: right, y: `H-h-${m}` };
     case 'top-left':
     default:
-      return { x: m, y: m };
+      return { x: left, y: m };
   }
+}
+
+/**
+ * Décalages des logos partageant un coin. L'ordre de la liste = ordre de gauche à droite
+ * (entreprise puis média) : à droite, le dernier logo est collé au bord.
+ */
+function cornerShifts(logos, logoWidth) {
+  const gap = Math.round(logoWidth * 0.2);
+  const step = logoWidth + gap;
+  const byCorner = {};
+  logos.forEach((l, i) => { const pos = POSITIONS.includes(l.position) ? l.position : 'top-left'; (byCorner[pos] = byCorner[pos] || []).push(i); });
+  const shifts = new Array(logos.length).fill(0);
+  for (const [pos, idx] of Object.entries(byCorner)) {
+    const right = pos.endsWith('right');
+    idx.forEach((i, k) => { shifts[i] = (right ? idx.length - 1 - k : k) * step; });
+  }
+  return shifts;
 }
 
 /**
@@ -101,12 +126,13 @@ function buildFilterGraph({ logos, widthRatio, marginRatio, subtitles, videoWidt
   let current = '0:v';
   if (logos.length && !(videoWidth > 0)) throw new Error('Largeur de la vidéo inconnue : impossible de placer les logos');
   const logoWidth = Math.max(2, Math.round((videoWidth * widthRatio) / 2) * 2);
+  const shifts = cornerShifts(logos, logoWidth);
   logos.forEach((logo, i) => {
     const inIdx = i + 1;
     const l = `lg${inIdx}`;
     const out = `v${inIdx}`;
     parts.push(`[${inIdx}:v]scale=${logoWidth}:-1,format=rgba[${l}]`);
-    const { x, y } = overlayPosition(logo.position, marginRatio);
+    const { x, y } = overlayPosition(logo.position, marginRatio, shifts[i]);
     parts.push(`[${current}][${l}]overlay=x=${x}:y=${y}:eof_action=repeat:format=auto[${out}]`);
     current = out;
   });
@@ -176,4 +202,65 @@ async function renderFinal({ input, output, logos, widthRatio, marginRatio, subt
   if (code !== 0) throw new Error(`ffmpeg a échoué (code ${code}) : ${stderr.slice(-1500)}`);
 }
 
-module.exports = { probeDurationSec, probeVideoSize, buildFilterGraph, buildForceStyle, renderFinal, FONTS_DIR, FFMPEG_PATH: FFMPEG };
+/** La vidéo a-t-elle une piste son ? */
+async function hasAudio(input) {
+  const { stderr } = await run(['-hide_banner', '-i', input], { timeoutMs: 120_000 });
+  return /Stream #[^\n]*Audio:/.test(stderr);
+}
+
+/**
+ * Filtergraph de l'habillage d'ouverture et de fin (fonction pure, testée).
+ * Entrées : 0 = vidéo, 1 = vidéo (première image), 2 = fin de la vidéo (dernière seconde),
+ * 3 = logo d'ouverture, 4 = logo de fin. Fonds = image floutée et légèrement assombrie.
+ */
+function buildBumperGraph({ width, height, mainSec, introSec, outroSec, fadeSec, logoWidthRatio, fps = 30, audio }) {
+  const W = width - (width % 2);
+  const H = height - (height % 2);
+  const lw = Math.max(2, Math.round((W * logoWidthRatio) / 2) * 2);
+  const blur = Math.max(4, Math.round(Math.min(W, H) / 30));
+  const norm = `scale=${W}:${H},setsar=1,fps=${fps},format=yuv420p,settb=AVTB`;
+  const bg = (inp, sec) => `[${inp}:v]trim=end_frame=1,setpts=PTS-STARTPTS,scale=${W}:${H},boxblur=${blur}:2,eq=brightness=-0.12:saturation=0.85,loop=loop=-1:size=1:start=0,trim=duration=${sec},${norm}`;
+  const xfade1 = (introSec - fadeSec).toFixed(3);
+  const xfade2 = (introSec + mainSec - 2 * fadeSec).toFixed(3);
+  const total = introSec + mainSec + outroSec - 2 * fadeSec;
+  const parts = [
+    `[0:v]${norm}[main]`,
+    `${bg(1, introSec)}[ibg]`,
+    `[3:v]scale=${lw}:-1,format=rgba[ilogo]`,
+    `[ibg][ilogo]overlay=x=(W-w)/2:y=(H-h)/2:eof_action=repeat:shortest=1,fade=t=in:st=0:d=${Math.min(0.5, fadeSec).toFixed(2)},format=yuv420p[intro]`,
+    `${bg(2, outroSec)}[obg]`,
+    `[4:v]scale=${lw}:-1,format=rgba[ologo]`,
+    `[obg][ologo]overlay=x=(W-w)/2:y=(H-h)/2:eof_action=repeat:shortest=1,fade=t=out:st=${(outroSec - 0.5).toFixed(2)}:d=0.5,format=yuv420p[outro]`,
+    `[intro][main]xfade=transition=fade:duration=${fadeSec}:offset=${xfade1}[x1]`,
+    `[x1][outro]xfade=transition=fade:duration=${fadeSec}:offset=${xfade2}[vout]`,
+  ];
+  if (audio) {
+    const delay = Math.round((introSec - fadeSec) * 1000);
+    const end = introSec - fadeSec + mainSec;
+    parts.push(`[0:a]aformat=sample_rates=48000:channel_layouts=stereo,afade=t=in:st=0:d=${fadeSec},afade=t=out:st=${Math.max(0, mainSec - fadeSec).toFixed(3)}:d=${fadeSec},adelay=${delay}:all=1,apad,atrim=0:${total.toFixed(3)}[aout]`);
+    void end;
+  }
+  return { filter: parts.join(';'), video: 'vout', audio: audio ? 'aout' : null, totalSec: total };
+}
+
+/**
+ * Ajoute l'ouverture (logo de l'entreprise) et la fin (logo OpenMedias) en fondu, sur l'image floutée
+ * de la vidéo. La vidéo garde sa durée : l'ensemble dure introSec + vidéo + outroSec - 2 × fondu.
+ */
+async function addBumpers({ input, output, introLogo, outroLogo, introSec = 2, outroSec = 2, fadeSec = 0.5, logoWidthRatio = 0.4 }) {
+  const [size, mainSec, audio] = await Promise.all([probeVideoSize(input), probeDurationSec(input), hasAudio(input)]);
+  if (!size || !mainSec) throw new Error('Vidéo illisible : habillage impossible');
+  const g = buildBumperGraph({ width: size.width, height: size.height, mainSec: Math.max(fadeSec * 2 + 0.1, mainSec - 0.05), introSec, outroSec, fadeSec, logoWidthRatio, audio });
+  const args = ['-hide_banner', '-y', '-filter_complex_threads', '1',
+    '-i', input, '-i', input, '-sseof', '-1', '-i', input, '-loop', '1', '-i', introLogo, '-loop', '1', '-i', outroLogo,
+    '-filter_complex', g.filter, '-map', `[${g.video}]`];
+  if (g.audio) args.push('-map', `[${g.audio}]`);
+  args.push('-t', g.totalSec.toFixed(3),
+    '-c:v', 'libx264', '-preset', 'veryfast', '-threads', '2', '-x264-params', 'rc-lookahead=10', '-crf', '20', '-pix_fmt', 'yuv420p',
+    ...(g.audio ? ['-c:a', 'aac', '-b:a', '160k'] : []), '-movflags', '+faststart', output);
+  const { code, stderr } = await run(args);
+  if (code !== 0) throw new Error(`habillage ffmpeg échoué (code ${code}) : ${stderr.slice(-1500)}`);
+  return { totalSec: g.totalSec };
+}
+
+module.exports = { probeDurationSec, probeVideoSize, buildFilterGraph, buildForceStyle, renderFinal, buildBumperGraph, addBumpers, cornerShifts, POSITIONS, FONTS_DIR, FFMPEG_PATH: FFMPEG };

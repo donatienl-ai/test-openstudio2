@@ -229,6 +229,66 @@
       week + section('Montages à relancer · paiement non abouti (7 jours)', p.failures.length, fails);
   }
 
+  var POS_LABELS = { 'top-left': 'Haut gauche', 'top-right': 'Haut droite', 'bottom-left': 'Bas gauche', 'bottom-right': 'Bas droite' };
+  var POS_ARROWS = { 'top-left': '↖', 'top-right': '↗', 'bottom-left': '↙', 'bottom-right': '↘' };
+
+  /** Fiche client : logos de l'entreprise et du média, leur position, et l'habillage des vidéos. */
+  function logosCard(d) {
+    var L = d.logos;
+    if (!L) return '';
+    var busy = S.logoBusy || '';
+    function one(kind, title, hint) {
+      var x = L[kind];
+      var picker = '<div class="pos-grid" role="group" aria-label="Position du ' + esc(title.toLowerCase()) + '">' + L.positions.map(function (p) {
+        return '<button type="button" class="pos-btn' + (x.position === p ? ' on' : '') + '" data-a="logo-pos" data-id="' + kind + ':' + p + '" aria-pressed="' + (x.position === p) + '" title="' + esc(POS_LABELS[p]) + '"' + (S.busy ? ' disabled' : '') + '><span aria-hidden="true">' + POS_ARROWS[p] + '</span>' + esc(POS_LABELS[p]) + '</button>';
+      }).join('') + '</div>';
+      return '<div class="logo-col"><h3>' + esc(title) + '</h3>' +
+        '<div class="logo-box">' + (busy === kind ? '<span class="small muted">Envoi en cours…</span>' : x.url ? '<img src="' + esc(x.url) + '" alt="' + esc(title) + '">' : '<span class="small muted">Aucun logo</span>') + '</div>' +
+        (x.fromProgramme ? '<p class="small muted">Logo par défaut de l’émission.</p>' : '') +
+        '<div class="btns left"><label class="btn small secondary file-btn">' + (x.url ? 'Remplacer' : 'Ajouter le logo') + '<input type="file" accept="image/png,image/jpeg,image/webp" data-logo="' + kind + '"' + (busy ? ' disabled' : '') + '></label>' +
+        (x.url && !x.fromProgramme ? '<button class="btn small secondary" type="button" data-a="logo-remove" data-id="' + kind + '"' + (S.busy ? ' disabled' : '') + '>Retirer</button>' : '') + '</div>' +
+        '<span class="small muted">' + esc(hint) + '</span>' +
+        '<span class="small strong mt">Position sur la vidéo</span>' + picker + '</div>';
+    }
+    // Aperçu : vidéo verticale, logos côte à côte quand ils partagent un coin (entreprise puis média)
+    var corners = {};
+    [['company', L.company], ['media', L.media]].forEach(function (e) { if (e[1].url) (corners[e[1].position] = corners[e[1].position] || []).push(e[1].url); });
+    var marks = Object.keys(corners).map(function (p) {
+      return '<div class="pv-corner pv-' + p + '">' + corners[p].map(function (u) { return '<img src="' + esc(u) + '" alt="">'; }).join('') + '</div>';
+    }).join('');
+    var missing = [!L.company.url && 'le logo de l’entreprise', !L.media.url && 'le logo du média'].filter(Boolean);
+    var b = L.bumpers;
+    return '<div class="card"><div class="card-head"><h2>Logos</h2></div>' +
+      (missing.length ? '<div class="warn mb">Il manque ' + esc(missing.join(' et ')) + ' : ' + (L.company.url ? 'les vidéos seront livrées sans le logo du média.' : 'le client ne pourra pas lancer de capsules tant qu’il manque.') + '</div>' : '') +
+      '<div class="logos-grid">' + one('company', 'Logo de l’entreprise', 'PNG à fond transparent de préférence. Il apparaît aussi en ouverture des vidéos.') +
+      one('media', 'Logo du média', 'BFM TV, BFM Business, Capital, Le Figaro… PNG à fond transparent de préférence.') +
+      '<div class="logo-col"><h3>Aperçu</h3><div class="pv-frame">' + marks + '</div><span class="small muted">Vidéo verticale, logos à 14 % de la largeur.</span></div></div>' +
+      (b ? '<div class="bumper-line"><div><b class="small">Habillage des ' + esc(b.kinds.map(function (k) { return k === 'teaser' ? 'teasers' : k; }).join(' et ')) + '</b>' +
+        '<span class="small muted">Ouverture en fondu (' + b.introSec + ' s) sur le logo de l’entreprise, fin en fondu (' + b.outroSec + ' s) sur le logo OpenMedias, sur l’image floutée de la vidéo.</span></div>' +
+        '<div class="om-logo"><span class="logo-box dark sm">' + (busy === 'openmedias' ? '<span class="small">Envoi…</span>' : '<img src="' + esc(L.openmedias.url || 'om-default.png') + '" alt="Logo OpenMedias">') + '</span>' +
+        '<label class="btn small secondary file-btn">Remplacer<input type="file" accept="image/png,image/webp" data-logo="openmedias"' + (busy ? ' disabled' : '') + '></label>' +
+        (L.openmedias.custom ? '<button class="btn small secondary" type="button" data-a="logo-om-reset"' + (S.busy ? ' disabled' : '') + '>Logo par défaut</button>' : '') +
+        '<span class="small muted">Commun à tous les clients</span></div></div>' : '') +
+      '</div>';
+  }
+
+  function uploadLogo(kind, file) {
+    var c = S.client.client;
+    var om = kind === 'openmedias';
+    var base = om ? '/admin/branding/openmedias-logo' : '/admin/clients/' + encodeURIComponent(c.id) + '/logos';
+    if (file.size > 10 * 1024 * 1024) { S.error = 'Logo trop lourd (10 Mo maximum).'; return render(); }
+    S.logoBusy = kind;
+    withBusy(api('POST', base + '/upload', { kind: kind, fileName: file.name, contentType: file.type }).then(function (u) {
+      return putFile(u.uploadUrl, file, u.headers, function () {}).then(function () {
+        return api('POST', base, om ? { key: u.key } : { kind: kind, key: u.key });
+      });
+    }).then(function () {
+      S.logoBusy = '';
+      toast(om ? 'Logo OpenMedias remplacé' : 'Logo enregistré');
+      return loadClients();
+    }, function (e) { S.logoBusy = ''; throw e; }));
+  }
+
   function nb(n) { return Number(n || 0).toLocaleString('fr-FR').replace(/\u202f/g, '\u00a0'); }
 
   var CREDIT_KINDS = {
@@ -371,6 +431,8 @@
     acces_echec_envoi: 'Échec d’envoi du code d’accès',
     acces_lien_cree: 'Code d’accès généré à la main',
     client_connexion: 'Connexion du client avec son code',
+    logo_modifie: 'Logo modifié',
+    logo_openmedias_modifie: 'Logo OpenMedias de fin modifié',
     acces_retabli: 'Accès rétabli',
     acces_coupe: 'Accès coupé',
     marketing_reponse: 'Réponse sur les campagnes marketing',
@@ -388,6 +450,7 @@
     var d = e.detail || {};
     if (d.identifiant && !d.email) return d.identifiant + (d.motif ? ' — ' + d.motif : '');
     if (d.email) return d.email + (d.role ? ' (' + (d.role === 'super_admin' ? 'super admin' : 'admin') + ')' : '') + (d.motif ? ' — ' + d.motif : '');
+    if (d.logo) return 'logo ' + d.logo + (d.action ? ' ' + d.action : '') + (d.position ? ' — position ' + (POS_LABELS[d.position] || d.position).toLowerCase() : '');
     if (d.credits !== undefined && d.motif) return (d.credits > 0 ? '+' : '') + nb(d.credits) + ' crédits — ' + d.motif + ' (solde ' + nb(d.solde) + ')';
     if (d.apres && d.apres.packs) return 'crédits par production et prix des recharges mis à jour' + (typeof d.stripe === 'string' ? ' — Stripe : ' + d.stripe : '');
     if (d.stripe !== undefined) return typeof d.stripe === 'string' ? 'Stripe : ' + d.stripe : (d.stripe.length ? d.stripe.join(', ') : 'déjà à jour');
@@ -738,6 +801,7 @@
       marketingLine(c) + '</div>' +
       section('E-mails envoyés', d.emails.length, emails) + '</div></div>' +
       videoCard(d) +
+      logosCard(d) +
       creditsCard(d) +
       section('Contenus générés', d.contents.length, contents + pubs) +
       section('Paiements et factures', d.payments.length, payments) +
@@ -1170,6 +1234,23 @@
         return loadClients();
       }));
     },
+    'logo-pos': function (arg) {
+      var kp = String(arg).split(':');
+      var c = S.client.client;
+      if (S.client.logos[kp[0]].position === kp[1]) return;
+      S.client.logos[kp[0]].position = kp[1]; render();
+      withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/logos', { kind: kp[0], position: kp[1] }).then(function (d) {
+        S.client.logos = d.logos; toast('Position enregistrée : ' + POS_LABELS[kp[1]].toLowerCase());
+      }));
+    },
+    'logo-remove': function (kind) {
+      var c = S.client.client;
+      if (!window.confirm('Retirer ce logo ?')) return;
+      withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/logos', { kind: kind, key: null }).then(function (d) { S.client.logos = d.logos; toast('Logo retiré'); }));
+    },
+    'logo-om-reset': function () {
+      withBusy(api('POST', '/admin/branding/openmedias-logo', { key: null }).then(function () { toast('Logo OpenMedias par défaut rétabli'); return loadClients(); }));
+    },
     'client-revoke': function () {
       var c = S.client.client;
       if (!window.confirm('Couper l’accès de ' + c.name + ' ? Son code ne fonctionnera plus et il sera déconnecté de tous ses appareils. Vous pourrez le rétablir.')) return;
@@ -1212,6 +1293,11 @@
       }));
     },
   };
+
+  app.addEventListener('change', function (ev) {
+    var inp = ev.target.closest('input[data-logo]');
+    if (inp && inp.files && inp.files[0]) uploadLogo(inp.dataset.logo, inp.files[0]);
+  });
 
   app.addEventListener('click', function (ev) {
     var row = ev.target.closest('tr[data-href]');
