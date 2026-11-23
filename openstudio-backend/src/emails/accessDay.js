@@ -62,14 +62,14 @@ function accessDayEmail(v) {
 </td></tr>
 <tr><td class="os-pad" style="padding:32px 40px 0">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${C.ticketLine};border-radius:18px;border-collapse:separate;overflow:hidden"><tr>
-    <td class="os-stack" valign="middle" style="padding:22px 20px 20px 24px;font-family:${FONT}">
+    <td class="os-tk-l" valign="middle" style="padding:22px 20px 20px 24px;font-family:${FONT}">
       <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:${C.muted}">Votre code d’accès</div>
-      <div style="font-family:${TITLE_FONT};font-weight:700;font-size:28px;line-height:1;letter-spacing:0.06em;white-space:nowrap;color:${C.navy};padding:14px 0 16px">${esc(v.code)}</div>
-      ${button(link, 'Accéder à mon espace')}
+      <div class="os-code" style="font-family:${TITLE_FONT};font-weight:700;font-size:28px;line-height:1;letter-spacing:0.06em;white-space:nowrap;color:${C.navy};padding:14px 0 16px">${esc(v.code)}</div>
+      ${button(link, 'Accéder à mon espace', { small: true })}
       <div style="clear:both;font-size:12px;line-height:1.5;color:${C.muted};padding-top:12px">Le bouton vous connecte directement. Ce code vous est personnel.</div>
     </td>
-    <td class="os-stack os-ticket-right" width="176" valign="middle" bgcolor="${C.ticketBg}" style="width:176px;background:${C.ticketBg};border-left:2px dashed ${C.ticketDash};padding:22px 18px 20px 22px;font-family:${FONT}">
-      <div style="font-weight:700;font-size:36px;line-height:1;letter-spacing:-0.02em;color:${C.accent}">${nb(v.credits)}</div>
+    <td class="os-tk-r" width="176" valign="middle" bgcolor="${C.ticketBg}" style="width:176px;background:${C.ticketBg};border-left:2px dashed ${C.ticketDash};padding:22px 18px 20px 22px;font-family:${FONT}">
+      <div class="os-credits" style="font-weight:700;font-size:36px;line-height:1;letter-spacing:-0.02em;color:${C.accent}">${nb(v.credits)}</div>
       <div style="font-family:${TITLE_FONT};font-weight:700;font-size:16px;color:${C.navy};padding-top:10px">crédits offerts</div>
       ${until ? `<div style="font-size:12px;line-height:1.5;color:${C.muted};padding-top:14px">Valables jusqu’au<br><b style="font-weight:600;color:${C.navy}">${esc(until)}</b></div>` : ''}
     </td>
