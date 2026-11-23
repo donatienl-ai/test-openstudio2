@@ -34,14 +34,28 @@ function presignUpload(key, contentType, ttlSec = 3600) {
 }
 
 /** URL signée de lecture. disposition = 'attachment' (téléchargement) ou 'inline' (aperçu). */
+// Types forcés à la lecture : Safari (iPhone) refuse de lire une vidéo servie en application/octet-stream,
+// ce que Chrome tolère (fichiers déposés sans type ou avec un type générique).
+const INLINE_TYPES = { '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.mov': 'video/quicktime', '.webm': 'video/webm' };
+
+/** En-tête Content-Disposition sûr : nom ASCII + nom UTF-8 encodé (RFC 6266 / 5987), accents et tirets compris. */
+function contentDisposition(disposition, fileName) {
+  const name = String(fileName || 'video.mp4').replace(/[\r\n"\\]/g, '');
+  const ascii = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7e]/g, '_');
+  const encoded = encodeURIComponent(name).replace(/['()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+  return `${disposition}; filename="${ascii}"; filename*=UTF-8''${encoded}`;
+}
+
 function presignDownload(key, fileName, disposition = 'attachment', ttlSec = config.storage.urlTtlSec) {
-  const safeName = String(fileName || 'video.mp4').replace(/["\\\r\n]/g, '');
+  const ext = (String(key).match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+  const type = disposition === 'inline' ? INLINE_TYPES[ext] : undefined;
   return getSignedUrl(
     s3,
     new GetObjectCommand({
       Bucket,
       Key: key,
-      ResponseContentDisposition: `${disposition}; filename="${safeName}"`,
+      ResponseContentDisposition: contentDisposition(disposition, fileName),
+      ...(type ? { ResponseContentType: type } : {}),
     }),
     { expiresIn: ttlSec }
   );
