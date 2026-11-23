@@ -244,6 +244,8 @@ router.post('/me/billing', json, wrap(async (req, res) => {
   if (r.error) return res.status(400).json({ error: r.error });
   await db.query('UPDATE clients SET billing = $2, billing_updated_at = now() WHERE id = $1', [client.id, JSON.stringify(r.value)]);
   await audit.record({ ip: req.ip, auditActorLabel: `Client (${client.name})` }, 'facturation_modifiee', { targetType: 'client', targetId: client.id, detail: r.value });
+  // Factures en attente de cette adresse : créées tout de suite
+  require('./invoicing/service').retryPending().catch((e) => console.warn('[facture] reprise :', e.message));
   res.json({ billing: r.value });
 }));
 

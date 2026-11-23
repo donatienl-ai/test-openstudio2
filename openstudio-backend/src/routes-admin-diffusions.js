@@ -20,7 +20,7 @@ function setup() {
     planningEveryMin: config.planning.syncMinutes,
     drive: driveSync.enabled(),
     driveRootUrl: config.drive.rootFolderId ? `https://drive.google.com/drive/folders/${encodeURIComponent(config.drive.rootFolderId)}` : null,
-    alertsTo: config.mail.teamAlertEmail || null,
+    alertsTo: null, // renseigné à la lecture (back-office → Alertes)
     mailProblem: mailer.problem(),
     redirectTo: config.mail.redirectTo || null,
     sendHour: config.mail.accessSendFromHour,
@@ -28,7 +28,8 @@ function setup() {
 }
 
 router.get('/admin/diffusions', requireTeam, wrap(async (req, res) => {
-  res.json({ diffusions: await diffusions.list(), lastSync: diffusions.lastSync(), lastDrive: driveSync.lastResult(), setup: setup() });
+  const to = await require('./admin/alerts').recipients('diffusions');
+  res.json({ diffusions: await diffusions.list(), lastSync: diffusions.lastSync(), lastDrive: driveSync.lastResult(), setup: { ...setup(), alertsTo: to.length ? to.join(', ') : null } });
 }));
 
 /** Relit le planning tout de suite (sans attendre le passage automatique). */

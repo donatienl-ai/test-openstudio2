@@ -39,7 +39,8 @@
     <div id="list"></div>
   </main>
 
-  <script>window.OPENSTUDIO_API = window.OPENSTUDIO_API || 'https://openstudio-backend.onrender.com';</script>
+  <script>(function () { if (!/recette/.test(location.hostname)) return; var b = document.createElement('div'); b.textContent = 'RECETTE · données de test'; b.setAttribute('role', 'note'); b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:2147483647;background:#E0892E;color:#fff;font:700 12px/1 Inter,system-ui,sans-serif;letter-spacing:.04em;padding:8px 12px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.25);pointer-events:none'; document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(b); }); })();</script>
+<script>window.OPENSTUDIO_API = window.OPENSTUDIO_API || (/recette/.test(location.hostname) ? 'https://openstudio-backend-recette.onrender.com' : 'https://openstudio-backend.onrender.com');</script>
   <script src="openstudio-api.js"></script>
   <script>
     (function () {

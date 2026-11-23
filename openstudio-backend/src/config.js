@@ -13,6 +13,8 @@ function num(v, def) {
 const config = {
   port: num(process.env.PORT, 3000),
   publicBaseUrl: (process.env.PUBLIC_BASE_URL || 'http://localhost:3000').replace(/\/$/, ''),
+  // Environnement : « recette » (tests sur Render, garde-fous actifs) ou « production »
+  appEnv: (process.env.APP_ENV || 'production').trim().toLowerCase() === 'recette' ? 'recette' : 'production',
   frontendOrigins: (process.env.FRONTEND_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean),
 
   // Adresse de l'espace client, utilisée dans les liens d'accès envoyés aux clients
@@ -37,6 +39,8 @@ const config = {
     accessSendUntilHour: 20,
     // Alertes « diffusion incomplète » (vidéo ou e-mail manquant) : J-2 (vendredi si week-end) et jour J
     teamAlertEmail: (process.env.TEAM_ALERT_EMAIL || '').trim(),
+    // Équipe compta : e-mail à chaque montage payé (à défaut : TEAM_ALERT_EMAIL)
+    accountingEmail: (process.env.ACCOUNTING_EMAIL || process.env.TEAM_ALERT_EMAIL || '').trim(),
   },
 
   // Planning de diffusion (dashboard) : route d'export en lecture seule + clé partagée
@@ -137,11 +141,31 @@ const config = {
     },
   },
 
+  // Factures : Pennylane dès qu'un jeton est configuré (ou PENNYLANE_MOCK=1 pour simuler) ; sinon facture Stripe.
+  invoicing: {
+    pennylaneKey: (process.env.PENNYLANE_API_KEY || '').trim(),
+    pennylaneMock: process.env.PENNYLANE_MOCK === '1',
+    get provider() {
+      return this.pennylaneKey || this.pennylaneMock ? 'pennylane' : 'stripe';
+    },
+  },
+  // Adresse du back-office, pour les liens dans les e-mails à l'équipe (facultatif)
+  adminUrl: (process.env.ADMIN_URL || '').trim().replace(/\/+$/, ''),
+
   anthropic: {
     apiKey: (process.env.ANTHROPIC_API_KEY || '').trim(),
     model: (process.env.CAPTIONS_MODEL || 'claude-opus-5-5').trim(),
     regenerateMax: 5,
   },
 };
+
+// Recette : aucun effet réel possible (paiements, e-mails, factures, vidéos OpusClip)
+if (config.appEnv === 'recette') {
+  const warn = (m) => console.warn(`[recette] ${m}`);
+  if (/^sk_live_/.test(config.stripe.secretKey)) { warn('clé Stripe LIVE refusée : paiement simulé'); config.stripe.secretKey = ''; }
+  if (config.mail.allowRealRecipients) { warn('MAIL_ALLOW_REAL_RECIPIENTS ignoré : e-mails envoyés à MAIL_REDIRECT_TO seulement'); config.mail.allowRealRecipients = false; }
+  if (config.invoicing.pennylaneKey && process.env.PENNYLANE_RECETTE_ALLOWED !== '1') { warn('factures Pennylane simulées (PENNYLANE_RECETTE_ALLOWED=1 pour un compte Pennylane de test)'); config.invoicing.pennylaneKey = ''; config.invoicing.pennylaneMock = true; }
+  if (!config.invoicing.pennylaneKey) config.invoicing.pennylaneMock = true;
+}
 
 module.exports = config;

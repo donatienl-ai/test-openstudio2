@@ -68,6 +68,9 @@ async function socialDaily() {
 
 async function housekeeping() {
   await orders.recoverStuck(30);
+  // Factures en attente (erreur passagère, adresse complétée depuis) et e-mails compta non partis
+  await require('./invoicing/service').retryPending().catch((e) => console.warn('[facture] reprise :', e.message));
+  await require('./montage/notify').retryAccounting().catch((e) => console.warn('[compta] reprise :', e.message));
   await socialDaily();
   // Nettoyage des salts de webhook (> 1 h)
   await db.query("DELETE FROM webhook_salts WHERE received_at < now() - interval '1 hour'");

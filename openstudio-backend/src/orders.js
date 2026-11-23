@@ -123,7 +123,32 @@ async function setStatus(id, status, fields = {}) {
   }
   await db.query(`UPDATE orders SET ${sets.join(', ')} WHERE id = $1`, params);
   await db.logEvent(id, status, fields.error ? { error: fields.error } : null);
-  if (status === 'error') await refundCredits(id);
+  if (status === 'error') {
+    await refundCredits(id);
+    notifyError(id, fields.error).catch((e) => console.error(`[order ${id}] alerte « commande en erreur » non envoyée : ${e.message}`));
+  }
+}
+
+/** Alerte « commande en erreur » à l'équipe (back-office → Alertes). */
+async function notifyError(id, message) {
+  const to = await require('./admin/alerts').recipients('erreurs');
+  if (!to.length) return;
+  const { rows } = await db.query('SELECT o.id, o.type, o.options, o.client_id, c.company, c.name FROM orders o LEFT JOIN clients c ON c.id = o.client_id WHERE o.id = $1', [id]);
+  const o = rows[0];
+  if (!o || !o.client_id) return; // commandes de test sans client : pas d'alerte
+  const config = require('./config');
+  const kind = o.type === 'subtitles' ? 'Interview sous-titrée' : o.options && o.options.kind === 'teaser' ? 'Teaser' : 'Capsules';
+  const text = [
+    `Une création a échoué pour ${o.company || o.name || 'un client'} : ${kind}${o.options && o.options.duration ? ` ${o.options.duration} s` : ''}.`,
+    '',
+    `Erreur : ${message || 'inconnue'}`,
+    '',
+    'Les crédits ont été rendus au client. La commande peut être relancée depuis le back-office (Commandes → En erreur).',
+    ...(config.admin.origin ? ['', `${config.admin.origin}/#commandes/c/${o.id}`] : []),
+    '',
+    'OpenStudio',
+  ].join('\n');
+  await require('./mailer').send({ to: to.map((email) => ({ email })), subject: `Commande en erreur : ${kind} — ${o.company || o.name || 'client'}`, text, customId: `alerte-erreur-${o.id}` });
 }
 
 /** Commande en échec : les crédits du client lui sont rendus (sans effet s'ils l'ont déjà été). */

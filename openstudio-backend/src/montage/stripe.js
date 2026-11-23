@@ -54,10 +54,8 @@ async function createCheckoutSession(p) {
     payment_intent_data: { metadata, description: p.title },
     // Facture Stripe générée après le paiement (numérotée, PDF) : affichée dans le back-office.
     // Les mentions légales (raison sociale, SIRET, TVA) se règlent dans Stripe → Paramètres → Factures.
-    invoice_creation: {
-      enabled: true,
-      invoice_data: { description: p.title, metadata },
-    },
+    // Avec Pennylane (PENNYLANE_API_KEY), la facture est faite dans Pennylane : pas de facture Stripe en double.
+    ...(config.invoicing.provider === 'stripe' ? { invoice_creation: { enabled: true, invoice_data: { description: p.title, metadata } } } : {}),
     // Prix du catalogue Stripe s'il existe (recharges de crédits), sinon prix calculé pour ce paiement
     line_items: [p.priceId ? { quantity: 1, price: p.priceId } : {
       quantity: 1,

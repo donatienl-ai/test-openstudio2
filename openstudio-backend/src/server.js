@@ -34,12 +34,13 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/health', (req, res) => res.json({ ok: true, dryRun: config.opus.dryRun, social: Boolean(config.social.apiKey), payment: config.stripe.mock ? 'simulation' : 'stripe', captionsAi: Boolean(config.anthropic.apiKey), liveTestClients: config.opus.liveClients.length, storageCors: storage.storageStatus.cors, storageCorsError: storage.storageStatus.corsError }));
+app.get('/health', (req, res) => res.json({ ok: true, env: config.appEnv, invoices: config.invoicing.provider + (config.invoicing.pennylaneMock ? ' (simulation)' : ''), dryRun: config.opus.dryRun, social: Boolean(config.social.apiKey), payment: config.stripe.mock ? 'simulation' : 'stripe', captionsAi: Boolean(config.anthropic.apiKey), liveTestClients: config.opus.liveClients.length, storageCors: storage.storageStatus.cors, storageCorsError: storage.storageStatus.corsError }));
 // Identification de l'équipe (session du back-office) avant toutes les routes
 app.use('/api', adminSession.attach);
 app.use('/api', adminRoutes);
 app.use('/api', adminClientRoutes);
 app.use('/api', require('./routes-admin-diffusions'));
+app.use('/api', require('./routes-admin-orders'));
 app.use('/api', socialRoutes);
 app.use('/api', montageRoutes);
 app.use('/api', creditRoutes);

@@ -65,6 +65,11 @@ router.get('/me/credits/purchases/:id/invoice', wrap(async (req, res) => {
   if (!client) return;
   const p = await credits.getPurchase(req.params.id);
   if (!p || p.client_id !== client.id || p.status !== 'paid') return res.status(404).json({ error: 'Facture introuvable' });
+  if (p.invoice_provider === 'pennylane') {
+    const link = await require('./invoicing/service').invoiceLink('recharge', p).catch(() => null);
+    if (link && !link.error) return res.json(link);
+    return res.status(404).json({ error: p.invoice_status === 'missing_address' ? 'Renseignez vos informations de facturation (Factures → Modifier) : la facture sera créée aussitôt.' : 'La facture n’est pas encore disponible, réessayez dans quelques minutes.' });
+  }
   if (config.stripe.mock || !p.stripe_session_id || p.stripe_session_id.startsWith('mock_')) {
     return res.status(404).json({ error: 'Paiement de test : pas de facture Stripe.' });
   }

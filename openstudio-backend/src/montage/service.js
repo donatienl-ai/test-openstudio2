@@ -27,6 +27,14 @@ function validate(body) {
   if (!offer) throw new MontageError('Choisissez la prestation souhaitée.');
   const c = b.contact || {};
   const contact = { company: clean(c.company, 120), name: clean(c.name, 120), email: clean(c.email, 200).toLowerCase(), phone: clean(c.phone, 30) };
+  // Adresse de facturation (demandée seulement si l'espace client ne la connaît pas encore)
+  const bi = c.billing || null;
+  if (bi && (bi.address || bi.postalCode || bi.city)) {
+    const billing = { company: contact.company, address: clean(bi.address, 300), postalCode: clean(bi.postalCode, 12), city: clean(bi.city, 80), country: clean(bi.country, 60) || 'France', vat: clean(bi.vat, 30).replace(/\s/g, '').toUpperCase(), email: contact.email };
+    if (!billing.address || !billing.postalCode || !billing.city) throw new MontageError('Complétez l’adresse de facturation (adresse, code postal et ville).');
+    if (billing.vat && !/^[A-Z]{2}[A-Z0-9]{2,13}$/.test(billing.vat)) throw new MontageError('Le numéro de TVA semble incorrect (ex. FR12345678901).');
+    contact.billing = billing;
+  }
   if (!contact.company) throw new MontageError('Indiquez le nom de votre entreprise.');
   if (!contact.name) throw new MontageError('Indiquez vos nom et prénom.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contact.email)) throw new MontageError('Indiquez une adresse e-mail valide.');
@@ -53,6 +61,11 @@ function returnBase(requested) {
 async function createRequest(client, body, { returnOrigin } = {}) {
   const { offer, contact, brief } = validate(body);
   const id = crypto.randomUUID();
+  // Première adresse de facturation d'un client connecté : gardée sur sa fiche (modifiable dans Factures)
+  if (client && contact.billing) {
+    await db.query("UPDATE clients SET billing = $2, billing_updated_at = now() WHERE id = $1 AND (billing IS NULL OR billing->>'address' IS NULL OR billing->>'address' = '')",
+      [client.id, JSON.stringify({ ...contact.billing, contact: contact.name, siret: '', po: '' })]);
+  }
   const ht = offer.priceHT == null ? null : Math.round(offer.priceHT * 100);
   const ttc = offer.priceHT == null ? null : ttcCents(offer.priceHT, config.stripe.vatRate);
   await db.query(
@@ -96,8 +109,10 @@ async function markPaid(requestId, paymentIntent = null) {
   );
   if (rows[0]) {
     await tracking.record('montage', requestId, 'paye', { message: `Payé : ${(rows[0].amount_ttc_cents / 100).toFixed(2).replace('.', ',')} € TTC` });
-    // TODO (back-office P1) : e-mail à l'équipe communication et facture automatique (Pennylane).
     console.log(`[montage] demande ${requestId.slice(0, 8)} payée : ${rows[0].offer_title} — ${rows[0].contact.company} <${rows[0].contact.email}>`);
+    // Facture (Pennylane, ou Stripe), puis e-mail à la compta avec le résultat. Jamais bloquant.
+    await require('../invoicing/service').invoicePayment('montage', requestId).catch((e) => console.error('[facture]', e.message));
+    await require('./notify').notifyAccounting(requestId);
   }
   return rows[0] || null;
 }

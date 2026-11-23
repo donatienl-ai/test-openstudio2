@@ -149,6 +149,7 @@ router.get('/admin/team', requireSuperAdmin, wrap(async (req, res) => {
 
 router.post('/admin/team', requireSuperAdmin, json, wrap(async (req, res) => {
   const { email, name, role, username } = req.body || {};
+  if (!String(username || '').trim()) return res.status(400).json({ error: 'Identifiant requis (par défaut : la partie avant @ de l’e-mail).' });
   let created;
   try {
     created = await accounts.createUser({ email, name, username, role: role || 'admin', createdBy: req.adminUser.id });
@@ -160,6 +161,43 @@ router.post('/admin/team', requireSuperAdmin, json, wrap(async (req, res) => {
     detail: { email: created.user.email, identifiant: created.user.username, role: created.user.role },
   });
   res.status(201).json({ user: accounts.publicUser(created.user), inviteLink: accounts.inviteLink(created.inviteToken) });
+}));
+
+/** Changement de rôle d'un compte (admin ↔ super admin). */
+router.post('/admin/team/:id/role', requireSuperAdmin, json, wrap(async (req, res) => {
+  const role = String((req.body || {}).role || '');
+  if (req.params.id === req.adminUser.id && role !== 'super_admin') return res.status(409).json({ error: 'Vous ne pouvez pas retirer votre propre rôle de super admin : demandez à un autre super admin.' });
+  const before = await accounts.get(req.params.id);
+  let u;
+  try {
+    u = await accounts.setRole(req.params.id, role);
+  } catch (e) {
+    return sendError(res, e);
+  }
+  if (before && before.role !== u.role) {
+    await audit.record(req, 'role_modifie', { targetType: 'admin_user', targetId: u.id, detail: { email: u.email, avant: before.role, apres: u.role } });
+  }
+  res.json({ user: accounts.publicUser(u) });
+}));
+
+/* ------------------------------------------------------------------ Destinataires des alertes */
+
+router.get('/admin/alert-settings', requireTeam, wrap(async (req, res) => {
+  res.json(await require('./admin/alerts').list());
+}));
+
+router.put('/admin/alert-settings', requireTeam, json, wrap(async (req, res) => {
+  const alerts = require('./admin/alerts');
+  const before = await alerts.list();
+  const r = await alerts.save(req.body || {}, (req.adminUser && req.adminUser.name) || 'équipe');
+  if (r.error) return res.status(400).json({ error: r.error });
+  const changes = {};
+  for (const t of r.value.types) {
+    const old = (before.types.find((x) => x.id === t.id) || {}).recipients || [];
+    if (old.join(',') !== t.recipients.join(',')) changes[t.label] = t.recipients.join(', ') || '(aucun)';
+  }
+  if (Object.keys(changes).length) await audit.record(req, 'alertes_modifiees', { detail: changes });
+  res.json(r.value);
 }));
 
 /** Nouveau lien d'activation (mot de passe oublié, téléphone perdu) : l'accès actuel est coupé. */

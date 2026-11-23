@@ -1328,7 +1328,8 @@ em,i:not([class]){font-style:normal}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <!-- Back-end OpenStudio (commandes, OpusClip, sous-titres) : URL du service Render, ex. https://openstudio-backend.onrender.com.
      Vide = mode démonstration (aucun appel). Voir docs/openstudio/INTEGRATION.md. -->
-<script>window.OPENSTUDIO_API = window.OPENSTUDIO_API || 'https://openstudio-backend.onrender.com';</script>
+<script>(function () { if (!/recette/.test(location.hostname)) return; var b = document.createElement('div'); b.textContent = 'RECETTE · données de test'; b.setAttribute('role', 'note'); b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:2147483647;background:#E0892E;color:#fff;font:700 12px/1 Inter,system-ui,sans-serif;letter-spacing:.04em;padding:8px 12px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.25);pointer-events:none'; document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(b); }); })();</script>
+<script>window.OPENSTUDIO_API = window.OPENSTUDIO_API || (/recette/.test(location.hostname) ? 'https://openstudio-backend-recette.onrender.com' : 'https://openstudio-backend.onrender.com');</script>
 <script src="openstudio-api.js"></script>
 <script>
 /* ================= Données de démonstration ================= */
@@ -3372,7 +3373,7 @@ const mtEur = n => `${Number(n).toLocaleString('fr-FR', { minimumFractionDigits:
 function mtStart(prev) {
   if (!bkOn()) { toast('Cette demande nécessite la connexion à OpenStudio.'); return; }
   const c = client() || {}; const v = osPkgVideos()[0];
-  const f = prev || { offerId: '', company: c.name || '', name: c.contact || '', email: c.email || '', phone: '', programme: v ? [v.media, v.title].filter(Boolean).join(' — ') : '', description: '', formats: [], deadline: '' };
+  const f = prev || { offerId: '', company: c.name || '', name: c.contact || '', email: c.email || '', phone: '', programme: v ? [v.media, v.title].filter(Boolean).join(' — ') : '', description: '', formats: [], deadline: '', address: '', postalCode: '', city: '', vat: '' };
   S.modal = { type: 'montage', f, err: '', sending: false };
   render();
   if (!MT.offers) mtLoadOffers();
@@ -3409,10 +3410,15 @@ function mtHtml(m) {
       </div>
       <div class="os-field"><span>Formats <span class="mut" style="font-weight:400">(facultatif)</span></span><div class="os-chipsel" role="group" aria-label="Formats souhaités">${MT_FORMATS.map(l => `<button type="button" data-a="mt-fmt" data-arg="${l}" aria-pressed="${f.formats.includes(l)}">${l}</button>`).join('')}</div></div>
     </fieldset>
-    <fieldset class="mt-sec"><legend>Vos coordonnées</legend>${contact}</fieldset>
+    <fieldset class="mt-sec"><legend>Vos coordonnées</legend>${contact}${mtNeedsAddress() ? `
+      <div class="os-field"><label for="mt-ad">Adresse de facturation</label><input id="mt-ad" class="os-in" autocomplete="street-address" data-in="mt" data-arg="address" value="${esc(f.address || '')}"></div>
+      <div class="mt-grid bl-3"><div class="os-field"><label for="mt-cp">Code postal</label><input id="mt-cp" class="os-in" autocomplete="postal-code" inputmode="numeric" data-in="mt" data-arg="postalCode" value="${esc(f.postalCode || '')}"></div><div class="os-field"><label for="mt-vi">Ville</label><input id="mt-vi" class="os-in" autocomplete="address-level2" data-in="mt" data-arg="city" value="${esc(f.city || '')}"></div><div class="os-field"><label for="mt-tva">N° de TVA <span class="mut" style="font-weight:400">(facultatif)</span></label><input id="mt-tva" class="os-in" placeholder="FR…" data-in="mt" data-arg="vat" value="${esc(f.vat || '')}"></div></div>
+      <p class="mut small" style="margin:0">Pour votre facture. Elle sera gardée dans votre espace (Factures).</p>` : ''}</fieldset>
     ${m.err ? `<p class="mt-err" role="alert">${esc(m.err)}</p>` : ''}
   </div>`;
 }
+/* Adresse de facturation : demandée seulement si l'espace client ne la connaît pas encore */
+const mtNeedsAddress = () => !(osLive() && BK.client && BK.client.billing && BK.client.billing.address) && !(S.billing && S.billing.address);
 function mtFoot(m) {
   const o = mtOffer(m);
   const label = m.sending ? 'Préparation du paiement…' : !o ? 'Choisissez une prestation' : o.priceHT == null ? 'Envoyer ma demande' : `Continuer vers le paiement · ${mtEur(o.priceTTC)} TTC`;
@@ -3422,11 +3428,12 @@ async function mtSend() {
   const m = S.modal; if (!m || m.type !== 'montage' || m.sending) return;
   const f = m.f; const o = mtOffer(m);
   const miss = !o ? 'Choisissez la prestation souhaitée.' : !f.company.trim() ? 'Indiquez le nom de votre entreprise.' : !f.name.trim() ? 'Indiquez vos nom et prénom.'
-    : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim()) ? 'Indiquez une adresse e-mail valide.' : f.description.trim().length < 10 ? 'Décrivez en quelques mots la vidéo souhaitée.' : '';
+    : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim()) ? 'Indiquez une adresse e-mail valide.' : f.description.trim().length < 10 ? 'Décrivez en quelques mots la vidéo souhaitée.'
+    : o.priceHT != null && mtNeedsAddress() && !(String(f.address || '').trim() && String(f.postalCode || '').trim() && String(f.city || '').trim()) ? 'Complétez l’adresse de facturation (adresse, code postal et ville).' : '';
   if (miss) { m.err = miss; if (/entreprise|nom|e-mail/.test(miss)) m.editContact = true; S.keepScroll = true; render(); return; }
   m.err = ''; m.sending = true; S.keepScroll = true; render();
   try {
-    const r = await OpenStudio.montage.request({ offerId: f.offerId, contact: { company: f.company, name: f.name, email: f.email, phone: f.phone }, brief: { description: f.description, programme: f.programme, formats: f.formats, deadline: f.deadline } });
+    const r = await OpenStudio.montage.request({ offerId: f.offerId, contact: { company: f.company, name: f.name, email: f.email, phone: f.phone, ...(mtNeedsAddress() && String(f.address || '').trim() ? { billing: { address: f.address, postalCode: f.postalCode, city: f.city, vat: f.vat } } : {}) }, brief: { description: f.description, programme: f.programme, formats: f.formats, deadline: f.deadline } });
     try { sessionStorage.setItem(MT_KEY, JSON.stringify(f)); } catch (e) {}
     if (r.checkoutUrl) { location.href = r.checkoutUrl; return; } // étape 2 : paiement Stripe
     try { sessionStorage.removeItem(MT_KEY); } catch (e) {}
