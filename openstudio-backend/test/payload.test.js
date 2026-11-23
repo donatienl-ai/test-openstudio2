@@ -19,7 +19,7 @@ const video = { id: 'v1', title: 'Passage du 12 mars', programme_id: 'bfm-busine
 // Capsules vidéo
 // ---------------------------------------------------------------------------
 test('capsules : libellés de la page acceptés tels quels → payload OpusClip', () => {
-  for (const [duration, range] of [['15 s', [[15, 20]]], ['30 s', [[30, 35]]], ['45 s', [[45, 50]]], ['60 s', [[60, 65]]]]) {
+  for (const [duration, range] of [['15 s', [[15, 25]]], ['30 s', [[30, 45]]], ['45 s', [[45, 70]]], ['60 s', [[60, 90]]]]) {
     for (const [format, expected] of [['Vertical 9:16', 'portrait'], ['Carré 1:1', 'square'], ['Horizontal 16:9', 'landscape']]) {
       const options = normalizeOptions('capsules', { videoId: 'v1', duration, format }, real, { video });
       const p = buildProjectPayload({ id: ID, type: 'capsules', options }, 'upload-xyz', real, hook);

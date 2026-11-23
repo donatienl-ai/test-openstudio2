@@ -4,7 +4,7 @@
  * Les clips exportables portent `screenplay.chapters[].lines[].words[]` avec des temps absolus
  * (secondes dans la vidéo source) et `timeRanges` (millisecondes). À défaut : `clip.text`.
  */
-function clipTranscript(clip, maxSec) {
+function clipTranscript(clip, maxSec, offsetSec = 0) {
   if (!clip) return '';
   const start = Array.isArray(clip.timeRanges) && clip.timeRanges[0] ? Number(clip.timeRanges[0][0]) / 1000 : null;
   const words = [];
@@ -15,10 +15,12 @@ function clipTranscript(clip, maxSec) {
     }
   }
   if (words.length && start != null) {
-    const limit = maxSec ? start + Number(maxSec) + 0.05 : Infinity;
-    const kept = words.filter((w) => Number(w.tr[1]) <= limit).map((w) => w.text);
+    const from = start + Number(offsetSec || 0) - 0.05;
+    const limit = maxSec ? from + Number(maxSec) + 0.1 : Infinity;
+    const kept = words.filter((w) => Number(w.tr[0]) >= from && Number(w.tr[1]) <= limit).map((w) => w.text);
     if (kept.length) return kept.join(' ').replace(/\s+([,.;:!?])/g, '$1').trim();
   }
+  if (offsetSec) return ''; // seconde partie d'un extrait : pas de texte daté, rien plutôt qu'un texte faux
   return String(clip.text || '').replace(/__silence/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
