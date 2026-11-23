@@ -210,27 +210,28 @@ async function hasAudio(input) {
 
 /**
  * Filtergraph de l'habillage d'ouverture et de fin (fonction pure, testée).
- * Entrées : 0 = vidéo, 1 = vidéo (première image), 2 = fin de la vidéo (dernière seconde),
- * 3 = logo d'ouverture, 4 = logo de fin. Fonds = image floutée et légèrement assombrie.
+ * Entrées : 0 = vidéo, 1 = vidéo (première image), 2 = logo d'ouverture, 3 = logo de fin.
+ * Ouverture : logo sur la première image floutée, couleurs d'origine (ni assombrie ni fondu au noir).
+ * Fin : fondu vers un fond uni (bleu nuit OpenMedias) avec le logo de fin, sans fondu au noir.
  */
-function buildBumperGraph({ width, height, mainSec, introSec, outroSec, fadeSec, logoWidthRatio, fps = 30, audio }) {
+function buildBumperGraph({ width, height, mainSec, introSec, outroSec, fadeSec, logoWidthRatio, fps = 30, audio, outroColor = '#24244A' }) {
   const W = width - (width % 2);
   const H = height - (height % 2);
   const lw = Math.max(2, Math.round((W * logoWidthRatio) / 2) * 2);
   const blur = Math.max(4, Math.round(Math.min(W, H) / 30));
   const norm = `scale=${W}:${H},setsar=1,fps=${fps},format=yuv420p,settb=AVTB`;
-  const bg = (inp, sec) => `[${inp}:v]trim=end_frame=1,setpts=PTS-STARTPTS,scale=${W}:${H},boxblur=${blur}:2,eq=brightness=-0.12:saturation=0.85,loop=loop=-1:size=1:start=0,trim=duration=${sec},${norm}`;
+  const color = /^#[0-9a-f]{6}$/i.test(outroColor) ? outroColor.replace('#', '0x') : '0x24244A';
   const xfade1 = (introSec - fadeSec).toFixed(3);
   const xfade2 = (introSec + mainSec - 2 * fadeSec).toFixed(3);
   const total = introSec + mainSec + outroSec - 2 * fadeSec;
   const parts = [
     `[0:v]${norm}[main]`,
-    `${bg(1, introSec)}[ibg]`,
-    `[3:v]scale=${lw}:-1,format=rgba[ilogo]`,
-    `[ibg][ilogo]overlay=x=(W-w)/2:y=(H-h)/2:eof_action=repeat:shortest=1,fade=t=in:st=0:d=${Math.min(0.5, fadeSec).toFixed(2)},format=yuv420p[intro]`,
-    `${bg(2, outroSec)}[obg]`,
-    `[4:v]scale=${lw}:-1,format=rgba[ologo]`,
-    `[obg][ologo]overlay=x=(W-w)/2:y=(H-h)/2:eof_action=repeat:shortest=1,fade=t=out:st=${(outroSec - 0.5).toFixed(2)}:d=0.5,format=yuv420p[outro]`,
+    `[1:v]trim=end_frame=1,setpts=PTS-STARTPTS,scale=${W}:${H},boxblur=${blur}:2,loop=loop=-1:size=1:start=0,trim=duration=${introSec},${norm}[ibg]`,
+    `[2:v]scale=${lw}:-1,format=rgba[ilogo]`,
+    `[ibg][ilogo]overlay=x=(W-w)/2:y=(H-h)/2:eof_action=repeat:shortest=1,format=yuv420p[intro]`,
+    `color=c=${color}:s=${W}x${H}:r=${fps}:d=${outroSec},${norm}[obg]`,
+    `[3:v]scale=${lw}:-1,format=rgba[ologo]`,
+    `[obg][ologo]overlay=x=(W-w)/2:y=(H-h)/2:eof_action=repeat:shortest=1,format=yuv420p[outro]`,
     `[intro][main]xfade=transition=fade:duration=${fadeSec}:offset=${xfade1}[x1]`,
     `[x1][outro]xfade=transition=fade:duration=${fadeSec}:offset=${xfade2}[vout]`,
   ];
@@ -244,15 +245,15 @@ function buildBumperGraph({ width, height, mainSec, introSec, outroSec, fadeSec,
 }
 
 /**
- * Ajoute l'ouverture (logo de l'entreprise) et la fin (logo OpenMedias) en fondu, sur l'image floutée
- * de la vidéo. La vidéo garde sa durée : l'ensemble dure introSec + vidéo + outroSec - 2 × fondu.
+ * Ajoute l'ouverture (logo de l'entreprise sur l'image floutée de la vidéo) et la fin (logo OpenMedias
+ * blanc sur le bleu nuit OpenMedias), enchaînées en fondu. La vidéo garde sa durée : l'ensemble dure introSec + vidéo + outroSec - 2 × fondu.
  */
-async function addBumpers({ input, output, introLogo, outroLogo, introSec = 2, outroSec = 2, fadeSec = 0.5, logoWidthRatio = 0.4 }) {
+async function addBumpers({ input, output, introLogo, outroLogo, introSec = 2, outroSec = 2, fadeSec = 0.5, logoWidthRatio = 0.4, outroColor }) {
   const [size, mainSec, audio] = await Promise.all([probeVideoSize(input), probeDurationSec(input), hasAudio(input)]);
   if (!size || !mainSec) throw new Error('Vidéo illisible : habillage impossible');
-  const g = buildBumperGraph({ width: size.width, height: size.height, mainSec: Math.max(fadeSec * 2 + 0.1, mainSec - 0.05), introSec, outroSec, fadeSec, logoWidthRatio, audio });
+  const g = buildBumperGraph({ width: size.width, height: size.height, mainSec: Math.max(fadeSec * 2 + 0.1, mainSec - 0.05), introSec, outroSec, fadeSec, logoWidthRatio, audio, outroColor });
   const args = ['-hide_banner', '-y', '-filter_complex_threads', '1',
-    '-i', input, '-i', input, '-sseof', '-1', '-i', input, '-loop', '1', '-i', introLogo, '-loop', '1', '-i', outroLogo,
+    '-i', input, '-i', input, '-loop', '1', '-i', introLogo, '-loop', '1', '-i', outroLogo,
     '-filter_complex', g.filter, '-map', `[${g.video}]`];
   if (g.audio) args.push('-map', `[${g.audio}]`);
   args.push('-t', g.totalSec.toFixed(3),
