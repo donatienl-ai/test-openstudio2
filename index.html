@@ -1464,6 +1464,17 @@ em,i:not([class]){font-style:normal}
   .modal:has(.crm) .modal-f{padding-bottom:16px}
   .modal:has(.crm) .modal-f .os-cta,.modal:has(.crm) .modal-f .os-pillbtn{height:44px!important}
 }
+
+/* Récapitulatif de commande (« Le détail ») : espacements réduits de 15 % */
+.os-recap{padding:24px;gap:15px}
+.os-recap .os-row{padding:12px 0;gap:7px 14px}
+@media (max-width:760px){
+  .os-recap{padding:17px}
+  .os-recap .os-row{flex-wrap:nowrap;padding:10px 0;gap:10px;font-size:14px}
+  .os-recap .os-row .k{flex:0 0 100px;font-size:13px}
+  .os-recap .os-row .v{flex:1 1 0;min-width:0}
+  .os-recap .os-row button{flex:none;font-size:13px}
+}
 </style>
 </head>
 <body>
@@ -2335,7 +2346,7 @@ function bkCapsulesPage(c) {
       : BK.err ? `<section class="os-card"><h2>Vos émissions ne sont pas accessibles</h2><p class="mut" style="margin:0">${esc(BK.err)}</p><button class="os-pillbtn s" style="align-self:flex-start" data-a="bk-reload">Réessayer</button></section>`
       : `<section class="os-card" aria-labelledby="q-em"><h2 id="q-em">À partir de quelle émission ?</h2>${bkUploadBox()}
         <div style="display:flex;flex-direction:column;gap:12px">${list.length ? list.map(x => `<button type="button" class="os-em" data-a="bk-video" data-arg="${esc(x.bkId)}" aria-pressed="${k.bkVideoId === x.bkId}">${thumb(x)}<div style="flex:1 1 220px;display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;font-size:16px">${esc([x.media, x.title].filter(Boolean).join(' — '))}</span><span class="mut" style="font-size:14px">${x.date ? 'Diffusé le ' + fmtD(x.date) : 'Vidéo de votre package'}${x.duration ? ' · ' + tc(x.duration) : ''}</span></div><span class="os-dot ok" style="font-weight:600"><i aria-hidden="true"></i>Prête</span></button>`).join('') : `<div class="os-empty">Vos émissions apparaîtront ici dès que l'équipe OpenMedias les aura déposées.</div>`}</div>
-        <p class="mut" style="margin:0;font-size:14px;line-height:1.5">Vous voyez ici les émissions de votre package. Une autre en tête ? Écrivez à votre chargée de projet.</p></section>`;
+        <p class="mut" style="margin:0;font-size:14px;line-height:1.5">Vous voyez ici les émissions de votre package.</p></section>`;
   } else if (n === 2) {
     const ill = { capsules: '<i style="width:38px;height:68px"></i><i style="width:38px;height:68px;background:#48406E"></i><i style="width:38px;height:68px;background:#384868"></i>', teaser: '<i style="width:46px;height:82px"></i>', subtitles: '<i style="width:150px;height:84px"></i>' };
     main = `<section class="os-card" aria-labelledby="q-type"><div><h2 id="q-type">Que voulez-vous en faire ?</h2><div class="sub">Le logo de l'émission et le vôtre sont ajoutés dans tous les cas.</div></div>
@@ -2355,7 +2366,7 @@ function bkCapsulesPage(c) {
     }
   } else {
     const prev = kd === 'subtitles' ? '' : `<section class="os-card"><h2>Ce que vous allez recevoir</h2><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:520px">${[1, 2, 3].slice(0, kd === 'teaser' ? 1 : 3).map(i => `<div style="display:flex;flex-direction:column;gap:8px"><div class="frame ${fmtClass(k.fmt)}" style="width:100%">${scene(v)}</div><span style="font-size:14px;font-weight:600">${kd === 'teaser' ? 'Teaser' : 'Capsule ' + i}</span></div>`).join('')}</div><p class="mut" style="margin:0;font-size:14px;line-height:1.5">Aperçu indicatif : les extraits sont choisis automatiquement dans votre interview au moment de la création.</p></section>`;
-    main = prev + `<section class="os-card"><h2>Le détail</h2><div>${flowRows(v).map(([k2, val, act]) => `<div class="os-row"><span class="k">${k2}</span><span class="v">${esc(val)}</span>${act ? `<button data-a="${act.startsWith('step') ? 'bk-step' : 'flow-mod'}" data-arg="${act.split('|')[1] || ''}">Modifier</button>` : ''}</div>`).join('')}</div></section>`;
+    main = prev + `<section class="os-card os-recap"><h2>Le détail</h2><div>${flowRows(v).map(([k2, val, act]) => `<div class="os-row"><span class="k">${k2}</span><span class="v">${esc(val)}</span>${act ? `<button data-a="${act.startsWith('step') ? 'bk-step' : 'flow-mod'}" data-arg="${act.split('|')[1] || ''}">Modifier</button>` : ''}</div>`).join('')}</div></section>`;
   }
   const rows = flowRows(v).filter(r => r[0] !== 'Livraison' && (n > 1 || r[0] === 'Émission' || r[0] === 'Habillage'));
   const aside = n < 4 ? `<aside class="os-aside" aria-labelledby="recap"><h2 id="recap">Votre commande</h2>
