@@ -56,11 +56,13 @@ module.exports = {
     // La durée choisie par le client est respectée À LA SECONDE : on demande des extraits au moins
     // aussi longs que la cible (cible → cible + 5 s), puis le post-traitement les coupe exactement
     // à la durée choisie, avec un court fondu sonore (pipeline.finalizeCapsules → renderFinal).
+    // Fourchette large (cible → cible + 50 %) : OpusClip propose ainsi assez d'extraits pour livrer
+    // 3 capsules ; une fourchette de 5 s n'en laissait parfois que 2.
     durations: {
-      15: [[15, 20]],
-      30: [[30, 35]],
-      45: [[45, 50]],
-      60: [[60, 65]],
+      15: [[15, 25]],
+      30: [[30, 45]],
+      45: [[45, 70]],
+      60: [[60, 90]],
     },
     // Extraits plus courts que la cible : acceptés seulement s'il en manque, et à moins de 1 s près.
     durationToleranceSec: 1,

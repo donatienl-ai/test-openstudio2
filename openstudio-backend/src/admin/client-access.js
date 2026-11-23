@@ -221,6 +221,52 @@ function accessEmail(client, link, code, creditsUntil = null) {
   };
 }
 
+/** E-mail « code oublié » : le code d'accès (inchangé) et le lien de connexion, rien d'autre. */
+function forgotCodeEmail(client, link, code) {
+  const text = [
+    client.name ? `Bonjour ${client.name},` : 'Bonjour,',
+    '',
+    `Vous avez demandé à recevoir votre code d’accès OpenStudio${client.company ? ` (${client.company})` : ''}.`,
+    '',
+    `Votre code d’accès : ${code}`,
+    '',
+    'Pour vous connecter directement (le code est déjà rempli) :',
+    link,
+    '',
+    'Ce code vous est réservé : ne le transmettez pas en dehors de votre entreprise.',
+    'Si vous n’êtes pas à l’origine de cette demande, ignorez simplement cet e-mail : votre code reste inchangé.',
+    '',
+    'L’équipe OpenMedias',
+  ].join('\n');
+  return {
+    to: { email: client.email, name: client.name || undefined },
+    subject: 'Votre code d’accès OpenStudio',
+    text,
+    customId: `code-oublie-${client.id}`,
+  };
+}
+
+/**
+ * « Code oublié ? » : renvoie le code d'accès à l'adresse enregistrée sur la fiche du client.
+ * Ne dit jamais si l'adresse est connue (pas de liste des clients par essais successifs).
+ * @returns {Promise<{ sent: boolean, reason?: string }>}
+ */
+async function sendForgottenCode(email, { req = null, send = mailer.send } = {}) {
+  const client = await require('../clients').findByEmail(email);
+  if (!client || client.access_revoked_at) return { sent: false, reason: 'inconnu' };
+  const unavailable = mailer.problem();
+  if (unavailable && send === mailer.send) return { sent: false, reason: unavailable };
+  // Le code ne change jamais : s'il existe mais ne peut pas être relu, on n'en crée pas un autre.
+  const readable = readableCode(client);
+  if (!readable && client.access_code_hash) return { sent: false, reason: 'code illisible (ADMIN_ENCRYPTION_KEY absente ou modifiée)' };
+  const code = readable || await ensureCode(client.id);
+  const message = forgotCodeEmail(client, loginUrlFor(code), code);
+  const r = await send(message);
+  await logEmail(client, { status: 'envoye', subject: message.subject, providerId: r && r.messageId, redirectedTo: r && r.redirectedTo });
+  await audit.record(req, 'code_oublie_envoye', { targetType: 'client', targetId: client.id, detail: { email: client.email } });
+  return { sent: true };
+}
+
 /**
  * Crée un nouveau lien et l'envoie par e-mail. En cas d'échec, l'erreur est enregistrée sur la fiche
  * et l'envoi automatique réessaiera plus tard (5 essais au plus).
@@ -322,4 +368,4 @@ async function runScheduled({ now = new Date(), send = mailer.send, log = consol
   return { sent, failed };
 }
 
-module.exports = { readableCode, ensureCode, ensureAllCodes, restore, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
+module.exports = { forgotCodeEmail, sendForgottenCode, readableCode, ensureCode, ensureAllCodes, restore, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };

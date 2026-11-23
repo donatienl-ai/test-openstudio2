@@ -158,6 +158,10 @@
     try { localStorage.setItem(CLIENT_KEY, JSON.stringify({ id: d.client.id, token: d.token })); } catch { /* ignoré */ }
     return d.client;
   };
+  /** Informations de facturation (Factures → Modifier). */
+  const setBilling = (billing) => call('POST', '/api/me/billing', { body: billing });
+  /** « Code oublié ? » : le serveur renvoie le code à l'adresse e-mail de la fiche (réponse identique si inconnue). */
+  const forgotCode = (email) => call('POST', '/api/client/forgot-code', { body: { email } });
   /** Session ouverte avec un code (et non avec un ancien lien d'accès) ? */
   const hasCodeSession = () => { const c = clientSession(); return Boolean(c && String(c.token).startsWith('cst_')); };
   /** Déconnexion : la session locale est effacée tout de suite, puis fermée côté serveur. */
@@ -231,6 +235,8 @@
     credits,
     setMarketing,
     loginWithCode,
+    forgotCode,
+    setBilling,
     videoStreamUrl,
     hasCodeSession,
     logoutClient,
