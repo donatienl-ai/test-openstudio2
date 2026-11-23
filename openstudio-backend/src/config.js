@@ -41,6 +41,10 @@ const config = {
     teamAlertEmail: (process.env.TEAM_ALERT_EMAIL || '').trim(),
     // Équipe compta : e-mail à chaque montage payé (à défaut : TEAM_ALERT_EMAIL)
     accountingEmail: (process.env.ACCOUNTING_EMAIL || process.env.TEAM_ALERT_EMAIL || '').trim(),
+    // Images des e-mails (dossier email/ du site client) : adresse publique, sans barre finale
+    get assetsUrl() {
+      return (process.env.EMAIL_ASSETS_URL || ((process.env.APP_ENV || '').trim().toLowerCase() === 'recette' ? 'https://openstudio-recette.onrender.com/email' : 'https://test-openstudio3.onrender.com/email')).trim().replace(/\/+$/, '');
+    },
   },
 
   // Planning de diffusion (dashboard) : route d'export en lecture seule + clé partagée

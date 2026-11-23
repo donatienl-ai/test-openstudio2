@@ -19,24 +19,31 @@ function loadAccess() {
   }
 }
 
-test('e-mail du jour de diffusion : code, arguments, crédits 30 jours, sans la vidéo, à l’e-mail du client', () => {
+test('e-mail du jour J (maquette « pass clair ») : code, lien, crédits, émission, tarifs, version texte', () => {
   const access = loadAccess();
   const today = access.parisParts().day;
   const m = access.accessEmail({ id: 'c1', name: 'Claire Dumas', company: 'Ecoval', email: 'claire@ecoval.fr', broadcast_date: today },
-    'https://openstudio.fr/?code=OM-7KX4-M9', 'OM-7KX4-M9', new Date('2027-01-02T22:59:59Z'));
+    'https://openstudio.fr/?code=OM-7KX4-M9', 'OM-7KX4-M9', new Date('2027-01-02T22:59:59Z'),
+    { programme: 'Smart Impact', media: 'BFM Business', credits: 1000, prices: { capsules: 300, teaser: 250, subtitlesPer5Min: 200 } });
   assert.equal(m.to.email, 'claire@ecoval.fr');
-  assert.equal(m.subject, 'Votre émission est diffusée aujourd’hui : votre espace OpenStudio est ouvert');
-  for (const s of ['OM-7KX4-M9', 'https://openstudio.fr/?code=OM-7KX4-M9', 'Pourquoi utiliser OpenStudio ?', 'LinkedIn', 'logos', 'crédibilité', 'valables 30 jours, jusqu’au 2 janvier 2027']) {
-    assert.ok(m.text.includes(s), s);
+  assert.equal(m.subject, 'C’est le jour J : votre espace OpenStudio est ouvert');
+  for (const s of ['Votre émission est diffusée aujourd’hui.', 'Bonjour Claire', 'Smart Impact', 'BFM Business', 'OM-7KX4-M9', 'href="https://openstudio.fr/?code=OM-7KX4-M9"',
+    '1 000', 'crédits offerts', '2 janvier 2027', 'Accéder à mon espace', 'Utiliser mes crédits', '300 crédits', '250 crédits', '200 crédits / 5 min',
+    'Des capsules pour vos réseaux', 'Sous-titres et logo', 'Un teaser de votre passage', '/email/logo-openmedias.png', '/email/capsules.jpg', 'Répondez simplement à cet e-mail']) {
+    assert.ok(m.html.includes(s), s);
   }
-  assert.doesNotMatch(m.text, /vidéo de votre passage|télécharg/i);
-  assert.equal(m.variables.credits_jusqu_au, '2 janvier 2027');
+  // Mise en page compatible avec les messageries : tableaux, pas de flex ni de grid
+  assert.doesNotMatch(m.html, /display:\s*(flex|grid)|position:\s*absolute/);
+  for (const s of ['Bonjour Claire,', 'OM-7KX4-M9', 'https://openstudio.fr/?code=OM-7KX4-M9', 'valables jusqu’au 2 janvier 2027', 'dans Smart Impact sur BFM Business']) assert.ok(m.text.includes(s), s);
+  assert.doesNotMatch(m.text, /télécharg/i);
 });
 
-test('envoi à la main avant la diffusion : pas de « diffusé aujourd’hui »', () => {
+test('envoi à la main avant la diffusion : pas de « aujourd’hui » ; données manquantes sans trou', () => {
   const access = loadAccess();
-  const m = access.accessEmail({ id: 'c1', name: 'Claire', email: 'c@e.fr', broadcast_date: '2099-01-01' }, 'l', 'OM-AAAA-BB', null);
+  const m = access.accessEmail({ id: 'c1', name: 'Ecoval Industrie SAS', email: 'c@e.fr', broadcast_date: '2099-01-01' }, 'l', 'OM-AAAA-BB', null);
   assert.equal(m.subject, 'Votre espace OpenStudio est ouvert');
-  assert.doesNotMatch(m.text, /aujourd’hui/);
-  assert.match(m.text, /Vos crédits offerts sont valables 30 jours\./);
+  const visible = m.html.replace(/<!--[\s\S]*?-->/g, '').replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ');
+  assert.doesNotMatch(visible, /aujourd’hui|\[|undefined|null/);
+  assert.match(m.html, /Bonjour, votre espace OpenStudio est ouvert/, 'nom d’entreprise : pas de prénom inventé');
+  assert.doesNotMatch(m.html, /Valables jusqu/);
 });

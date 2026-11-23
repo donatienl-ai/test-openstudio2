@@ -130,6 +130,10 @@ services:
       # Adresse du back-office pour les liens dans les e-mails à l'équipe (ex. https://admin.openstudio.fr)
       - key: ADMIN_URL
         sync: false
+      # Images des e-mails (dossier email/ du site client). Vide : https://test-openstudio3.onrender.com/email
+      # (en recette : https://openstudio-recette.onrender.com/email). À changer avec le nom de domaine définitif.
+      - key: EMAIL_ASSETS_URL
+        sync: false
       # « recette » sur le serveur de recette uniquement (voir docs/RECETTE.md) ; vide en production.
       - key: APP_ENV
         sync: false
