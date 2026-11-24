@@ -93,6 +93,7 @@ async function main() {
   setInterval(runExpiry, 60 * 60 * 1000).unref();
   // Codes d'accès des clients : envoyés le jour de la diffusion (vérification toutes les 10 minutes)
   if (!config.clientSiteUrl) console.error('[accès client] CLIENT_SITE_URL et FRONTEND_ORIGIN vides : impossible de créer les liens d\'accès des clients.');
+  await require('./emails/redirect').load(); // adresses de test réglées dans le back-office (page E-mails)
   const mailProblem = require('./mailer').problem();
   console.log(mailProblem ? `[accès client] Envoi automatique en attente : ${mailProblem}`
     : `[accès client] Envoi automatique actif${config.mail.redirectTo ? ` (TEST : tous les e-mails partent vers ${config.mail.redirectTo})` : ''}.`);

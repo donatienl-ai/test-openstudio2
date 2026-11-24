@@ -111,3 +111,34 @@ test('e-mails de test : chacun des 6 e-mails, données d’exemple, à la person
   await assert.rejects(samples.sendTest('inconnu', { email: 'x@om.test' }, { send: async () => ({}) }), /inconnu/);
   await emails.save([], 'Lola');
 });
+
+test('mode test : plusieurs adresses reçoivent tous les e-mails, réglables dans le back-office', { skip }, async () => {
+  const config = require('../src/config');
+  const redirect = require('../src/emails/redirect');
+  const allow = config.mail.allowRealRecipients;
+  config.mail.allowRealRecipients = false;
+  try {
+    assert.match((await redirect.save([])).error, /au moins une adresse/, 'jamais zéro adresse si l’envoi réel est interdit');
+    assert.match((await redirect.save(['pas-un-mail'])).error, /invalide/);
+    assert.match((await redirect.save(['lola@openmedias.fr', 'lola@gmail.com'])).error, /@openmedias\.fr.*lola@gmail\.com/, 'garde-fou : adresses de l’équipe uniquement');
+    assert.match((await redirect.save(['lola@openmedias.fr.pirate.com'])).error, /@openmedias\.fr/);
+    assert.ok(redirect.isTestAddress('Julien@OpenMedias.fr') && !redirect.isTestAddress('julien@openmedias.fr.test') && !redirect.isTestAddress('client@vrai.test'));
+    const r = await redirect.save(['Lola@OpenMedias.fr', 'julien@openmedias.fr', 'lola@openmedias.fr'], 'Lola');
+    assert.deepEqual(r.value.list, ['lola@openmedias.fr', 'julien@openmedias.fr']);
+    assert.equal(r.value.mode, 'test');
+    assert.equal(config.mail.redirectTo, 'lola@openmedias.fr, julien@openmedias.fr', 'appliqué tout de suite aux envois');
+    const m = mailer.buildMessage({ to: { email: 'client@vrai.test' }, subject: 'Votre code', text: 'T' }, { fromEmail: 'a@b.c', fromName: 'OM', redirectTo: config.mail.redirectTo });
+    assert.deepEqual(m.To.map((t) => t.Email), ['lola@openmedias.fr', 'julien@openmedias.fr']);
+    assert.match(m.Subject, /^\[TEST\] Votre code \(pour client@vrai\.test\)$/);
+    // Relu au démarrage du serveur
+    config.mail.redirectTo = '';
+    await redirect.load();
+    assert.equal(config.mail.redirectTo, 'lola@openmedias.fr, julien@openmedias.fr');
+    // Envoi réel autorisé : liste vide = vrais destinataires
+    config.mail.allowRealRecipients = true;
+    assert.equal((await redirect.save([], 'Lola')).value.mode, 'reel');
+    assert.equal(config.mail.redirectTo, '');
+  } finally {
+    config.mail.allowRealRecipients = allow;
+  }
+});
