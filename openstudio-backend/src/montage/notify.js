@@ -68,6 +68,7 @@ function accountingEmail(r, client = null, to = null) {
 /** Envoie l'e-mail compta d'une demande payée (une seule fois). Ne lève jamais. */
 async function notifyAccounting(requestId, { send = mailer.send } = {}) {
   try {
+    if (!(await require('../emails/settings').isEnabled('compta'))) return { sent: false, reason: 'en pause' };
     const to = await require('../admin/alerts').recipients('compta');
     if (!to.length) {
       console.warn('[compta] montage payé, mais aucun destinataire (back-office → Alertes)');
@@ -97,6 +98,7 @@ async function notifyAccounting(requestId, { send = mailer.send } = {}) {
 
 /** Nouveaux essais : montages payés depuis moins de 7 jours dont l'e-mail n'est pas parti. */
 async function retryAccounting(opts) {
+  if (!(await require('../emails/settings').isEnabled('compta'))) return 0;
   if (!(await require('../admin/alerts').recipients('compta')).length) return 0;
   const { rows } = await db.query(
     "SELECT id FROM montage_requests WHERE status = 'paid' AND accounting_notified_at IS NULL AND paid_at > now() - interval '7 days' ORDER BY paid_at LIMIT 10"

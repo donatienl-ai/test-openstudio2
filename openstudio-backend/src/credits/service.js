@@ -354,6 +354,7 @@ async function sendConfirmation(purchaseId, { send = mailer.send } = {}) {
   );
   const p = rows[0];
   if (!p || p.email_sent_at) return null;
+  if (!(await require('../emails/settings').isEnabled('recharge'))) return null; // en pause (back-office → E-mails)
   const client = { id: p.client_id, name: p.name, company: p.company, email: p.email };
   const subject = 'Votre recharge de crédits est confirmée';
   const log = (status, extra = {}) => db.query(

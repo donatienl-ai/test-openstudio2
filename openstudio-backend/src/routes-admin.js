@@ -180,6 +180,26 @@ router.post('/admin/team/:id/role', requireSuperAdmin, json, wrap(async (req, re
   res.json({ user: accounts.publicUser(u) });
 }));
 
+/* ------------------------------------------------------------------ E-mails automatiques (activation) */
+
+router.get('/admin/email-settings', requireTeam, wrap(async (req, res) => {
+  res.json(await require('./emails/settings').list());
+}));
+
+router.put('/admin/email-settings', requireTeam, json, wrap(async (req, res) => {
+  const emails = require('./emails/settings');
+  const before = await emails.list();
+  const r = await emails.save((req.body || {}).disabled, (req.adminUser && req.adminUser.name) || 'équipe');
+  if (r.error) return res.status(400).json({ error: r.error });
+  const changes = {};
+  for (const e of r.value.emails) {
+    const was = (before.emails.find((x) => x.id === e.id) || {}).enabled;
+    if (was !== e.enabled) changes[e.label] = e.enabled ? 'activé' : 'en pause';
+  }
+  if (Object.keys(changes).length) await audit.record(req, 'emails_actives', { detail: changes });
+  res.json(r.value);
+}));
+
 /* ------------------------------------------------------------------ Destinataires des alertes */
 
 router.get('/admin/alert-settings', requireTeam, wrap(async (req, res) => {

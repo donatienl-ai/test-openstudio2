@@ -131,6 +131,7 @@ async function setStatus(id, status, fields = {}) {
 
 /** Alerte « commande en erreur » à l'équipe (back-office → Alertes). */
 async function notifyError(id, message) {
+  if (!(await require('./emails/settings').isEnabled('erreurs'))) return; // en pause (back-office → E-mails)
   const to = await require('./admin/alerts').recipients('erreurs');
   if (!to.length) return;
   const { rows } = await db.query('SELECT o.id, o.type, o.options, o.client_id, c.company, c.name FROM orders o LEFT JOIN clients c ON c.id = o.client_id WHERE o.id = $1', [id]);

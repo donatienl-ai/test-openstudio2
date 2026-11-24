@@ -30,6 +30,7 @@ function alertText(kind, items, { backofficeUrl = '' } = {}) {
 
 async function send(kind, items, column, today) {
   if (!items.length) return 0;
+  if (!(await require('./emails/settings').isEnabled('diffusions'))) return 0; // en pause (back-office → E-mails)
   const to = await require('./admin/alerts').recipients('diffusions');
   if (!to.length) {
     console.warn(`[alertes] ${items.length} diffusion(s) incomplète(s), mais aucun destinataire (back-office → Alertes)`);
