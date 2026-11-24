@@ -500,6 +500,7 @@
     role_modifie: 'Rôle modifié',
     alertes_modifiees: 'Destinataires des alertes modifiés',
     emails_actives: 'E-mails automatiques activés / mis en pause',
+    email_test_envoye: 'E-mail de test envoyé',
     montage_avancement: 'Avancement d’un montage',
     facture_creee: 'Facture créée',
     client_cree: 'Client créé',
@@ -534,6 +535,7 @@
     var d = e.detail || {};
     var ROLE = { super_admin: 'super admin', admin: 'admin' };
     if (e.action === 'role_modifie') return (d.email || '') + ' : ' + (ROLE[d.avant] || d.avant) + ' → ' + (ROLE[d.apres] || d.apres);
+    if (e.action === 'email_test_envoye') return (d.objet || '') + ' → ' + (d.redirige_vers || d.email || '');
     if (e.action === 'emails_actives') return Object.keys(d).map(function (k) { return k + ' : ' + d[k]; }).join(' · ');
     if (e.action === 'alertes_modifiees') return Object.keys(d).map(function (k) { return k + ' : ' + d[k]; }).join(' · ');
     if (e.action === 'montage_avancement') return (d.etat || '') + (d.note ? ' — ' + d.note : '');
@@ -812,7 +814,7 @@
     return api('PUT', '/admin/email-settings', { disabled: disabled }).then(function (d) { S.emailsCfg = d; });
   }
   function pageEmails() {
-    var head = '<div class="head"><div><h1>E-mails</h1><p class="muted">Tous les e-mails envoyés automatiquement par la plateforme. Mettez-en un en pause pour qu’il ne parte plus ; les envois faits à la main depuis une fiche client (aperçu, « Envoyer le code ») restent possibles.</p></div>';
+    var head = '<div class="head"><div><h1>E-mails</h1><p class="muted">Tous les e-mails envoyés automatiquement par la plateforme. Mettez-en un en pause pour qu’il ne parte plus. « M’envoyer un test » vous l’envoie avec des données d’exemple, même en pause ; les envois faits à la main depuis une fiche client restent aussi possibles.</p></div>';
     if (!S.emailsCfg || !S.alerts) return head + '</div>' + errorBox() + '<div class="card empty">Chargement…</div>';
     var list = S.emailsCfg.emails;
     var paused = list.filter(function (e) { return !e.enabled; }).length;
@@ -828,7 +830,8 @@
           '<form data-form="alert-add" data-id="' + esc(t.id) + '" class="form-inline" novalidate><label class="grow">Ajouter un destinataire<input name="email" type="email" placeholder="prenom@openmedias.fr" autocomplete="off"></label><button class="btn secondary small" type="submit"' + (S.busy ? ' disabled' : '') + '>Ajouter</button></form>';
       }
       return '<div class="card email-row' + (e.enabled ? '' : ' off') + '"><div class="email-head"><div><h2>' + esc(e.label) + '</h2><p class="small muted">' + esc(e.when) + '</p></div>' +
-        '<button type="button" class="switch' + (e.enabled ? ' on' : '') + '" role="switch" aria-checked="' + e.enabled + '" data-a="email-toggle" data-id="' + esc(e.id) + '"' + (S.busy ? ' disabled' : '') + '><span></span>' + (e.enabled ? 'Actif' : 'En pause') + '</button></div>' +
+        '<div class="email-actions"><button type="button" class="btn secondary small" data-a="email-test" data-id="' + esc(e.id) + '"' + (S.busy ? ' disabled' : '') + ' title="Cet e-mail avec des données d’exemple, envoyé à votre adresse (même en pause)">M’envoyer un test</button>' +
+        '<button type="button" class="switch' + (e.enabled ? ' on' : '') + '" role="switch" aria-checked="' + e.enabled + '" data-a="email-toggle" data-id="' + esc(e.id) + '"' + (S.busy ? ' disabled' : '') + '><span></span>' + (e.enabled ? 'Actif' : 'En pause') + '</button></div></div>' +
         (e.enabled ? '' : '<p class="small paused-note">En pause : ' + esc(e.paused) + '</p>') + chips + '</div>';
     };
     var group = function (aud, title) {
@@ -1611,6 +1614,9 @@
       if (e.enabled && !window.confirm('Mettre en pause « ' + e.label + ' » ?\n\n' + e.paused)) return;
       var disabled = S.emailsCfg.emails.filter(function (x) { return x.id === id ? x.enabled : !x.enabled; }).map(function (x) { return x.id; });
       withBusy(saveEmailToggles(disabled).then(function () { toast(e.enabled ? 'E-mail mis en pause' : 'E-mail réactivé'); }));
+    },
+    'email-test': function (id) {
+      withBusy(api('POST', '/admin/email-settings/' + encodeURIComponent(id) + '/test').then(function (d) { toast('Test envoyé à ' + d.to); }));
     },
     'emails-all-off': function () {
       if (!window.confirm('Mettre en pause tous les e-mails automatiques (clients et équipe) ?\n\nPlus aucun code d’accès ne partira automatiquement le jour de la diffusion, et « Code oublié » ne fonctionnera plus.')) return;

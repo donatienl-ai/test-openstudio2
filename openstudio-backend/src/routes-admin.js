@@ -200,6 +200,18 @@ router.put('/admin/email-settings', requireTeam, json, wrap(async (req, res) => 
   res.json(r.value);
 }));
 
+/** E-mail de test : l'e-mail automatique choisi, avec des données d'exemple, envoyé à la personne connectée. */
+router.post('/admin/email-settings/:id/test', requireTeam, wrap(async (req, res) => {
+  if (!req.adminUser || !req.adminUser.email) return res.status(409).json({ error: 'Connectez-vous avec votre compte nominatif pour recevoir le test à votre adresse.' });
+  try {
+    const r = await require('./emails/samples').sendTest(req.params.id, { email: req.adminUser.email, name: req.adminUser.name });
+    await audit.record(req, 'email_test_envoye', { detail: { email: req.adminUser.email, objet: r.subject, ...(r.to !== req.adminUser.email ? { redirige_vers: r.to } : {}) } });
+    res.json(r);
+  } catch (e) {
+    res.status(e.status || 502).json({ error: e.status ? e.message : `Le test n’est pas parti : ${e.message}` });
+  }
+}));
+
 /* ------------------------------------------------------------------ Destinataires des alertes */
 
 router.get('/admin/alert-settings', requireTeam, wrap(async (req, res) => {

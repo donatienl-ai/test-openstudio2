@@ -91,3 +91,23 @@ test('e-mails automatiques : liste complète, pause et réactivation, chaque env
   await emails.save([], 'Lola');
   assert.equal(await emails.isEnabled('acces'), true, 'réactivé');
 });
+
+test('e-mails de test : chacun des 6 e-mails, données d’exemple, à la personne connectée, même en pause', { skip }, async () => {
+  const emails = require('../src/emails/settings');
+  const samples = require('../src/emails/samples');
+  await emails.save(emails.IDS, 'Lola'); // tout en pause
+  const got = [];
+  for (const id of emails.IDS) {
+    const r = await samples.sendTest(id, { email: 'lola@openmedias.test', name: 'Lola' }, { send: async (m) => { got.push(m); return { messageId: '1' }; } });
+    assert.equal(r.to, 'lola@openmedias.test');
+  }
+  assert.equal(got.length, 6);
+  for (const m of got) {
+    assert.deepEqual(m.to, { email: 'lola@openmedias.test', name: 'Lola' });
+    assert.match(m.subject, /^\[Test\] /);
+    assert.doesNotMatch(m.text, /undefined|null|NaN/);
+  }
+  assert.ok(got[0].html.includes('OM-7KX4-M9'), 'envoi 1 : version mise en page');
+  await assert.rejects(samples.sendTest('inconnu', { email: 'x@om.test' }, { send: async () => ({}) }), /inconnu/);
+  await emails.save([], 'Lola');
+});

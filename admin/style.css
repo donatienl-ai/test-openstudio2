@@ -275,3 +275,5 @@ tr.total td { border-top: 2px solid var(--line); }
 .switch.on span { background: var(--green); }
 .switch.on span::after { transform: translateX(16px); }
 .switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 6px; }
+.email-actions { flex: none; display: flex; align-items: center; gap: 14px; }
+@media (max-width: 760px) { .email-head { flex-direction: column; } }

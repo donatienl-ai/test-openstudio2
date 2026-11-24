@@ -129,14 +129,8 @@ async function setStatus(id, status, fields = {}) {
   }
 }
 
-/** Alerte « commande en erreur » à l'équipe (back-office → Alertes). */
-async function notifyError(id, message) {
-  if (!(await require('./emails/settings').isEnabled('erreurs'))) return; // en pause (back-office → E-mails)
-  const to = await require('./admin/alerts').recipients('erreurs');
-  if (!to.length) return;
-  const { rows } = await db.query('SELECT o.id, o.type, o.options, o.client_id, c.company, c.name FROM orders o LEFT JOIN clients c ON c.id = o.client_id WHERE o.id = $1', [id]);
-  const o = rows[0];
-  if (!o || !o.client_id) return; // commandes de test sans client : pas d'alerte
+/** E-mail « commande en erreur » (aussi utilisé pour l'e-mail de test du back-office). */
+function errorEmail(o, message) {
   const config = require('./config');
   const kind = o.type === 'subtitles' ? 'Interview sous-titrée' : o.options && o.options.kind === 'teaser' ? 'Teaser' : 'Capsules';
   const text = [
@@ -149,7 +143,18 @@ async function notifyError(id, message) {
     '',
     'OpenStudio',
   ].join('\n');
-  await require('./mailer').send({ to: to.map((email) => ({ email })), subject: `Commande en erreur : ${kind} — ${o.company || o.name || 'client'}`, text, customId: `alerte-erreur-${o.id}` });
+  return { subject: `Commande en erreur : ${kind} — ${o.company || o.name || 'client'}`, text, customId: `alerte-erreur-${o.id}` };
+}
+
+/** Alerte « commande en erreur » à l'équipe (back-office → Alertes). */
+async function notifyError(id, message) {
+  if (!(await require('./emails/settings').isEnabled('erreurs'))) return; // en pause (back-office → E-mails)
+  const to = await require('./admin/alerts').recipients('erreurs');
+  if (!to.length) return;
+  const { rows } = await db.query('SELECT o.id, o.type, o.options, o.client_id, c.company, c.name FROM orders o LEFT JOIN clients c ON c.id = o.client_id WHERE o.id = $1', [id]);
+  const o = rows[0];
+  if (!o || !o.client_id) return; // commandes de test sans client : pas d'alerte
+  await require('./mailer').send({ ...errorEmail(o, message), to: to.map((email) => ({ email })) });
 }
 
 /** Commande en échec : les crédits du client lui sont rendus (sans effet s'ils l'ont déjà été). */
@@ -260,6 +265,7 @@ async function recordCredits(orderId, credits, note) {
 }
 
 module.exports = {
+  errorEmail,
   recoverInterruptedFinalizations,
   VIDEO_TYPES,
   create,
