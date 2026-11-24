@@ -293,4 +293,23 @@ function avisCommande(v) {
   return { subject, html, text };
 }
 
-module.exports = { relanceVideo1, relanceVideo2, relanceConnexion1, relanceConnexion2, avisVideo, commandeConfirmee, avisCommande, ticket };
+/** « Code oublié ? » : le même code, renvoyé sur demande (maquette « Code oublié »). Version HTML seule : le texte reste dans client-access.js. */
+function codeOublieHtml(v) {
+  const subject = 'Votre code d’accès OpenStudio';
+  const box = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate"><tr>
+<td bgcolor="${C.ticketBg}" align="center" style="background:${C.ticketBg};border-radius:12px;padding:28px 24px;font-family:${FONT}">
+  <div style="font-size:14px;color:${C.muted}">Votre code d’accès personnel</div>
+  <div class="os-code" style="font-family:${TITLE_FONT};font-weight:700;font-size:36px;line-height:1;letter-spacing:0.1em;color:${C.navy};padding:16px 0 18px">${esc(v.code)}</div>
+  ${button(v.link, 'Accéder à mon espace', { align: 'center' })}
+  <div style="clear:both;font-size:13px;color:${C.muted};padding-top:14px">Le bouton vous connecte directement. Ce code vous est personnel.</div>
+</td></tr></table>`;
+  return layout({ title: subject, preheader: `Votre code d’accès : ${v.code}`, kicker: 'OpenStudio · Votre code d’accès', body: [
+    v.byTeam
+      ? hero('Votre code d’accès', 'Voici votre code d’accès.', `${hello(v)}, voici votre code de connexion à votre espace OpenStudio${v.company ? ` (${esc(v.company)})` : ''}.`)
+      : hero('Demande de code', 'Voici votre code d’accès.', `${hello(v)}, vous avez demandé à recevoir à nouveau votre code de connexion à OpenStudio${v.company ? ` (${esc(v.company)})` : ''}. Le voici.`),
+    row(box, 32),
+    row(small(v.byTeam ? 'Ce code vous est réservé : ne le transmettez pas en dehors de votre entreprise.' : 'Vous n’êtes pas à l’origine de cette demande ? Ignorez simplement cet e-mail : votre code ne change pas et votre espace reste protégé.'), 28),
+  ].join('\n') });
+}
+
+module.exports = { codeOublieHtml, relanceVideo1, relanceVideo2, relanceConnexion1, relanceConnexion2, avisVideo, commandeConfirmee, avisCommande, ticket };

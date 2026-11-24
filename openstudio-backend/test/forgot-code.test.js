@@ -47,16 +47,25 @@ test('e-mail « code oublié » : le code, le lien de connexion, rien d’autre'
   assert.match(m.text, /Votre code d’accès : OM-AAAA-BB/);
   assert.match(m.text, /https:\/\/site\/\?code=OM-AAAA-BB/);
   assert.match(m.text, /votre code reste inchangé/);
+  // Version mise en page (maquette « Code oublié »)
+  for (const s of ['Voici votre code d’accès.', 'Bonjour Claire', 'OM-AAAA-BB', 'href="https://site/?code=OM-AAAA-BB"', 'Accéder à mon espace', 'votre code ne change pas', '/email/logo-openmedias.png']) assert.ok(m.html.includes(s), s);
+  assert.doesNotMatch(m.html, /display:\s*(flex|grid)|position:\s*absolute|undefined/);
 });
 
-test('code oublié : envoyé à l’adresse de la fiche (majuscules ignorées), code inchangé', { skip }, async () => {
+test('code oublié : rien avant l’ouverture de l’espace (envoi 1), puis envoyé à l’adresse de la fiche, code inchangé', { skip }, async () => {
   let sent = null;
+  await db.query('UPDATE clients SET access_email_sent_at = NULL WHERE id = $1', [client.id]);
+  const early = await access.sendForgottenCode('claire@ecoval.test', { send: async () => assert.fail('aucun envoi avant l’envoi 1') });
+  assert.equal(early.sent, false);
+  assert.match(early.reason, /pas encore ouvert/);
+  await db.query('UPDATE clients SET access_email_sent_at = now() WHERE id = $1', [client.id]);
   const r = await access.sendForgottenCode('  claire@ecoval.TEST ', { send: async (m) => { sent = m; return { messageId: '1' }; } });
   assert.equal(r.sent, true);
   assert.equal(sent.to.email, 'Claire@Ecoval.test');
   assert.match(sent.text, new RegExp(code));
   assert.equal(await access.ensureCode(client.id), code, 'le code ne change pas');
   assert.deepEqual(await access.sendForgottenCode('inconnu@nulle.part', { send: async () => assert.fail('aucun envoi') }), { sent: false, reason: 'inconnu' });
+  await db.query('UPDATE clients SET access_email_sent_at = NULL WHERE id = $1', [client.id]);
 });
 
 test('route : même réponse pour une adresse connue ou non, e-mail invalide refusé, essais limités', { skip }, async () => {
@@ -108,4 +117,40 @@ test('aperçu de l’e-mail du jour J : envoyé à l’équipe, données du clie
   assert.ok(sent.html.includes('Votre émission est diffusée aujourd’hui.'));
   const after = (await db.query('SELECT access_email_sent_at, access_email_attempts FROM clients WHERE id = $1', [client.id])).rows[0];
   assert.deepEqual(after, before, 'fiche du client inchangée');
+});
+
+test('e-mail du code envoyé par l’équipe : même code et même mise en page, sans « vous avez demandé »', () => {
+  const m = access.forgotCodeEmail({ id: 'x', name: 'Claire Dumas', company: 'Ecoval', email: 'c@e.test' }, 'https://site/?code=OM-AAAA-BB', 'OM-AAAA-BB', { byTeam: true });
+  assert.equal(m.subject, 'Votre code d’accès OpenStudio');
+  for (const s of ['Voici votre code d’accès.', 'Bonjour Claire', 'OM-AAAA-BB', 'href="https://site/?code=OM-AAAA-BB"', 'Accéder à mon espace']) assert.ok(m.html.includes(s), s);
+  assert.doesNotMatch(m.html + m.text, /avez demandé|pas à l’origine/);
+  assert.match(m.text, /Votre code d’accès : OM-AAAA-BB/);
+});
+
+test('fiche client → « Envoyer le code au client » : refusé avant la diffusion ; ensuite l’e-mail du code, l’envoi 1 reste à faire', { skip }, async () => {
+  let sent = null;
+  await db.query("UPDATE clients SET broadcast_date = '2099-05-01', access_email_sent_at = NULL WHERE id = $1", [client.id]);
+  await assert.rejects(access.sendCodeByEmail(await clients.get(client.id), { send: async () => assert.fail('aucun envoi') }), (e) => e.status === 409 && /s’ouvre le/.test(e.message));
+  await db.query("UPDATE clients SET broadcast_date = '2020-01-15' WHERE id = $1", [client.id]);
+  const r = await access.sendCodeByEmail(await clients.get(client.id), { send: async (m) => { sent = m; return { messageId: '2' }; } });
+  assert.equal(r.sent, true);
+  assert.equal(sent.subject, 'Votre code d’accès OpenStudio');
+  assert.ok(sent.html.includes(code));
+  const { rows } = await db.query('SELECT access_email_sent_at FROM clients WHERE id = $1', [client.id]);
+  assert.equal(rows[0].access_email_sent_at, null, 'l’envoi 1 n’est pas marqué comme fait');
+});
+
+test('connexion : refusée avant le jour de la diffusion (message avec la date), possible ensuite ou sans date', { skip }, async () => {
+  const login = () => fetch(`${base}/client/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
+  await db.query("UPDATE clients SET broadcast_date = '2099-05-01', access_email_sent_at = NULL WHERE id = $1", [client.id]);
+  const early = await login();
+  assert.equal(early.status, 403);
+  const body = await early.json();
+  assert.equal(body.code, 'pas_encore_ouvert');
+  assert.equal(body.opensOn, '2099-05-01');
+  assert.match(body.error, /s’ouvre le .*1 mai/);
+  await db.query('UPDATE clients SET access_email_sent_at = now() WHERE id = $1', [client.id]);
+  assert.equal((await login()).status, 200, 'envoi 1 parti : ouvert');
+  await db.query("UPDATE clients SET broadcast_date = NULL, access_email_sent_at = NULL WHERE id = $1", [client.id]);
+  assert.equal((await login()).status, 200, 'sans date de diffusion (compte interne) : ouvert');
 });

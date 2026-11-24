@@ -167,6 +167,13 @@ router.post('/client/login', json, wrap(async (req, res) => {
   if (!code) return res.status(400).json({ error: 'Code incomplet : il a la forme OM-XXXX-XX.' });
   const client = await clients.findByCode(code);
   if (!client) return res.status(401).json({ error: 'Ce code ne correspond à aucun espace. Vérifiez la saisie ou contactez votre chargé de projet.' });
+  // L'espace ne s'ouvre que le jour de la diffusion
+  const access = require('./admin/client-access');
+  const opens = await access.openingDay(client);
+  if (opens) {
+    return res.status(403).json({ code: 'pas_encore_ouvert', opensOn: opens,
+      error: `Votre espace OpenStudio s’ouvre le ${access.frDay(opens)}, jour de la diffusion de votre émission. Vous recevrez ce jour-là un e-mail pour y accéder.` });
+  }
   const token = await clients.openSession(client.id, req.get('user-agent'));
   clients.recordVisit(client.id, { force: true });
   await audit.record({ ip: req.ip, auditActorLabel: `Client (${client.name})` }, 'client_connexion', { targetType: 'client', targetId: client.id });
@@ -189,7 +196,8 @@ router.post('/client/forgot-code', json, wrap(async (req, res) => {
   } catch (e) {
     console.error(`[code oublié] échec de l'envoi : ${e.message}`);
   }
-  res.json({ ok: true, message: 'Si cette adresse correspond à un espace OpenStudio, votre code vient d’y être envoyé. Pensez à regarder dans les indésirables.' });
+  // Même réponse dans tous les cas : on ne révèle ni les adresses connues, ni les dates de diffusion
+  res.json({ ok: true, message: 'Si cette adresse correspond à un espace OpenStudio ouvert, votre code vient d’y être envoyé. Pensez à regarder dans les indésirables. Votre espace s’ouvre le jour de la diffusion de votre émission : vous recevez alors votre code automatiquement.' });
 }));
 
 /** Déconnexion de l'espace client sur ce navigateur. */

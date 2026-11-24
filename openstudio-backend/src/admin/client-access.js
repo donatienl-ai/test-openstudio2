@@ -96,6 +96,27 @@ async function withAccessInfo(c) {
   return { ...c, videos: rows[0].videos, trigger_date: rows[0].trigger_date };
 }
 
+/**
+ * Jour d'ouverture de l'espace si elle n'a pas encore eu lieu (AAAA-MM-JJ), sinon null.
+ * L'espace s'ouvre le jour de la diffusion (date de la première vidéo active, à défaut celle de la fiche),
+ * ou dès que l'envoi 1 est parti. Sans date de diffusion (comptes internes, fiches créées à la main) : ouvert.
+ */
+async function openingDay(client, now = new Date()) {
+  if (!client || client.access_email_sent_at) return null;
+  let trigger = client.broadcast_date || null;
+  try {
+    const { rows } = await db.query(
+      `SELECT MIN(COALESCE(v.broadcast_date, c.broadcast_date)) AS d FROM client_videos v JOIN clients c ON c.id = v.client_id
+       WHERE v.client_id = $1 AND v.active = true`, [client.id]);
+    if (rows[0] && rows[0].d) trigger = rows[0].d;
+  } catch (e) {
+    console.error('[accès client] date d’ouverture', e.message);
+  }
+  const day = isoDay(trigger);
+  return day && day > parisParts(now).day ? day : null;
+}
+const frDay = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
+
 /* ------------------------------------------------------------------ Liens */
 
 function linkFor(clientId, token) {
@@ -239,11 +260,19 @@ async function broadcastInfo(clientId) {
 }
 
 /** E-mail « code oublié » : le code d'accès (inchangé) et le lien de connexion, rien d'autre. */
-function forgotCodeEmail(client, link, code) {
+/**
+ * E-mail du code d'accès seul (maquette « Code oublié ») :
+ *  - à la demande du client (« Code oublié ? » sur la page de connexion) ;
+ *  - envoyé par l'équipe (fiche client → « Envoyer le code au client »), `byTeam` : sans « vous avez demandé ».
+ * L'envoi 1 (jour de la diffusion) est un autre e-mail, envoyé automatiquement.
+ */
+function forgotCodeEmail(client, link, code, { byTeam = false } = {}) {
   const text = [
     client.name ? `Bonjour ${client.name},` : 'Bonjour,',
     '',
-    `Vous avez demandé à recevoir votre code d’accès OpenStudio${client.company ? ` (${client.company})` : ''}.`,
+    byTeam
+      ? `Voici votre code d’accès à votre espace OpenStudio${client.company ? ` (${client.company})` : ''}.`
+      : `Vous avez demandé à recevoir votre code d’accès OpenStudio${client.company ? ` (${client.company})` : ''}.`,
     '',
     `Votre code d’accès : ${code}`,
     '',
@@ -251,7 +280,7 @@ function forgotCodeEmail(client, link, code) {
     link,
     '',
     'Ce code vous est réservé : ne le transmettez pas en dehors de votre entreprise.',
-    'Si vous n’êtes pas à l’origine de cette demande, ignorez simplement cet e-mail : votre code reste inchangé.',
+    ...(byTeam ? [] : ['Si vous n’êtes pas à l’origine de cette demande, ignorez simplement cet e-mail : votre code reste inchangé.']),
     '',
     'L’équipe OpenMedias',
   ].join('\n');
@@ -259,8 +288,35 @@ function forgotCodeEmail(client, link, code) {
     to: { email: client.email, name: client.name || undefined },
     subject: 'Votre code d’accès OpenStudio',
     text,
-    customId: `code-oublie-${client.id}`,
+    html: require('../emails/sequence').codeOublieHtml({ name: client.name, company: client.company, code, link, byTeam }),
+    customId: `code-${byTeam ? 'equipe' : 'oublie'}-${client.id}`,
   };
+}
+
+/**
+ * Fiche client → « Envoyer le code au client » : l'e-mail du code d'accès (pas l'envoi 1).
+ * Ne marque pas l'envoi 1 comme fait : il partira quand même automatiquement le jour de la diffusion.
+ */
+async function sendCodeByEmail(client, { req = null, send = mailer.send } = {}) {
+  if (!client.email) throw new Error('Ce client n’a pas d’adresse e-mail.');
+  const opens = await openingDay(client);
+  if (opens) throw Object.assign(new Error(`L’espace de ce client s’ouvre le ${frDay(opens)}, jour de sa diffusion : il ne pourrait pas encore se connecter. Son code partira automatiquement avec l’envoi 1.`), { status: 409 });
+  const unavailable = mailer.problem();
+  if (unavailable && send === mailer.send) throw new Error(unavailable);
+  const readable = readableCode(client);
+  if (!readable && client.access_code_hash) throw new Error('Code illisible (ADMIN_ENCRYPTION_KEY absente ou modifiée).');
+  const code = readable || await ensureCode(client.id);
+  const message = forgotCodeEmail(client, loginUrlFor(code), code, { byTeam: true });
+  let r;
+  try {
+    r = await send(message);
+  } catch (e) {
+    await logEmail(client, { status: 'echec', subject: message.subject, error: e.message });
+    throw e;
+  }
+  await logEmail(client, { status: 'envoye', subject: message.subject, providerId: r && r.messageId, redirectedTo: r && r.redirectedTo });
+  await audit.record(req, 'code_envoye_equipe', { targetType: 'client', targetId: client.id, detail: { email: client.email, ...(r && r.redirectedTo ? { redirige_vers: r.redirectedTo } : {}) } });
+  return { sent: true, redirectedTo: (r && r.redirectedTo) || null };
 }
 
 /**
@@ -271,6 +327,9 @@ function forgotCodeEmail(client, link, code) {
 async function sendForgottenCode(email, { req = null, send = mailer.send } = {}) {
   const client = await require('../clients').findByEmail(email);
   if (!client || client.access_revoked_at) return { sent: false, reason: 'inconnu' };
+  // L'espace s'ouvre avec l'envoi 1, le jour de la diffusion : avant, « Code oublié ? » n'envoie rien
+  // (sinon un client trouvant le bouton sur le site obtiendrait son code avant sa diffusion).
+  if (!client.access_email_sent_at) return { sent: false, reason: 'espace pas encore ouvert (envoi 1 pas encore parti)' };
   if (!(await require('../emails/settings').isEnabled('code_oublie'))) return { sent: false, reason: 'en pause (back-office → E-mails)' };
   const unavailable = mailer.problem();
   if (unavailable && send === mailer.send) return { sent: false, reason: unavailable };
@@ -385,4 +444,4 @@ async function runScheduled({ now = new Date(), send = mailer.send, log = consol
   return { sent, failed };
 }
 
-module.exports = { buildAccessMessage, sendPreview, forgotCodeEmail, sendForgottenCode, readableCode, ensureCode, ensureAllCodes, restore, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
+module.exports = { openingDay, frDay, buildAccessMessage, sendPreview, forgotCodeEmail, sendForgottenCode, sendCodeByEmail, readableCode, ensureCode, ensureAllCodes, restore, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
