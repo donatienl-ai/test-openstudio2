@@ -840,6 +840,12 @@
       var items = list.filter(function (e) { return e.audience === aud; });
       return '<h2 class="email-group">' + esc(title) + '</h2>' + items.map(row).join('');
     };
+    var previews = (S.emailsCfg.previews || []).map(function (e) {
+      return '<div class="card email-row draft"><div class="email-head"><div><p class="small email-step">' + esc(e.step) + '</p><h2>' + esc(e.label) + '</h2><p class="small muted">' + esc(e.when) + '</p></div>' +
+        '<div class="email-actions"><button type="button" class="btn secondary small" data-a="email-test" data-id="' + esc(e.id) + '"' + (S.busy ? ' disabled' : '') + ' title="Cet e-mail avec des données d’exemple, envoyé à votre adresse">M’envoyer un test</button>' +
+        '<span class="tag off">Test uniquement</span></div></div></div>';
+    }).join('');
+    var draftGroup = previews ? '<h2 class="email-group">Séquence de relance et commande · en préparation</h2><p class="small muted">Ces e-mails ne partent pas encore automatiquement : ils ne sont envoyés qu’en test, à votre adresse, avec des données d’exemple.</p>' + previews : '';
     var rd = S.redirect || { list: [], mode: 'reel' };
     var modeLine = rd.mode === 'test'
       ? '<p class="small"><span class="tag wait">Mode test</span> Tous les e-mails (clients, alertes, tests) partent vers ' + (rd.list.length > 1 ? 'ces adresses' : 'cette adresse') + ' à la place des vrais destinataires, avec « [TEST] » dans l’objet.</p>'
@@ -852,7 +858,7 @@
       '<form data-form="redirect-add" class="form-inline" novalidate><label class="grow">Ajouter une adresse de test (@openmedias.fr uniquement)<input name="email" type="email" placeholder="prenom@openmedias.fr" autocomplete="off"></label><button class="btn secondary small" type="submit"' + (S.busy ? ' disabled' : '') + '>Ajouter</button></form>' +
       (rd.fromEnv && rd.list.length ? '<p class="small muted">Adresse reprise de la configuration du serveur (MAIL_REDIRECT_TO) : elle sera remplacée par cette liste dès la première modification.</p>' : '') +
       (rd.updatedAt ? '<p class="small muted">Modifié le ' + esc(fmtDate(rd.updatedAt)) + (rd.updatedBy ? ' par ' + esc(rd.updatedBy) : '') + '.</p>' : '') + '</div>';
-    return head + errorBox() + redirectCard + group('client', 'E-mails aux clients') + group('equipe', 'Alertes à l’équipe') +
+    return head + errorBox() + redirectCard + group('client', 'E-mails aux clients') + draftGroup + group('equipe', 'Alertes à l’équipe') +
       (S.emailsCfg.updatedAt ? '<p class="small muted">Dernière modification le ' + esc(fmtDate(S.emailsCfg.updatedAt)) + (S.emailsCfg.updatedBy ? ' par ' + esc(S.emailsCfg.updatedBy) : '') + '.</p>' : '');
   }
 

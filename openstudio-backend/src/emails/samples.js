@@ -15,6 +15,22 @@ async function tariff() {
   return require('../credits/settings').get().catch(() => ({ included: 1000, prices: { capsules: 300, teaser: 300, subtitlesPer5Min: 300 } }));
 }
 
+/** Données d'exemple des e-mails de la séquence (relances, avis, commande). */
+async function sequenceSample(id) {
+  const t = await tariff();
+  const code = 'OM-7KX4-M9';
+  const access = require('../admin/client-access');
+  const site = config.clientSiteUrl || 'https://ADRESSE-DE-L-ESPACE-CLIENT';
+  const daysLeft = { relance_video_1: 28, relance_connexion_1: 28, relance_video_2: 23, relance_connexion_2: 10, avis_video: 0 }[id];
+  return {
+    name: SAMPLE_CLIENT.name, code, link: access.loginUrlFor(code), programme: 'Smart Impact', media: 'BFM Business',
+    credits: t.included, prices: t.prices, creditsUntil: new Date(Date.now() + (daysLeft != null ? daysLeft : 30) * DAY),
+    orderUrl: `${site}/mes-commandes.html`, reviewUrl: config.mail.googleReviewUrl,
+    order: { ref: 'CMD-2026-0042', offer: 'Teaser vidéo de 30 à 40 secondes', programme: 'Smart Impact · BFM Business', amount: '816,00 € TTC', delay: 'sous 5 jours ouvrés',
+      url: `${site}/mes-commandes.html`, invoiceUrl: `${site}/mes-commandes.html` },
+  };
+}
+
 /** Construit l'e-mail `id` avec des données d'exemple (sans destinataire). */
 async function build(id) {
   switch (id) {
@@ -45,6 +61,21 @@ async function build(id) {
       }, { billing: { company: 'Ecoval Industrie SAS', address: '12 rue des Lilas', postalCode: '69003', city: 'Lyon', vat: 'FR12345678901' } });
     case 'erreurs':
       return require('../orders').errorEmail({ id: SAMPLE_CLIENT.id, type: 'capsules', options: { kind: 'capsules', duration: '60' }, company: 'Ecoval Industrie' }, 'Aucun extrait OpusClip d’au moins 60 s (reçus : 41 s, 38 s)');
+    case 'acces_nuit': {
+      const t = await tariff();
+      const code = 'OM-7KX4-M9';
+      const access = require('../admin/client-access');
+      return require('./accessDay').accessDayEmail({ name: SAMPLE_CLIENT.name, code, link: access.loginUrlFor(code), today: true, broadcastDay: isoToday(),
+        programme: 'Smart Impact', media: 'BFM Business', credits: t.included, creditsUntil: new Date(Date.now() + 30 * DAY), prices: t.prices, dark: true });
+    }
+    case 'avis_video': case 'relance_video_1': case 'relance_video_2': case 'relance_connexion_1': case 'relance_connexion_2':
+    case 'commande_confirmee': case 'avis_commande': {
+      const seq = require('./sequence');
+      const v = await sequenceSample(id);
+      const fn = { avis_video: seq.avisVideo, relance_video_1: seq.relanceVideo1, relance_video_2: seq.relanceVideo2, relance_connexion_1: seq.relanceConnexion1,
+        relance_connexion_2: seq.relanceConnexion2, commande_confirmee: seq.commandeConfirmee, avis_commande: seq.avisCommande }[id];
+      return fn(v);
+    }
     default:
       return null;
   }
@@ -59,4 +90,4 @@ async function sendTest(id, to, { send = mailer.send } = {}) {
   return { to: (r && r.redirectedTo) || to.email, subject: `[Test] ${m.subject}` };
 }
 
-module.exports = { build, sendTest };
+module.exports = { build, sendTest, sequenceSample };

@@ -31,6 +31,7 @@ function firstName(name) {
  * @param {number} v.credits     crédits offerts
  * @param {Date|string} [v.creditsUntil]
  * @param {{capsules:number, teaser:number, subtitlesPer5Min:number}} v.prices
+ * @param {boolean} [v.dark]   talon crédits bleu nuit dégradé (variante « test A »)
  */
 function accessDayEmail(v) {
   const first = firstName(v.name);
@@ -68,10 +69,12 @@ function accessDayEmail(v) {
       ${button(link, 'Accéder à mon espace', { small: true })}
       <div style="clear:both;font-size:12px;line-height:1.5;color:${C.muted};padding-top:12px">Le bouton vous connecte directement. Ce code vous est personnel.</div>
     </td>
-    <td class="os-tk-r" width="176" valign="middle" bgcolor="${C.ticketBg}" style="width:176px;background:${C.ticketBg};border-left:2px dashed ${C.ticketDash};padding:22px 18px 20px 22px;font-family:${FONT}">
-      <div class="os-credits" style="font-weight:700;font-size:36px;line-height:1;letter-spacing:-0.02em;color:${C.accent}">${nb(v.credits)}</div>
-      <div style="font-family:${TITLE_FONT};font-weight:700;font-size:16px;color:${C.navy};padding-top:10px">crédits offerts</div>
-      ${until ? `<div style="font-size:12px;line-height:1.5;color:${C.muted};padding-top:14px">Valables jusqu’au<br><b style="font-weight:600;color:${C.navy}">${esc(until)}</b></div>` : ''}
+    <td class="os-tk-r" width="176" valign="middle" ${v.dark
+      ? `bgcolor="${C.navy}" style="width:176px;background-color:${C.navy};background-image:linear-gradient(150deg,${C.navy} 0%,#1A2A9A 60%,${C.accent} 100%);padding:22px 18px 20px 22px;font-family:${FONT}"`
+      : `bgcolor="${C.ticketBg}" style="width:176px;background:${C.ticketBg};border-left:2px dashed ${C.ticketDash};padding:22px 18px 20px 22px;font-family:${FONT}"`}>
+      <div class="os-credits" style="font-weight:700;font-size:36px;line-height:1;letter-spacing:-0.02em;color:${v.dark ? '#FFFFFF' : C.accent}">${nb(v.credits)}</div>
+      <div style="font-family:${TITLE_FONT};font-weight:700;font-size:16px;color:${v.dark ? '#FFFFFF' : C.navy};padding-top:10px">crédits offerts</div>
+      ${until ? `<div style="font-size:12px;line-height:1.5;color:${v.dark ? 'rgba(255,255,255,0.82)' : C.muted};padding-top:14px">Valables jusqu’au<br><b style="font-weight:600;color:${v.dark ? '#FFFFFF' : C.navy}">${esc(until)}</b></div>` : ''}
     </td>
   </tr></table>
 </td></tr>

@@ -41,6 +41,8 @@ const config = {
     teamAlertEmail: (process.env.TEAM_ALERT_EMAIL || '').trim(),
     // Équipe compta : e-mail à chaque montage payé (à défaut : TEAM_ALERT_EMAIL)
     accountingEmail: (process.env.ACCOUNTING_EMAIL || process.env.TEAM_ALERT_EMAIL || '').trim(),
+    // Lien « laisser un avis » de la fiche Google d'OpenMedias (e-mails de demande d'avis)
+    googleReviewUrl: (process.env.GOOGLE_REVIEW_URL || 'https://www.google.com/search?q=OpenMedias+avis').trim(),
     // Images des e-mails (dossier email/ du site client) : adresse publique, sans barre finale
     get assetsUrl() {
       return (process.env.EMAIL_ASSETS_URL || ((process.env.APP_ENV || '').trim().toLowerCase() === 'recette' ? 'https://openstudio-recette.onrender.com/email' : 'https://test-openstudio3.onrender.com/email')).trim().replace(/\/+$/, '');

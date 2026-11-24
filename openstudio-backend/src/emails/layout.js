@@ -61,6 +61,8 @@ function layout({ title, preheader, kicker, body }) {
   .os-card-half-r{padding-left:0 !important}
   .os-foot td{display:block !important;width:100% !important;text-align:left !important}
   .os-foot img{margin-top:16px}
+  .os-hide{display:none !important}
+  .os-step{margin-bottom:12px}
 }
 @media only screen and (max-width:359px){
   .os-btn-sm{white-space:normal}
