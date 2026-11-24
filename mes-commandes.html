@@ -47,6 +47,8 @@
       const list = document.getElementById('list');
       const params = new URLSearchParams(location.search);
       const only = params.get('order');
+      // Pas connecté et pas de lien de commande : on passe par la connexion de l'espace, puis la page Commandes
+      if (!only && !OpenStudio.clientSession()) { location.replace('./?page=commandes'); return; }
       const TYPE_LABEL = { capsules: 'Capsules vidéo', subtitles: 'Sous-titres', visuels: 'Visuels', publications: 'Publications', photo: 'Visuels' };
       const BUSY = ['paid', 'submitting', 'processing', 'opus_done', 'postprocessing'];
 

@@ -2678,7 +2678,7 @@ function viewLogin() {
   </section>
   <section class="login-card" aria-labelledby="login-t">
     <h2 id="login-t">Connexion à votre espace</h2>
-    <p class="muted" style="margin:8px 0 22px">Entrez le code personnel transmis par votre chargé de projet OpenMedias.</p>
+    <p class="muted" style="margin:8px 0 22px">${PENDING_PAGE ? `Connectez-vous pour accéder à ${DEEP_PAGES[PENDING_PAGE]}. Entrez le code personnel reçu par e-mail.` : 'Entrez le code personnel transmis par votre chargé de projet OpenMedias.'}</p>
     <form id="login-form" novalidate>
       <label class="visually-hidden" for="code">Code d'accès</label>
       <input id="code" class="code-input num" autocomplete="one-time-code" inputmode="text" maxlength="10" placeholder="OM-0000-XX" aria-describedby="code-err">
@@ -2728,6 +2728,10 @@ function normCode(v) {
 const SRV_PREFIX = 'srv-';
 const isRealClient = c => !!(c && String(c.id).startsWith(SRV_PREFIX));
 /** Construit le client affiché à partir du compte réel (/api/me) et ouvre son espace. */
+/* Lien direct vers une page de l'espace (?page=commandes, depuis les e-mails « Suivre ma commande ») :
+   ouverte juste après la connexion, ou tout de suite si le client est déjà connecté. */
+var DEEP_PAGES = { commandes: 'vos commandes', factures: 'vos factures', medias: 'vos créations', emissions: 'vos émissions', offres: 'nos offres' };
+var PENDING_PAGE = (() => { try { const p = new URLSearchParams(location.search).get('page'); return DEEP_PAGES[p] ? p : null; } catch (e) { return null; } })();
 async function enterRealSpace(code) {
   const r = await OpenStudio.getMyVideos();
   const me = r.client || {};
@@ -2742,7 +2746,8 @@ async function enterRealSpace(code) {
   resetClientState();
   trackEvent('user.login', { first, real: true }, first ? 'first-login' : 'login-' + Date.now().toString(36));
   CR.d = null; crLoad(true);
-  go('client', 'dashboard');
+  const page = PENDING_PAGE; PENDING_PAGE = null;
+  go('client', page || 'dashboard');
   bkAskMarketing();
 }
 async function doRealLogin(code) {
@@ -6076,6 +6081,7 @@ render();
 // Connexion réelle : lien « …?code=OM-XXXX-XX » reçu par e-mail, ou session déjà ouverte sur ce navigateur
 if (bkOn()) {
   const urlCode = new URLSearchParams(location.search).get('code');
+  if (PENDING_PAGE && !urlCode) { try { const q = new URLSearchParams(location.search); q.delete('page'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (e) {} }
   if (urlCode) {
     try { history.replaceState(null, '', location.pathname); } catch (e) {}
     const inp = document.getElementById('code'); if (inp) inp.value = normCode(urlCode);

@@ -25,9 +25,9 @@ async function sequenceSample(id) {
   return {
     name: SAMPLE_CLIENT.name, code, link: access.loginUrlFor(code), programme: 'Smart Impact', media: 'BFM Business',
     credits: t.included, prices: t.prices, creditsUntil: new Date(Date.now() + (daysLeft != null ? daysLeft : 30) * DAY),
-    orderUrl: `${site}/mes-commandes.html`, reviewUrl: config.mail.googleReviewUrl,
+    orderUrl: `${site}/?page=offres`, reviewUrl: config.mail.googleReviewUrl,
     order: { ref: 'CMD-2026-0042', offer: 'Teaser vidéo de 30 à 40 secondes', programme: 'Smart Impact · BFM Business', amount: '816,00 € TTC', delay: 'sous 5 jours ouvrés',
-      url: `${site}/mes-commandes.html`, invoiceUrl: `${site}/mes-commandes.html` },
+      url: `${site}/?page=commandes`, invoiceUrl: `${site}/?page=factures` },
   };
 }
 
