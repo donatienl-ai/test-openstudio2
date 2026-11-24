@@ -406,6 +406,7 @@ router.post('/admin/clients/:id/access/send', requireTeam, wrap(async (req, res)
     const r = await access.sendCodeByEmail(c, { req });
     res.json({ client: await fresh(c.id), redirectedTo: r.redirectedTo || null });
   } catch (e) {
+    if (e.status === 409) return res.status(409).json({ error: e.message });
     res.status(502).json({ error: `L’e-mail n’est pas parti : ${e.message}` });
   }
 }));

@@ -96,6 +96,27 @@ async function withAccessInfo(c) {
   return { ...c, videos: rows[0].videos, trigger_date: rows[0].trigger_date };
 }
 
+/**
+ * Jour d'ouverture de l'espace si elle n'a pas encore eu lieu (AAAA-MM-JJ), sinon null.
+ * L'espace s'ouvre le jour de la diffusion (date de la première vidéo active, à défaut celle de la fiche),
+ * ou dès que l'envoi 1 est parti. Sans date de diffusion (comptes internes, fiches créées à la main) : ouvert.
+ */
+async function openingDay(client, now = new Date()) {
+  if (!client || client.access_email_sent_at) return null;
+  let trigger = client.broadcast_date || null;
+  try {
+    const { rows } = await db.query(
+      `SELECT MIN(COALESCE(v.broadcast_date, c.broadcast_date)) AS d FROM client_videos v JOIN clients c ON c.id = v.client_id
+       WHERE v.client_id = $1 AND v.active = true`, [client.id]);
+    if (rows[0] && rows[0].d) trigger = rows[0].d;
+  } catch (e) {
+    console.error('[accès client] date d’ouverture', e.message);
+  }
+  const day = isoDay(trigger);
+  return day && day > parisParts(now).day ? day : null;
+}
+const frDay = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
+
 /* ------------------------------------------------------------------ Liens */
 
 function linkFor(clientId, token) {
@@ -278,6 +299,8 @@ function forgotCodeEmail(client, link, code, { byTeam = false } = {}) {
  */
 async function sendCodeByEmail(client, { req = null, send = mailer.send } = {}) {
   if (!client.email) throw new Error('Ce client n’a pas d’adresse e-mail.');
+  const opens = await openingDay(client);
+  if (opens) throw Object.assign(new Error(`L’espace de ce client s’ouvre le ${frDay(opens)}, jour de sa diffusion : il ne pourrait pas encore se connecter. Son code partira automatiquement avec l’envoi 1.`), { status: 409 });
   const unavailable = mailer.problem();
   if (unavailable && send === mailer.send) throw new Error(unavailable);
   const readable = readableCode(client);
@@ -421,4 +444,4 @@ async function runScheduled({ now = new Date(), send = mailer.send, log = consol
   return { sent, failed };
 }
 
-module.exports = { buildAccessMessage, sendPreview, forgotCodeEmail, sendForgottenCode, sendCodeByEmail, readableCode, ensureCode, ensureAllCodes, restore, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
+module.exports = { openingDay, frDay, buildAccessMessage, sendPreview, forgotCodeEmail, sendForgottenCode, sendCodeByEmail, readableCode, ensureCode, ensureAllCodes, restore, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
