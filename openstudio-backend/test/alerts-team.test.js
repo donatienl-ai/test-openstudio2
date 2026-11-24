@@ -64,3 +64,30 @@ test('équipe : rôle modifiable, toujours un super admin', { skip }, async () =
   assert.equal((await accounts.setRole(a.user.id, 'admin')).role, 'admin', 'possible dès qu’un autre super admin existe');
   await assert.rejects(accounts.setRole(b.user.id, 'roi'), /Rôle inconnu/);
 });
+
+test('e-mails automatiques : liste complète, pause et réactivation, chaque envoi automatique respecte la pause', { skip }, async () => {
+  const emails = require('../src/emails/settings');
+  const l = await emails.list();
+  assert.deepEqual(l.emails.map((e) => e.id), ['acces', 'code_oublie', 'recharge', 'diffusions', 'compta', 'erreurs']);
+  assert.ok(l.emails.every((e) => e.enabled), 'tous actifs par défaut');
+  assert.deepEqual(l.emails.find((e) => e.id === 'compta').recipients, ['compta@openmedias.test'], 'destinataires des alertes affichés');
+  assert.match((await emails.save(['inconnu'])).error, /inconnu/);
+  await emails.save(['acces', 'code_oublie', 'diffusions', 'compta'], 'Lola');
+  assert.equal(await emails.isEnabled('acces'), false);
+  assert.equal(await emails.isEnabled('recharge'), true);
+  // Envoi automatique du code : rien ne part
+  const access = require('../src/admin/client-access');
+  let sent = 0;
+  const r = await access.runScheduled({ now: new Date('2026-11-24T10:00:00Z'), send: async () => { sent += 1; return {}; } });
+  assert.match(String(r.skipped), /en pause/);
+  assert.equal(sent, 0);
+  // Code oublié : rien ne part
+  const clients = require('../src/clients');
+  await clients.create({ name: 'Paul', company: 'P', email: 'paul@client.test' });
+  assert.match((await access.sendForgottenCode('paul@client.test', { send: async () => { sent += 1; return {}; } })).reason, /en pause/);
+  // Compta : rien ne part
+  assert.equal((await require('../src/montage/notify').notifyAccounting('00000000-0000-4000-8000-000000000000')).reason, 'en pause');
+  assert.equal(sent, 0);
+  await emails.save([], 'Lola');
+  assert.equal(await emails.isEnabled('acces'), true, 'réactivé');
+});

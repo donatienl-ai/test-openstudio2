@@ -271,6 +271,7 @@ function forgotCodeEmail(client, link, code) {
 async function sendForgottenCode(email, { req = null, send = mailer.send } = {}) {
   const client = await require('../clients').findByEmail(email);
   if (!client || client.access_revoked_at) return { sent: false, reason: 'inconnu' };
+  if (!(await require('../emails/settings').isEnabled('code_oublie'))) return { sent: false, reason: 'en pause (back-office → E-mails)' };
   const unavailable = mailer.problem();
   if (unavailable && send === mailer.send) return { sent: false, reason: unavailable };
   // Le code ne change jamais : s'il existe mais ne peut pas être relu, on n'en crée pas un autre.
@@ -368,6 +369,7 @@ async function runScheduled({ now = new Date(), send = mailer.send, log = consol
   const { day, hour } = parisParts(now);
   if (hour < config.mail.accessSendFromHour || hour >= config.mail.accessSendUntilHour) return { sent: 0, failed: 0, skipped: 'hors horaires' };
   if (send === mailer.send && mailer.problem()) return { sent: 0, failed: 0, skipped: mailer.problem() };
+  if (!(await require('../emails/settings').isEnabled('acces'))) return { sent: 0, failed: 0, skipped: 'en pause (back-office → E-mails)' };
   let sent = 0;
   let failed = 0;
   for (const c of await dueClients(day)) {

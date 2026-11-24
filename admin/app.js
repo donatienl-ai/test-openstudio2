@@ -162,7 +162,7 @@
     ['emissions', 'Émissions', null],
     ['commandes', 'Commandes', null],
     ['tarifs', 'Tarifs', null],
-    ['alertes', 'Alertes', null],
+    ['emails', 'E-mails', null],
   ];
   var NAV_SUPER = [['equipe', 'Équipe'], ['journal', 'Journal d’activité']];
 
@@ -185,7 +185,7 @@
     else if (S.page === 'tarifs' || S.page === 'credits') page = pageCredits();
     else if (S.page === 'emissions') page = pageEmissions();
     else if (S.page === 'commandes') page = S.sub ? pageOrderDetail() : pageOrders();
-    else if (S.page === 'alertes') page = pageAlerts();
+    else if (S.page === 'alertes' || S.page === 'emails') page = pageEmails();
     else page = pageSoon();
     return '<div class="shell"><nav class="side" aria-label="Navigation">' + brand('Espace équipe') + nav + navSuper +
       '<div class="me"><span><b>' + esc(S.user.name) + '</b><br>' + (isSuper() ? 'Super admin' : 'Admin') + '</span>' +
@@ -499,6 +499,7 @@
     compte_reactive: 'Compte réactivé',
     role_modifie: 'Rôle modifié',
     alertes_modifiees: 'Destinataires des alertes modifiés',
+    emails_actives: 'E-mails automatiques activés / mis en pause',
     montage_avancement: 'Avancement d’un montage',
     facture_creee: 'Facture créée',
     client_cree: 'Client créé',
@@ -533,6 +534,7 @@
     var d = e.detail || {};
     var ROLE = { super_admin: 'super admin', admin: 'admin' };
     if (e.action === 'role_modifie') return (d.email || '') + ' : ' + (ROLE[d.avant] || d.avant) + ' → ' + (ROLE[d.apres] || d.apres);
+    if (e.action === 'emails_actives') return Object.keys(d).map(function (k) { return k + ' : ' + d[k]; }).join(' · ');
     if (e.action === 'alertes_modifiees') return Object.keys(d).map(function (k) { return k + ' : ' + d[k]; }).join(' · ');
     if (e.action === 'montage_avancement') return (d.etat || '') + (d.note ? ' — ' + d.note : '');
     if (e.action === 'facture_creee') return 'facture ' + (d.numero || '');
@@ -796,6 +798,45 @@
       '<select name="view" aria-label="Diffusions affichées">' + views + '</select><span class="small muted">' + esc(list.length + ' diffusion' + (list.length > 1 ? 's' : '')) + '</span></form>' +
       '<div class="card flush">' + table + '</div>' +
       '<p class="small muted">Pour corriger un e-mail ou envoyer le code plus tôt, ouvrez la fiche du client. Les dates et les annulations se modifient dans le planning du dashboard.</p>';
+  }
+
+  /* ------------------------------------------------------------ E-mails automatiques */
+
+  function loadEmails() {
+    S.emailsCfg = null; S.alerts = null;
+    return Promise.all([api('GET', '/admin/email-settings'), api('GET', '/admin/alert-settings')])
+      .then(function (r) { S.emailsCfg = r[0]; S.alerts = r[1]; render(); })
+      .catch(function (e) { S.error = e.message; render(); });
+  }
+  function saveEmailToggles(disabled) {
+    return api('PUT', '/admin/email-settings', { disabled: disabled }).then(function (d) { S.emailsCfg = d; });
+  }
+  function pageEmails() {
+    var head = '<div class="head"><div><h1>E-mails</h1><p class="muted">Tous les e-mails envoyés automatiquement par la plateforme. Mettez-en un en pause pour qu’il ne parte plus ; les envois faits à la main depuis une fiche client (aperçu, « Envoyer le code ») restent possibles.</p></div>';
+    if (!S.emailsCfg || !S.alerts) return head + '</div>' + errorBox() + '<div class="card empty">Chargement…</div>';
+    var list = S.emailsCfg.emails;
+    var paused = list.filter(function (e) { return !e.enabled; }).length;
+    head += '<div class="btns">' + (paused < list.length ? '<button type="button" class="btn secondary" data-a="emails-all-off"' + (S.busy ? ' disabled' : '') + '>Tout mettre en pause</button>' : '') +
+      (paused ? '<button type="button" class="btn" data-a="emails-all-on"' + (S.busy ? ' disabled' : '') + '>Tout réactiver</button>' : '') + '</div></div>';
+    var row = function (e) {
+      var t = (S.alerts.types || []).filter(function (x) { return x.id === e.id; })[0];
+      var chips = '';
+      if (e.alert && t) {
+        chips = '<div class="chips">' + (t.recipients.length ? t.recipients.map(function (m) {
+          return '<span class="chip">' + esc(m) + '<button type="button" data-a="alert-del" data-id="' + esc(t.id + '|' + m) + '" aria-label="Retirer ' + esc(m) + '" title="Retirer"' + (S.busy ? ' disabled' : '') + '>×</button></span>';
+        }).join('') : '<span class="small text-err">Aucun destinataire.</span>') + '</div>' +
+          '<form data-form="alert-add" data-id="' + esc(t.id) + '" class="form-inline" novalidate><label class="grow">Ajouter un destinataire<input name="email" type="email" placeholder="prenom@openmedias.fr" autocomplete="off"></label><button class="btn secondary small" type="submit"' + (S.busy ? ' disabled' : '') + '>Ajouter</button></form>';
+      }
+      return '<div class="card email-row' + (e.enabled ? '' : ' off') + '"><div class="email-head"><div><h2>' + esc(e.label) + '</h2><p class="small muted">' + esc(e.when) + '</p></div>' +
+        '<button type="button" class="switch' + (e.enabled ? ' on' : '') + '" role="switch" aria-checked="' + e.enabled + '" data-a="email-toggle" data-id="' + esc(e.id) + '"' + (S.busy ? ' disabled' : '') + '><span></span>' + (e.enabled ? 'Actif' : 'En pause') + '</button></div>' +
+        (e.enabled ? '' : '<p class="small paused-note">En pause : ' + esc(e.paused) + '</p>') + chips + '</div>';
+    };
+    var group = function (aud, title) {
+      var items = list.filter(function (e) { return e.audience === aud; });
+      return '<h2 class="email-group">' + esc(title) + '</h2>' + items.map(row).join('');
+    };
+    return head + errorBox() + group('client', 'E-mails aux clients') + group('equipe', 'Alertes à l’équipe') +
+      (S.emailsCfg.updatedAt ? '<p class="small muted">Dernière modification le ' + esc(fmtDate(S.emailsCfg.updatedAt)) + (S.emailsCfg.updatedBy ? ' par ' + esc(S.emailsCfg.updatedBy) : '') + '.</p>' : '');
   }
 
   /* ------------------------------------------------------------ Alertes */
@@ -1213,7 +1254,7 @@
     if (S.page === 'diffusions') loadDiffusions();
     if (S.page === 'accueil') loadDashboard();
     if (S.page === 'commandes') loadOrders();
-    if (S.page === 'alertes') { S.alerts = null; api('GET', '/admin/alert-settings').then(function (d) { S.alerts = d; render(); }).catch(function (e) { S.error = e.message; render(); }); }
+    if (S.page === 'alertes' || S.page === 'emails') loadEmails();
     if (S.page === 'emissions') {
       S.progLogos = null;
       api('GET', '/admin/programme-logos').then(function (d) { S.progLogos = d.programmes; render(); }).catch(function (e) { S.error = e.message; render(); });
@@ -1564,6 +1605,20 @@
       var t = S.alerts.types.filter(function (x) { return x.id === type; })[0];
       if (!t || !window.confirm('Retirer ' + email + ' des destinataires de l’alerte « ' + t.label + ' » ?')) return;
       withBusy(saveAlerts(type, t.recipients.filter(function (e) { return e !== email; })).then(function () { toast('Destinataire retiré'); }));
+    },
+    'email-toggle': function (id) {
+      var e = S.emailsCfg.emails.filter(function (x) { return x.id === id; })[0]; if (!e) return;
+      if (e.enabled && !window.confirm('Mettre en pause « ' + e.label + ' » ?\n\n' + e.paused)) return;
+      var disabled = S.emailsCfg.emails.filter(function (x) { return x.id === id ? x.enabled : !x.enabled; }).map(function (x) { return x.id; });
+      withBusy(saveEmailToggles(disabled).then(function () { toast(e.enabled ? 'E-mail mis en pause' : 'E-mail réactivé'); }));
+    },
+    'emails-all-off': function () {
+      if (!window.confirm('Mettre en pause tous les e-mails automatiques (clients et équipe) ?\n\nPlus aucun code d’accès ne partira automatiquement le jour de la diffusion, et « Code oublié » ne fonctionnera plus.')) return;
+      withBusy(saveEmailToggles(S.emailsCfg.emails.map(function (x) { return x.id; })).then(function () { toast('Tous les e-mails automatiques sont en pause'); }));
+    },
+    'emails-all-on': function () {
+      if (!window.confirm('Réactiver tous les e-mails automatiques ?')) return;
+      withBusy(saveEmailToggles([]).then(function () { toast('Tous les e-mails automatiques sont actifs'); }));
     },
     'ord-reload': function () { withBusy(loadOrders()); },
     'ord-view': function (v) { S.ordFilter.view = v; render(); },
