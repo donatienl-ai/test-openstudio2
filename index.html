@@ -3572,16 +3572,17 @@ function mtHtml(m) {
   const progs = (vids.length ? vids.map(v => [v.media, v.title].filter(Boolean).join(' — ')) : []).concat(['Plusieurs émissions', 'Autre (à préciser)']);
   const offers = !MT.offers ? `<div class="mt-load"><span class="bk-spin" aria-hidden="true"></span>Chargement des prestations…</div>`
     : `<div class="mt-list" role="radiogroup" aria-label="Prestation">${MT.offers.map(o => `<button type="button" role="radio" class="mt-row" data-a="mt-offer" data-arg="${esc(o.id)}" aria-checked="${f.offerId === o.id}"><span class="mt-dot" aria-hidden="true"></span><span class="mt-name"><b>${esc(o.title)}</b><small>${esc(o.desc)}</small></span><span class="mt-price">${o.priceHT == null ? '<b>Sur mesure</b><small>prix fixé ensemble</small>' : `<b>${mtEur(o.priceHT)} HT</b><small>${mtEur(o.priceTTC)} TTC</small>`}</span></button>`).join('')}</div>`;
-  // Coordonnées reprises de l'espace client : résumé sur une ligne, modifiable au besoin
-  const known = f.company.trim() && f.name.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim());
+  // Coordonnées pour joindre le client directement : toujours visibles, au moins un téléphone ou un e-mail
+  const known = false;
   const contact = known && !m.editContact
     ? `<div class="mt-who"><span><b>${esc(f.name)}</b> · ${esc(f.company)}<br><span class="mut">${esc(f.email)}${f.phone ? ` · ${esc(f.phone)}` : ''}</span></span><button type="button" class="os-link" style="font-size:13px" data-a="mt-edit-contact">Modifier</button></div>`
     : `<div class="mt-grid">
         <div class="os-field"><label for="mt-co">Entreprise</label><input id="mt-co" class="os-in" autocomplete="organization" data-in="mt" data-arg="company" value="${esc(f.company)}"></div>
         <div class="os-field"><label for="mt-na">Nom et prénom</label><input id="mt-na" class="os-in" autocomplete="name" data-in="mt" data-arg="name" value="${esc(f.name)}"></div>
-        <div class="os-field"><label for="mt-em">E-mail</label><input id="mt-em" type="email" class="os-in" autocomplete="email" data-in="mt" data-arg="email" value="${esc(f.email)}"></div>
-        <div class="os-field"><label for="mt-ph">Téléphone <span class="mut" style="font-weight:400">(facultatif)</span></label><input id="mt-ph" type="tel" class="os-in" autocomplete="tel" data-in="mt" data-arg="phone" value="${esc(f.phone)}"></div>
-      </div>`;
+        <div class="os-field"><label for="mt-ph">Téléphone direct</label><input id="mt-ph" type="tel" class="os-in" autocomplete="tel" data-in="mt" data-arg="phone" value="${esc(f.phone)}" placeholder="06 12 34 56 78"></div>
+        <div class="os-field"><label for="mt-em">E-mail direct</label><input id="mt-em" type="email" class="os-in" autocomplete="email" data-in="mt" data-arg="email" value="${esc(f.email)}"></div>
+      </div>
+      <p class="mut" style="margin:8px 0 0;font-size:13px">Indiquez au moins un téléphone ou un e-mail : notre équipe vous contacte directement pour lancer votre montage.</p>`;
   return `<ol class="mt-steps" aria-label="Étapes"><li class="on" aria-current="step"><b>1</b>Votre demande</li><li><b>2</b>Paiement sécurisé</li></ol>
   <div class="mt-form">
     <fieldset class="mt-sec"><legend>Quelle prestation ?</legend>${offers}</fieldset>
@@ -3593,7 +3594,7 @@ function mtHtml(m) {
       </div>
       <div class="os-field"><span>Formats <span class="mut" style="font-weight:400">(facultatif)</span></span><div class="os-chipsel" role="group" aria-label="Formats souhaités">${MT_FORMATS.map(l => `<button type="button" data-a="mt-fmt" data-arg="${l}" aria-pressed="${f.formats.includes(l)}">${l}</button>`).join('')}</div></div>
     </fieldset>
-    <fieldset class="mt-sec"><legend>Vos coordonnées</legend>${contact}${mtNeedsAddress() ? `
+    <fieldset class="mt-sec"><legend>Pour vous joindre directement</legend>${contact}${mtNeedsAddress() ? `
       <div class="os-field"><label for="mt-ad">Adresse de facturation</label><input id="mt-ad" class="os-in" autocomplete="street-address" data-in="mt" data-arg="address" value="${esc(f.address || '')}"></div>
       <div class="mt-grid bl-3"><div class="os-field"><label for="mt-cp">Code postal</label><input id="mt-cp" class="os-in" autocomplete="postal-code" inputmode="numeric" data-in="mt" data-arg="postalCode" value="${esc(f.postalCode || '')}"></div><div class="os-field"><label for="mt-vi">Ville</label><input id="mt-vi" class="os-in" autocomplete="address-level2" data-in="mt" data-arg="city" value="${esc(f.city || '')}"></div><div class="os-field"><label for="mt-tva">N° de TVA <span class="mut" style="font-weight:400">(facultatif)</span></label><input id="mt-tva" class="os-in" placeholder="FR…" data-in="mt" data-arg="vat" value="${esc(f.vat || '')}"></div></div>
       <p class="mut small" style="margin:0">Pour votre facture. Elle sera gardée dans votre espace (Factures).</p>` : ''}</fieldset>
@@ -3611,9 +3612,11 @@ async function mtSend() {
   const m = S.modal; if (!m || m.type !== 'montage' || m.sending) return;
   const f = m.f; const o = mtOffer(m);
   const miss = !o ? 'Choisissez la prestation souhaitée.' : !f.company.trim() ? 'Indiquez le nom de votre entreprise.' : !f.name.trim() ? 'Indiquez vos nom et prénom.'
-    : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim()) ? 'Indiquez une adresse e-mail valide.' : f.description.trim().length < 10 ? 'Décrivez en quelques mots la vidéo souhaitée.'
+    : !f.email.trim() && !f.phone.trim() ? 'Indiquez un téléphone ou un e-mail pour que notre équipe puisse vous joindre.'
+    : f.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim()) ? 'L’adresse e-mail semble incorrecte.'
+    : f.phone.trim() && !/^[+\d][\d ().-]{5,}$/.test(f.phone.trim()) ? 'Le numéro de téléphone semble incorrect.' : f.description.trim().length < 10 ? 'Décrivez en quelques mots la vidéo souhaitée.'
     : o.priceHT != null && mtNeedsAddress() && !(String(f.address || '').trim() && String(f.postalCode || '').trim() && String(f.city || '').trim()) ? 'Complétez l’adresse de facturation (adresse, code postal et ville).' : '';
-  if (miss) { m.err = miss; if (/entreprise|nom|e-mail/.test(miss)) m.editContact = true; S.keepScroll = true; render(); return; }
+  if (miss) { m.err = miss; if (/entreprise|nom|e-mail|téléphone/.test(miss)) m.editContact = true; S.keepScroll = true; render(); return; }
   m.err = ''; m.sending = true; S.keepScroll = true; render();
   try {
     const r = await OpenStudio.montage.request({ offerId: f.offerId, contact: { company: f.company, name: f.name, email: f.email, phone: f.phone, ...(mtNeedsAddress() && String(f.address || '').trim() ? { billing: { address: f.address, postalCode: f.postalCode, city: f.city, vat: f.vat } } : {}) }, brief: { description: f.description, programme: f.programme, formats: f.formats, deadline: f.deadline } });
