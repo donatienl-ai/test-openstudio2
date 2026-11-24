@@ -111,3 +111,31 @@ test('e-mails de test : chacun des 6 e-mails, données d’exemple, à la person
   await assert.rejects(samples.sendTest('inconnu', { email: 'x@om.test' }, { send: async () => ({}) }), /inconnu/);
   await emails.save([], 'Lola');
 });
+
+test('mode test : plusieurs adresses reçoivent tous les e-mails, réglables dans le back-office', { skip }, async () => {
+  const config = require('../src/config');
+  const redirect = require('../src/emails/redirect');
+  const allow = config.mail.allowRealRecipients;
+  config.mail.allowRealRecipients = false;
+  try {
+    assert.match((await redirect.save([])).error, /au moins une adresse/, 'jamais zéro adresse si l’envoi réel est interdit');
+    assert.match((await redirect.save(['pas-un-mail'])).error, /invalide/);
+    const r = await redirect.save(['Lola@OM.test', 'julien@om.test', 'lola@om.test'], 'Lola');
+    assert.deepEqual(r.value.list, ['lola@om.test', 'julien@om.test']);
+    assert.equal(r.value.mode, 'test');
+    assert.equal(config.mail.redirectTo, 'lola@om.test, julien@om.test', 'appliqué tout de suite aux envois');
+    const m = mailer.buildMessage({ to: { email: 'client@vrai.test' }, subject: 'Votre code', text: 'T' }, { fromEmail: 'a@b.c', fromName: 'OM', redirectTo: config.mail.redirectTo });
+    assert.deepEqual(m.To.map((t) => t.Email), ['lola@om.test', 'julien@om.test']);
+    assert.match(m.Subject, /^\[TEST\] Votre code \(pour client@vrai\.test\)$/);
+    // Relu au démarrage du serveur
+    config.mail.redirectTo = '';
+    await redirect.load();
+    assert.equal(config.mail.redirectTo, 'lola@om.test, julien@om.test');
+    // Envoi réel autorisé : liste vide = vrais destinataires
+    config.mail.allowRealRecipients = true;
+    assert.equal((await redirect.save([], 'Lola')).value.mode, 'reel');
+    assert.equal(config.mail.redirectTo, '');
+  } finally {
+    config.mail.allowRealRecipients = allow;
+  }
+});

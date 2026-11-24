@@ -501,6 +501,7 @@
     alertes_modifiees: 'Destinataires des alertes modifiés',
     emails_actives: 'E-mails automatiques activés / mis en pause',
     email_test_envoye: 'E-mail de test envoyé',
+    emails_test_adresses: 'Adresses de test des e-mails modifiées',
     montage_avancement: 'Avancement d’un montage',
     facture_creee: 'Facture créée',
     client_cree: 'Client créé',
@@ -535,6 +536,7 @@
     var d = e.detail || {};
     var ROLE = { super_admin: 'super admin', admin: 'admin' };
     if (e.action === 'role_modifie') return (d.email || '') + ' : ' + (ROLE[d.avant] || d.avant) + ' → ' + (ROLE[d.apres] || d.apres);
+    if (e.action === 'emails_test_adresses') return (d.avant || '') + ' → ' + (d.apres || '');
     if (e.action === 'email_test_envoye') return (d.objet || '') + ' → ' + (d.redirige_vers || d.email || '');
     if (e.action === 'emails_actives') return Object.keys(d).map(function (k) { return k + ' : ' + d[k]; }).join(' · ');
     if (e.action === 'alertes_modifiees') return Object.keys(d).map(function (k) { return k + ' : ' + d[k]; }).join(' · ');
@@ -805,9 +807,9 @@
   /* ------------------------------------------------------------ E-mails automatiques */
 
   function loadEmails() {
-    S.emailsCfg = null; S.alerts = null;
-    return Promise.all([api('GET', '/admin/email-settings'), api('GET', '/admin/alert-settings')])
-      .then(function (r) { S.emailsCfg = r[0]; S.alerts = r[1]; render(); })
+    S.emailsCfg = null; S.alerts = null; S.redirect = null;
+    return Promise.all([api('GET', '/admin/email-settings'), api('GET', '/admin/alert-settings'), api('GET', '/admin/email-redirect')])
+      .then(function (r) { S.emailsCfg = r[0]; S.alerts = r[1]; S.redirect = r[2]; render(); })
       .catch(function (e) { S.error = e.message; render(); });
   }
   function saveEmailToggles(disabled) {
@@ -838,7 +840,19 @@
       var items = list.filter(function (e) { return e.audience === aud; });
       return '<h2 class="email-group">' + esc(title) + '</h2>' + items.map(row).join('');
     };
-    return head + errorBox() + group('client', 'E-mails aux clients') + group('equipe', 'Alertes à l’équipe') +
+    var rd = S.redirect || { list: [], mode: 'reel' };
+    var modeLine = rd.mode === 'test'
+      ? '<p class="small"><span class="tag wait">Mode test</span> Tous les e-mails (clients, alertes, tests) partent vers ' + (rd.list.length > 1 ? 'ces adresses' : 'cette adresse') + ' à la place des vrais destinataires, avec « [TEST] » dans l’objet.</p>'
+      : rd.mode === 'reel' ? '<p class="small"><span class="tag ok">Envoi réel</span> Les e-mails partent aux vrais destinataires (clients et équipe). Ajouter une adresse ici fait repasser la plateforme en mode test.</p>'
+      : '<p class="small text-err">Aucune adresse de test et envoi réel non autorisé : aucun e-mail ne part.</p>';
+    var redirectCard = '<div class="card redirect-card"><h2>Mode test : qui reçoit les e-mails</h2>' + modeLine +
+      '<div class="chips">' + rd.list.map(function (m) {
+        return '<span class="chip">' + esc(m) + '<button type="button" data-a="redirect-del" data-id="' + esc(m) + '" aria-label="Retirer ' + esc(m) + '" title="Retirer"' + (S.busy ? ' disabled' : '') + '>×</button></span>';
+      }).join('') + '</div>' +
+      '<form data-form="redirect-add" class="form-inline" novalidate><label class="grow">Ajouter une adresse de test<input name="email" type="email" placeholder="prenom@openmedias.fr" autocomplete="off"></label><button class="btn secondary small" type="submit"' + (S.busy ? ' disabled' : '') + '>Ajouter</button></form>' +
+      (rd.fromEnv && rd.list.length ? '<p class="small muted">Adresse reprise de la configuration du serveur (MAIL_REDIRECT_TO) : elle sera remplacée par cette liste dès la première modification.</p>' : '') +
+      (rd.updatedAt ? '<p class="small muted">Modifié le ' + esc(fmtDate(rd.updatedAt)) + (rd.updatedBy ? ' par ' + esc(rd.updatedBy) : '') + '.</p>' : '') + '</div>';
+    return head + errorBox() + redirectCard + group('client', 'E-mails aux clients') + group('equipe', 'Alertes à l’équipe') +
       (S.emailsCfg.updatedAt ? '<p class="small muted">Dernière modification le ' + esc(fmtDate(S.emailsCfg.updatedAt)) + (S.emailsCfg.updatedBy ? ' par ' + esc(S.emailsCfg.updatedBy) : '') + '.</p>' : '');
   }
 
@@ -1323,6 +1337,17 @@
 
   var FORMS = {
     'ord-filter': function () { return Promise.resolve(); },
+    'redirect-add': function (f) {
+      var email = f.email.value.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return Promise.reject(new Error('Adresse e-mail invalide.'));
+      if (S.redirect.list.indexOf(email) !== -1) return Promise.reject(new Error(email + ' reçoit déjà les e-mails de test.'));
+      if (S.redirect.mode === 'reel' && !window.confirm('La plateforme envoie actuellement les e-mails aux vrais destinataires. Ajouter cette adresse la fait repasser en mode test : TOUS les e-mails partiront vers les adresses de test. Continuer ?')) return Promise.resolve();
+      return api('PUT', '/admin/email-redirect', { list: S.redirect.list.concat([email]) }).then(function (d) {
+        S.redirect = d;
+        var cur = app.querySelector('form[data-form="redirect-add"] input[name="email"]'); if (cur) cur.value = '';
+        toast(email + ' recevra les e-mails de test');
+      });
+    },
     'alert-add': function (f) {
       var type = f.dataset.id; var email = f.email.value.trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return Promise.reject(new Error('Adresse e-mail invalide.'));
@@ -1614,6 +1639,11 @@
       if (e.enabled && !window.confirm('Mettre en pause « ' + e.label + ' » ?\n\n' + e.paused)) return;
       var disabled = S.emailsCfg.emails.filter(function (x) { return x.id === id ? x.enabled : !x.enabled; }).map(function (x) { return x.id; });
       withBusy(saveEmailToggles(disabled).then(function () { toast(e.enabled ? 'E-mail mis en pause' : 'E-mail réactivé'); }));
+    },
+    'redirect-del': function (email) {
+      var rest = S.redirect.list.filter(function (x) { return x !== email; });
+      if (!window.confirm(rest.length ? 'Retirer ' + email + ' ? Les e-mails de test ne lui seront plus envoyés.' : 'Retirer la dernière adresse de test ? Si l’envoi réel est autorisé sur le serveur, les e-mails partiront alors aux VRAIS clients.')) return;
+      withBusy(api('PUT', '/admin/email-redirect', { list: rest }).then(function (d) { S.redirect = d; toast('Adresse retirée'); }));
     },
     'email-test': function (id) {
       withBusy(api('POST', '/admin/email-settings/' + encodeURIComponent(id) + '/test').then(function (d) { toast('Test envoyé à ' + d.to); }));

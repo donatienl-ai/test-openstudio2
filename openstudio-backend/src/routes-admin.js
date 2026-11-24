@@ -200,6 +200,20 @@ router.put('/admin/email-settings', requireTeam, json, wrap(async (req, res) => 
   res.json(r.value);
 }));
 
+/** Mode test : adresses qui reçoivent tous les e-mails à la place des vrais destinataires. */
+router.get('/admin/email-redirect', requireTeam, wrap(async (req, res) => {
+  res.json(require('./emails/redirect').get());
+}));
+
+router.put('/admin/email-redirect', requireTeam, json, wrap(async (req, res) => {
+  const redirect = require('./emails/redirect');
+  const before = redirect.get().list;
+  const r = await redirect.save((req.body || {}).list, (req.adminUser && req.adminUser.name) || 'équipe');
+  if (r.error) return res.status(400).json({ error: r.error });
+  await audit.record(req, 'emails_test_adresses', { detail: { avant: before.join(', ') || '(aucune)', apres: r.value.list.join(', ') || '(aucune : envoi réel)' } });
+  res.json(r.value);
+}));
+
 /** E-mail de test : l'e-mail automatique choisi, avec des données d'exemple, envoyé à la personne connectée. */
 router.post('/admin/email-settings/:id/test', requireTeam, wrap(async (req, res) => {
   if (!req.adminUser || !req.adminUser.email) return res.status(409).json({ error: 'Connectez-vous avec votre compte nominatif pour recevoir le test à votre adresse.' });

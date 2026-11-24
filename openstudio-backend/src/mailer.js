@@ -30,13 +30,15 @@ function problem(cfg = config.mail) {
  * Sans : sujet + texte fournis (contenu de secours tant que le modèle n'est pas créé).
  */
 function buildMessage({ to, subject, text, html, templateId, variables = {}, customId }, cfg = config.mail) {
-  const redirected = Boolean(cfg.redirectTo);
+  // Mode test : une ou plusieurs adresses (séparées par des virgules) reçoivent tout
+  const redirects = String(cfg.redirectTo || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const redirected = redirects.length > 0;
   // Un destinataire, ou plusieurs (alertes à l'équipe) : [{ email, name }]
   const list = Array.isArray(to) ? to : [to];
   to = { ...list[0], email: list.map((x) => x.email).join(', ') }; // pour l'affichage en mode redirigé
   const msg = {
     From: { Email: cfg.fromEmail, Name: cfg.fromName },
-    To: redirected ? [{ Email: cfg.redirectTo, Name: 'Test OpenStudio' }] : list.map((x) => ({ Email: x.email, ...(x.name ? { Name: x.name } : {}) })),
+    To: redirected ? redirects.map((r) => ({ Email: r, Name: 'Test OpenStudio' })) : list.map((x) => ({ Email: x.email, ...(x.name ? { Name: x.name } : {}) })),
     CustomID: String(customId || ''),
     Variables: { ...variables, ...(redirected ? { destinataire_reel: to.email } : {}) },
   };
