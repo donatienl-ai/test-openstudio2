@@ -239,11 +239,19 @@ async function broadcastInfo(clientId) {
 }
 
 /** E-mail « code oublié » : le code d'accès (inchangé) et le lien de connexion, rien d'autre. */
-function forgotCodeEmail(client, link, code) {
+/**
+ * E-mail du code d'accès seul (maquette « Code oublié ») :
+ *  - à la demande du client (« Code oublié ? » sur la page de connexion) ;
+ *  - envoyé par l'équipe (fiche client → « Envoyer le code au client »), `byTeam` : sans « vous avez demandé ».
+ * L'envoi 1 (jour de la diffusion) est un autre e-mail, envoyé automatiquement.
+ */
+function forgotCodeEmail(client, link, code, { byTeam = false } = {}) {
   const text = [
     client.name ? `Bonjour ${client.name},` : 'Bonjour,',
     '',
-    `Vous avez demandé à recevoir votre code d’accès OpenStudio${client.company ? ` (${client.company})` : ''}.`,
+    byTeam
+      ? `Voici votre code d’accès à votre espace OpenStudio${client.company ? ` (${client.company})` : ''}.`
+      : `Vous avez demandé à recevoir votre code d’accès OpenStudio${client.company ? ` (${client.company})` : ''}.`,
     '',
     `Votre code d’accès : ${code}`,
     '',
@@ -251,7 +259,7 @@ function forgotCodeEmail(client, link, code) {
     link,
     '',
     'Ce code vous est réservé : ne le transmettez pas en dehors de votre entreprise.',
-    'Si vous n’êtes pas à l’origine de cette demande, ignorez simplement cet e-mail : votre code reste inchangé.',
+    ...(byTeam ? [] : ['Si vous n’êtes pas à l’origine de cette demande, ignorez simplement cet e-mail : votre code reste inchangé.']),
     '',
     'L’équipe OpenMedias',
   ].join('\n');
@@ -259,9 +267,33 @@ function forgotCodeEmail(client, link, code) {
     to: { email: client.email, name: client.name || undefined },
     subject: 'Votre code d’accès OpenStudio',
     text,
-    html: require('../emails/sequence').codeOublieHtml({ name: client.name, company: client.company, code, link }),
-    customId: `code-oublie-${client.id}`,
+    html: require('../emails/sequence').codeOublieHtml({ name: client.name, company: client.company, code, link, byTeam }),
+    customId: `code-${byTeam ? 'equipe' : 'oublie'}-${client.id}`,
   };
+}
+
+/**
+ * Fiche client → « Envoyer le code au client » : l'e-mail du code d'accès (pas l'envoi 1).
+ * Ne marque pas l'envoi 1 comme fait : il partira quand même automatiquement le jour de la diffusion.
+ */
+async function sendCodeByEmail(client, { req = null, send = mailer.send } = {}) {
+  if (!client.email) throw new Error('Ce client n’a pas d’adresse e-mail.');
+  const unavailable = mailer.problem();
+  if (unavailable && send === mailer.send) throw new Error(unavailable);
+  const readable = readableCode(client);
+  if (!readable && client.access_code_hash) throw new Error('Code illisible (ADMIN_ENCRYPTION_KEY absente ou modifiée).');
+  const code = readable || await ensureCode(client.id);
+  const message = forgotCodeEmail(client, loginUrlFor(code), code, { byTeam: true });
+  let r;
+  try {
+    r = await send(message);
+  } catch (e) {
+    await logEmail(client, { status: 'echec', subject: message.subject, error: e.message });
+    throw e;
+  }
+  await logEmail(client, { status: 'envoye', subject: message.subject, providerId: r && r.messageId, redirectedTo: r && r.redirectedTo });
+  await audit.record(req, 'code_envoye_equipe', { targetType: 'client', targetId: client.id, detail: { email: client.email, ...(r && r.redirectedTo ? { redirige_vers: r.redirectedTo } : {}) } });
+  return { sent: true, redirectedTo: (r && r.redirectedTo) || null };
 }
 
 /**
@@ -386,4 +418,4 @@ async function runScheduled({ now = new Date(), send = mailer.send, log = consol
   return { sent, failed };
 }
 
-module.exports = { buildAccessMessage, sendPreview, forgotCodeEmail, sendForgottenCode, readableCode, ensureCode, ensureAllCodes, restore, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };
+module.exports = { buildAccessMessage, sendPreview, forgotCodeEmail, sendForgottenCode, sendCodeByEmail, readableCode, ensureCode, ensureAllCodes, restore, accessStatus, withAccessInfo, issue, revoke, sendByEmail, runScheduled, dueClients, linkFor, loginUrlFor, parisParts, isoDay, accessEmail, MAX_AUTO_ATTEMPTS };

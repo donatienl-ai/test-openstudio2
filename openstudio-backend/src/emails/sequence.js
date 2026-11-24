@@ -304,9 +304,11 @@ function codeOublieHtml(v) {
   <div style="clear:both;font-size:13px;color:${C.muted};padding-top:14px">Le bouton vous connecte directement. Ce code vous est personnel.</div>
 </td></tr></table>`;
   return layout({ title: subject, preheader: `Votre code d’accès : ${v.code}`, kicker: 'OpenStudio · Votre code d’accès', body: [
-    hero('Demande de code', 'Voici votre code d’accès.', `${hello(v)}, vous avez demandé à recevoir à nouveau votre code de connexion à OpenStudio${v.company ? ` (${esc(v.company)})` : ''}. Le voici.`),
+    v.byTeam
+      ? hero('Votre code d’accès', 'Voici votre code d’accès.', `${hello(v)}, voici votre code de connexion à votre espace OpenStudio${v.company ? ` (${esc(v.company)})` : ''}.`)
+      : hero('Demande de code', 'Voici votre code d’accès.', `${hello(v)}, vous avez demandé à recevoir à nouveau votre code de connexion à OpenStudio${v.company ? ` (${esc(v.company)})` : ''}. Le voici.`),
     row(box, 32),
-    row(small('Vous n’êtes pas à l’origine de cette demande ? Ignorez simplement cet e-mail : votre code ne change pas et votre espace reste protégé.'), 28),
+    row(small(v.byTeam ? 'Ce code vous est réservé : ne le transmettez pas en dehors de votre entreprise.' : 'Vous n’êtes pas à l’origine de cette demande ? Ignorez simplement cet e-mail : votre code ne change pas et votre espace reste protégé.'), 28),
   ].join('\n') });
 }
 

@@ -396,14 +396,14 @@ router.get('/admin/clients/:id/payments/:paymentId/invoice', requireTeam, wrap(a
 
 /* ------------------------------------------------------------------ Lien d'accès */
 
-/** Envoie tout de suite un nouveau lien par e-mail (l'ancien cesse de fonctionner). */
+/** « Envoyer le code au client » : e-mail du code d'accès (pas l'envoi 1, qui part le jour de la diffusion). */
 router.post('/admin/clients/:id/access/send', requireTeam, wrap(async (req, res) => {
   const c = await clients.get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Client introuvable' });
   if (!c.email) return res.status(409).json({ error: 'Renseignez d’abord l’adresse e-mail du client.' });
   if (!config.clientSiteUrl) return res.status(503).json({ error: 'Adresse de l’espace client non configurée (CLIENT_SITE_URL).' });
   try {
-    const r = await access.sendByEmail(c, { req });
+    const r = await access.sendCodeByEmail(c, { req });
     res.json({ client: await fresh(c.id), redirectedTo: r.redirectedTo || null });
   } catch (e) {
     res.status(502).json({ error: `L’e-mail n’est pas parti : ${e.message}` });

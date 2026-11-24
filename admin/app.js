@@ -1620,7 +1620,7 @@
     },
     'access-send': function () {
       var c = S.client.client;
-      if (!window.confirm('Envoyer maintenant le code d’accès à ' + c.name + ' (' + c.email + ') ? C’est le vrai e-mail du jour J.')) return;
+      if (!window.confirm('Envoyer maintenant le code d’accès à ' + c.name + ' (' + c.email + ') ? Il reçoit l’e-mail « Votre code d’accès OpenStudio ». L’envoi 1 partira quand même automatiquement le jour de la diffusion.')) return;
       withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/access/send').then(function (d) {
         toast(d.redirectedTo ? 'Mode test : e-mail envoyé à ' + d.redirectedTo : 'Code envoyé à ' + c.email);
         return loadClients();

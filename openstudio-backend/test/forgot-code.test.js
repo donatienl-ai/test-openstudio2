@@ -112,3 +112,21 @@ test('aperçu de l’e-mail du jour J : envoyé à l’équipe, données du clie
   const after = (await db.query('SELECT access_email_sent_at, access_email_attempts FROM clients WHERE id = $1', [client.id])).rows[0];
   assert.deepEqual(after, before, 'fiche du client inchangée');
 });
+
+test('e-mail du code envoyé par l’équipe : même code et même mise en page, sans « vous avez demandé »', () => {
+  const m = access.forgotCodeEmail({ id: 'x', name: 'Claire Dumas', company: 'Ecoval', email: 'c@e.test' }, 'https://site/?code=OM-AAAA-BB', 'OM-AAAA-BB', { byTeam: true });
+  assert.equal(m.subject, 'Votre code d’accès OpenStudio');
+  for (const s of ['Voici votre code d’accès.', 'Bonjour Claire', 'OM-AAAA-BB', 'href="https://site/?code=OM-AAAA-BB"', 'Accéder à mon espace']) assert.ok(m.html.includes(s), s);
+  assert.doesNotMatch(m.html + m.text, /avez demandé|pas à l’origine/);
+  assert.match(m.text, /Votre code d’accès : OM-AAAA-BB/);
+});
+
+test('fiche client → « Envoyer le code au client » : l’e-mail du code, l’envoi 1 reste à faire le jour de la diffusion', { skip }, async () => {
+  let sent = null;
+  const r = await access.sendCodeByEmail(client, { send: async (m) => { sent = m; return { messageId: '2' }; } });
+  assert.equal(r.sent, true);
+  assert.equal(sent.subject, 'Votre code d’accès OpenStudio');
+  assert.ok(sent.html.includes(code));
+  const { rows } = await db.query('SELECT access_email_sent_at FROM clients WHERE id = $1', [client.id]);
+  assert.equal(rows[0].access_email_sent_at, null, 'l’envoi 1 n’est pas marqué comme fait');
+});
