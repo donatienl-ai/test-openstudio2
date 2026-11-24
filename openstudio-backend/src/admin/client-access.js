@@ -259,6 +259,7 @@ function forgotCodeEmail(client, link, code) {
     to: { email: client.email, name: client.name || undefined },
     subject: 'Votre code d’accès OpenStudio',
     text,
+    html: require('../emails/sequence').codeOublieHtml({ name: client.name, company: client.company, code, link }),
     customId: `code-oublie-${client.id}`,
   };
 }

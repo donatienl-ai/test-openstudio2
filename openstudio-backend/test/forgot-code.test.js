@@ -47,6 +47,9 @@ test('e-mail « code oublié » : le code, le lien de connexion, rien d’autre'
   assert.match(m.text, /Votre code d’accès : OM-AAAA-BB/);
   assert.match(m.text, /https:\/\/site\/\?code=OM-AAAA-BB/);
   assert.match(m.text, /votre code reste inchangé/);
+  // Version mise en page (maquette « Code oublié »)
+  for (const s of ['Voici votre code d’accès.', 'Bonjour Claire', 'OM-AAAA-BB', 'href="https://site/?code=OM-AAAA-BB"', 'Accéder à mon espace', 'votre code ne change pas', '/email/logo-openmedias.png']) assert.ok(m.html.includes(s), s);
+  assert.doesNotMatch(m.html, /display:\s*(flex|grid)|position:\s*absolute|undefined/);
 });
 
 test('code oublié : envoyé à l’adresse de la fiche (majuscules ignorées), code inchangé', { skip }, async () => {
