@@ -265,6 +265,7 @@ tr.total td { border-top: 2px solid var(--line); }
 .email-head p { margin: 0; }
 .email-row.off { background: #f6f7fa; }
 .email-row.off h2 { color: var(--muted); }
+.email-step { margin: 0 0 2px !important; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-size: 11px; }
 .email-row .chips { margin-top: 12px; }
 .email-row .form-inline { margin-top: 8px; }
 .paused-note { margin: 10px 0 0; color: var(--amber); }

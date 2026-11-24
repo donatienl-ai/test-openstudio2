@@ -17,6 +17,21 @@ const TYPES = [
 ];
 const IDS = TYPES.map((t) => t.id);
 
+/**
+ * E-mails en préparation (séquence de relance, commande) : pas encore branchés sur un déclencheur,
+ * donc ni actifs ni en pause. Le back-office ne propose que l'envoi d'un test.
+ */
+const PREVIEWS = [
+  { id: 'acces_nuit', step: 'Étape 1 · J0', label: 'Envoi 1 · variante test A (pass bleu nuit)', when: 'Même e-mail que l’envoi 1 actuel (test B, pass clair) : seul le talon des crédits change.' },
+  { id: 'avis_video', step: 'Cas 1 · J+30', label: 'Demande d’avis Google', when: 'Si le client s’est connecté et a créé une vidéo dans les 2 jours suivant l’envoi 1.' },
+  { id: 'relance_video_1', step: 'Cas 2 · J+2', label: 'Relance 1 · « Votre première vidéo est à 3 clics »', when: 'Si le client s’est connecté mais n’a créé aucune vidéo dans les 2 jours.' },
+  { id: 'relance_video_2', step: 'Cas 2 · J+7', label: 'Relance 2 · « Vos crédits offerts n’attendent que vous »', when: 'Si toujours aucune vidéo après la relance 1.' },
+  { id: 'relance_connexion_1', step: 'Cas 3 · J+2', label: 'Relance 1 · « Connectez-vous et créez vos premières vidéos »', when: 'Si le client ne s’est pas connecté dans les 2 jours suivant l’envoi 1.' },
+  { id: 'relance_connexion_2', step: 'Cas 3 · J+20', label: 'Relance 2 · « Vos crédits expirent dans 10 jours »', when: 'Si le client ne s’est toujours pas connecté.' },
+  { id: 'commande_confirmee', step: 'Commande · immédiat', label: 'Confirmation de commande de montage', when: 'Dès qu’une commande de montage est confirmée.' },
+  { id: 'avis_commande', step: 'Commande · J+30', label: 'Demande d’avis Google après une commande', when: '30 jours après la confirmation de la commande.' },
+];
+
 let cache = null;
 let cacheAt = 0;
 
@@ -49,7 +64,7 @@ async function list() {
   for (const t of TYPES) {
     out.push({ ...t, enabled: !s.disabled.includes(t.id), ...(t.alert ? { recipients: await alerts.recipients(t.id) } : {}) });
   }
-  return { emails: out, updatedAt: s.updatedAt || null, updatedBy: s.updatedBy || null };
+  return { emails: out, previews: PREVIEWS, updatedAt: s.updatedAt || null, updatedBy: s.updatedBy || null };
 }
 
 /** Enregistre la liste des e-mails en pause. */
@@ -66,4 +81,4 @@ async function save(disabled, actor) {
   return { value: await list() };
 }
 
-module.exports = { TYPES, IDS, isEnabled, list, save };
+module.exports = { TYPES, IDS, PREVIEWS, isEnabled, list, save };

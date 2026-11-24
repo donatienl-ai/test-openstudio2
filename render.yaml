@@ -134,6 +134,9 @@ services:
       # (en recette : https://openstudio-recette.onrender.com/email). À changer avec le nom de domaine définitif.
       - key: EMAIL_ASSETS_URL
         sync: false
+      # Lien « laisser un avis » de la fiche Google d'OpenMedias (e-mails de demande d'avis). Vide : recherche Google « OpenMedias avis ».
+      - key: GOOGLE_REVIEW_URL
+        sync: false
       # « recette » sur le serveur de recette uniquement (voir docs/RECETTE.md) ; vide en production.
       - key: APP_ENV
         sync: false

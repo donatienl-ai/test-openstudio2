@@ -838,7 +838,13 @@
       var items = list.filter(function (e) { return e.audience === aud; });
       return '<h2 class="email-group">' + esc(title) + '</h2>' + items.map(row).join('');
     };
-    return head + errorBox() + group('client', 'E-mails aux clients') + group('equipe', 'Alertes à l’équipe') +
+    var previews = (S.emailsCfg.previews || []).map(function (e) {
+      return '<div class="card email-row draft"><div class="email-head"><div><p class="small email-step">' + esc(e.step) + '</p><h2>' + esc(e.label) + '</h2><p class="small muted">' + esc(e.when) + '</p></div>' +
+        '<div class="email-actions"><button type="button" class="btn secondary small" data-a="email-test" data-id="' + esc(e.id) + '"' + (S.busy ? ' disabled' : '') + ' title="Cet e-mail avec des données d’exemple, envoyé à votre adresse">M’envoyer un test</button>' +
+        '<span class="tag off">Test uniquement</span></div></div></div>';
+    }).join('');
+    var draftGroup = previews ? '<h2 class="email-group">Séquence de relance et commande · en préparation</h2><p class="small muted">Ces e-mails ne partent pas encore automatiquement : ils ne sont envoyés qu’en test, à votre adresse, avec des données d’exemple.</p>' + previews : '';
+    return head + errorBox() + group('client', 'E-mails aux clients') + draftGroup + group('equipe', 'Alertes à l’équipe') +
       (S.emailsCfg.updatedAt ? '<p class="small muted">Dernière modification le ' + esc(fmtDate(S.emailsCfg.updatedAt)) + (S.emailsCfg.updatedBy ? ' par ' + esc(S.emailsCfg.updatedBy) : '') + '.</p>' : '');
   }
 
