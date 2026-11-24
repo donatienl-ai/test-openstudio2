@@ -11,6 +11,9 @@ const db = require('../db');
 const KEY = 'mail_redirect';
 const MAX = 10;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+/** Garde-fou : seules les adresses de l'équipe (@openmedias.fr) peuvent recevoir des e-mails de test. */
+const TEST_DOMAIN = 'openmedias.fr';
+const isTestAddress = (e) => String(e || '').trim().toLowerCase().endsWith(`@${TEST_DOMAIN}`);
 const ENV = (process.env.MAIL_REDIRECT_TO || '').split(',').map((s) => s.trim().toLowerCase()).filter((s) => EMAIL.test(s));
 
 let state = { list: ENV, fromEnv: true, updatedAt: null, updatedBy: null };
@@ -50,6 +53,8 @@ async function save(input, actor) {
   const list = [...new Set(input.map((e) => String(e || '').trim().toLowerCase()).filter(Boolean))];
   const bad = list.find((e) => !EMAIL.test(e) || e.length > 200);
   if (bad) return { error: `Adresse e-mail invalide : ${bad}` };
+  const outside = list.find((e) => !isTestAddress(e));
+  if (outside) return { error: `Seules les adresses @${TEST_DOMAIN} peuvent recevoir les e-mails de test : ${outside}` };
   if (list.length > MAX) return { error: `${MAX} adresses au maximum.` };
   if (!list.length && !config.mail.allowRealRecipients) {
     return { error: 'Gardez au moins une adresse : l’envoi aux vrais destinataires n’est pas autorisé sur ce serveur, plus aucun e-mail ne partirait.' };
@@ -64,4 +69,4 @@ async function save(input, actor) {
   return { value: get() };
 }
 
-module.exports = { load, get, save };
+module.exports = { load, get, save, isTestAddress, TEST_DOMAIN };

@@ -849,7 +849,7 @@
       '<div class="chips">' + rd.list.map(function (m) {
         return '<span class="chip">' + esc(m) + '<button type="button" data-a="redirect-del" data-id="' + esc(m) + '" aria-label="Retirer ' + esc(m) + '" title="Retirer"' + (S.busy ? ' disabled' : '') + '>×</button></span>';
       }).join('') + '</div>' +
-      '<form data-form="redirect-add" class="form-inline" novalidate><label class="grow">Ajouter une adresse de test<input name="email" type="email" placeholder="prenom@openmedias.fr" autocomplete="off"></label><button class="btn secondary small" type="submit"' + (S.busy ? ' disabled' : '') + '>Ajouter</button></form>' +
+      '<form data-form="redirect-add" class="form-inline" novalidate><label class="grow">Ajouter une adresse de test (@openmedias.fr uniquement)<input name="email" type="email" placeholder="prenom@openmedias.fr" autocomplete="off"></label><button class="btn secondary small" type="submit"' + (S.busy ? ' disabled' : '') + '>Ajouter</button></form>' +
       (rd.fromEnv && rd.list.length ? '<p class="small muted">Adresse reprise de la configuration du serveur (MAIL_REDIRECT_TO) : elle sera remplacée par cette liste dès la première modification.</p>' : '') +
       (rd.updatedAt ? '<p class="small muted">Modifié le ' + esc(fmtDate(rd.updatedAt)) + (rd.updatedBy ? ' par ' + esc(rd.updatedBy) : '') + '.</p>' : '') + '</div>';
     return head + errorBox() + redirectCard + group('client', 'E-mails aux clients') + group('equipe', 'Alertes à l’équipe') +
@@ -1340,6 +1340,7 @@
     'redirect-add': function (f) {
       var email = f.email.value.trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return Promise.reject(new Error('Adresse e-mail invalide.'));
+      if (!/@openmedias\.fr$/i.test(email)) return Promise.reject(new Error('Seules les adresses @openmedias.fr peuvent recevoir les e-mails de test.'));
       if (S.redirect.list.indexOf(email) !== -1) return Promise.reject(new Error(email + ' reçoit déjà les e-mails de test.'));
       if (S.redirect.mode === 'reel' && !window.confirm('La plateforme envoie actuellement les e-mails aux vrais destinataires. Ajouter cette adresse la fait repasser en mode test : TOUS les e-mails partiront vers les adresses de test. Continuer ?')) return Promise.resolve();
       return api('PUT', '/admin/email-redirect', { list: S.redirect.list.concat([email]) }).then(function (d) {

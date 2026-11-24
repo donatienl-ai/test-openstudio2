@@ -217,6 +217,13 @@ router.put('/admin/email-redirect', requireTeam, json, wrap(async (req, res) => 
 /** E-mail de test : l'e-mail automatique choisi, avec des données d'exemple, envoyé à la personne connectée. */
 router.post('/admin/email-settings/:id/test', requireTeam, wrap(async (req, res) => {
   if (!req.adminUser || !req.adminUser.email) return res.status(409).json({ error: 'Connectez-vous avec votre compte nominatif pour recevoir le test à votre adresse.' });
+  // Garde-fou : un e-mail de test ne part que vers des adresses @openmedias.fr
+  const redirect = require('./emails/redirect');
+  if (!redirect.isTestAddress(req.adminUser.email)) {
+    return res.status(403).json({ error: `Les e-mails de test ne partent que vers une adresse @${redirect.TEST_DOMAIN}. Votre compte utilise ${req.adminUser.email}.` });
+  }
+  const outside = redirect.get().list.find((e) => !redirect.isTestAddress(e));
+  if (outside) return res.status(403).json({ error: `Test non envoyé : l’adresse de test ${outside} n’est pas en @${redirect.TEST_DOMAIN}. Retirez-la en haut de la page E-mails.` });
   try {
     const r = await require('./emails/samples').sendTest(req.params.id, { email: req.adminUser.email, name: req.adminUser.name });
     await audit.record(req, 'email_test_envoye', { detail: { email: req.adminUser.email, objet: r.subject, ...(r.to !== req.adminUser.email ? { redirige_vers: r.to } : {}) } });
