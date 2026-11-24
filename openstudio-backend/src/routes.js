@@ -189,7 +189,8 @@ router.post('/client/forgot-code', json, wrap(async (req, res) => {
   } catch (e) {
     console.error(`[code oublié] échec de l'envoi : ${e.message}`);
   }
-  res.json({ ok: true, message: 'Si cette adresse correspond à un espace OpenStudio, votre code vient d’y être envoyé. Pensez à regarder dans les indésirables.' });
+  // Même réponse dans tous les cas : on ne révèle ni les adresses connues, ni les dates de diffusion
+  res.json({ ok: true, message: 'Si cette adresse correspond à un espace OpenStudio ouvert, votre code vient d’y être envoyé. Pensez à regarder dans les indésirables. Votre espace s’ouvre le jour de la diffusion de votre émission : vous recevez alors votre code automatiquement.' });
 }));
 
 /** Déconnexion de l'espace client sur ce navigateur. */

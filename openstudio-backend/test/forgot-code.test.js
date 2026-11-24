@@ -52,14 +52,20 @@ test('e-mail « code oublié » : le code, le lien de connexion, rien d’autre'
   assert.doesNotMatch(m.html, /display:\s*(flex|grid)|position:\s*absolute|undefined/);
 });
 
-test('code oublié : envoyé à l’adresse de la fiche (majuscules ignorées), code inchangé', { skip }, async () => {
+test('code oublié : rien avant l’ouverture de l’espace (envoi 1), puis envoyé à l’adresse de la fiche, code inchangé', { skip }, async () => {
   let sent = null;
+  await db.query('UPDATE clients SET access_email_sent_at = NULL WHERE id = $1', [client.id]);
+  const early = await access.sendForgottenCode('claire@ecoval.test', { send: async () => assert.fail('aucun envoi avant l’envoi 1') });
+  assert.equal(early.sent, false);
+  assert.match(early.reason, /pas encore ouvert/);
+  await db.query('UPDATE clients SET access_email_sent_at = now() WHERE id = $1', [client.id]);
   const r = await access.sendForgottenCode('  claire@ecoval.TEST ', { send: async (m) => { sent = m; return { messageId: '1' }; } });
   assert.equal(r.sent, true);
   assert.equal(sent.to.email, 'Claire@Ecoval.test');
   assert.match(sent.text, new RegExp(code));
   assert.equal(await access.ensureCode(client.id), code, 'le code ne change pas');
   assert.deepEqual(await access.sendForgottenCode('inconnu@nulle.part', { send: async () => assert.fail('aucun envoi') }), { sent: false, reason: 'inconnu' });
+  await db.query('UPDATE clients SET access_email_sent_at = NULL WHERE id = $1', [client.id]);
 });
 
 test('route : même réponse pour une adresse connue ou non, e-mail invalide refusé, essais limités', { skip }, async () => {

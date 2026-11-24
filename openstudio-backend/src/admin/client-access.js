@@ -304,6 +304,9 @@ async function sendCodeByEmail(client, { req = null, send = mailer.send } = {}) 
 async function sendForgottenCode(email, { req = null, send = mailer.send } = {}) {
   const client = await require('../clients').findByEmail(email);
   if (!client || client.access_revoked_at) return { sent: false, reason: 'inconnu' };
+  // L'espace s'ouvre avec l'envoi 1, le jour de la diffusion : avant, « Code oublié ? » n'envoie rien
+  // (sinon un client trouvant le bouton sur le site obtiendrait son code avant sa diffusion).
+  if (!client.access_email_sent_at) return { sent: false, reason: 'espace pas encore ouvert (envoi 1 pas encore parti)' };
   if (!(await require('../emails/settings').isEnabled('code_oublie'))) return { sent: false, reason: 'en pause (back-office → E-mails)' };
   const unavailable = mailer.problem();
   if (unavailable && send === mailer.send) return { sent: false, reason: unavailable };
