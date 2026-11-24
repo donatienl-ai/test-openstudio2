@@ -37,7 +37,9 @@ function validate(body) {
   }
   if (!contact.company) throw new MontageError('Indiquez le nom de votre entreprise.');
   if (!contact.name) throw new MontageError('Indiquez vos nom et prénom.');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contact.email)) throw new MontageError('Indiquez une adresse e-mail valide.');
+  // Pour joindre le client directement : au moins un téléphone ou un e-mail
+  if (!contact.email && !contact.phone) throw new MontageError('Indiquez un téléphone ou un e-mail pour que notre équipe puisse vous joindre.');
+  if (contact.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contact.email)) throw new MontageError('L’adresse e-mail semble incorrecte.');
   if (contact.phone && !/^[+\d][\d ().-]{5,}$/.test(contact.phone)) throw new MontageError('Le numéro de téléphone semble incorrect.');
   const br = b.brief || {};
   const description = String(br.description || '').trim().slice(0, 4000);
@@ -60,6 +62,9 @@ function returnBase(requested) {
  */
 async function createRequest(client, body, { returnOrigin } = {}) {
   const { offer, contact, brief } = validate(body);
+  // Sans e-mail saisi : celui de l'espace client sert au reçu et à la facture
+  const billingEmail = contact.email || (client && client.email) || '';
+  if (contact.billing) contact.billing.email = billingEmail;
   const id = crypto.randomUUID();
   // Première adresse de facturation d'un client connecté : gardée sur sa fiche (modifiable dans Factures)
   if (client && contact.billing) {
@@ -87,7 +92,7 @@ async function createRequest(client, body, { returnOrigin } = {}) {
     try {
       session = await stripe.createCheckoutSession({
         requestId: id, title: offer.title, description: brief.description.slice(0, 300),
-        amountTtcCents: ttc, email: contact.email, successUrl, cancelUrl,
+        amountTtcCents: ttc, email: billingEmail || undefined, successUrl, cancelUrl,
       });
     } catch (e) {
       console.error('[montage] Stripe :', e.message);

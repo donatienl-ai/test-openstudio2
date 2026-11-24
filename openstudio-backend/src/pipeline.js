@@ -221,6 +221,12 @@ function planCapsules(ranked, targetSec, toleranceSec, max) {
  * Habillage d'ouverture (logo de l'entreprise) et de fin (logo OpenMedias) en fondu, sur place.
  * Sans logo d'entreprise (mode test uniquement), le logo OpenMedias sert aussi à l'ouverture.
  */
+/** Durée ajoutée par l'habillage pour ce type de livraison (0 s si pas d'habillage). */
+function habillageSec(kind) {
+  const b = mapping.bumpers;
+  return b && b.enabled && b.kinds.includes(kind) ? b.introSec + b.outroSec - 2 * b.fadeSec : 0;
+}
+
 async function applyBumpers(file, kind, logos, tmp, n) {
   const b = mapping.bumpers;
   if (!b || !b.enabled || !b.kinds.includes(kind)) return;
@@ -247,12 +253,14 @@ async function finalizeCapsules(order, tmp) {
   // Durée choisie par le client, respectée à la seconde : extraits au moins aussi longs que la cible
   // (coupés ensuite exactement à la cible), puis, s'il en manque, extraits à moins de 1 s près.
   const target = Number(order.options.duration);
-  const plan = planCapsules(ranked, target, mapping.capsules.durationToleranceSec ?? 1, delivery.maxClips);
+  // L'habillage (ouverture + fin) tient dans la durée choisie : l'extrait est raccourci d'autant
+  const content = Math.max(5, target - habillageSec(delivery.kind));
+  const plan = planCapsules(ranked, content, mapping.capsules.durationToleranceSec ?? 1, delivery.maxClips);
   if (!plan.length) {
     const got = all.map((c) => (Number.isFinite(c.durationMs) ? `${Math.round(c.durationMs / 1000)} s` : '?')).join(', ');
-    throw new Error(`Aucun extrait OpusClip d'au moins ${target} s (reçus : ${got})`);
+    throw new Error(`Aucun extrait OpusClip d'au moins ${content} s (reçus : ${got})`);
   }
-  console.log(`[order ${shortId(order.id)}] ${all.length} clip(s) proposés par OpusClip, ${plan.length} livré(s) à ${target} s${plan.length < delivery.maxClips ? ` (${delivery.maxClips} attendus : extraits trop courts)` : ''}`);
+  console.log(`[order ${shortId(order.id)}] ${all.length} clip(s) proposés par OpusClip, ${plan.length} livré(s) à ${target} s (extrait de ${content} s + habillage)${plan.length < delivery.maxClips ? ` (${delivery.maxClips} attendus : extraits trop courts)` : ''}`);
   const done = await orders.existingClipIds(order.id);
   const base = slug(mapping.programmes[order.options.programmeId]?.title);
   const fmt = order.options.format.replace(':', 'x');
@@ -268,7 +276,7 @@ async function finalizeCapsules(order, tmp) {
     const input = path.join(tmp, `clip-${n}.mp4`);
     const output = path.join(tmp, `final-${n}.mp4`);
     await downloadUrlToFile(clip.uriForExport, input);
-    await renderFinal({ input, output, logos, widthRatio: mapping.logos.widthRatio, marginRatio: mapping.logos.marginRatio, maxDurationSec: target, startSec });
+    await renderFinal({ input, output, logos, widthRatio: mapping.logos.widthRatio, marginRatio: mapping.logos.marginRatio, maxDurationSec: content, startSec });
     await applyBumpers(output, delivery.kind, logos, tmp, n);
     const finalSec = await probeDurationSec(output).catch(() => null);
 
@@ -278,7 +286,7 @@ async function finalizeCapsules(order, tmp) {
     const key = `commandes/${order.id}/capsules/${fileName}`;
     const size = await storage.uploadFile(key, output);
     // Titre : les mots-clés de ce qui est dit dans la partie livrée
-    const transcript = clipTranscript(clip, target, startSec) || null;
+    const transcript = clipTranscript(clip, content, startSec) || null;
     let title = await capsuleTitle(transcript, (part === 1 && clip.title) || (delivery.kind === 'teaser' ? 'Teaser' : `Capsule ${n}`), titleCtx);
     if (usedTitles.has(title.toLowerCase())) title = `${title} (${n})`;
     usedTitles.add(title.toLowerCase());
@@ -288,7 +296,7 @@ async function finalizeCapsules(order, tmp) {
       fileName,
       title,
       // Durée réelle du fichier livré (et non celle de l'extrait OpusClip avant coupe)
-      durationMs: finalSec ? Math.round(finalSec * 1000) : Number.isFinite(clip.durationMs) ? Math.min(Math.round(clip.durationMs), target * 1000) : null,
+      durationMs: finalSec ? Math.round(finalSec * 1000) : Number.isFinite(clip.durationMs) ? Math.min(Math.round(clip.durationMs), content * 1000) + habillageSec(delivery.kind) * 1000 : null,
       sizeBytes: size,
       opusClipId: clipId,
       expiresAt: expiry(),

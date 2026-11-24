@@ -58,7 +58,10 @@ const store = {
     await db.query(
       `UPDATE diffusions SET sf_opportunity_id = $2, entreprise = $3, media = $4, sous_media = $5, format = $6,
          date_diffusion = $7, planning_statut = $8, state = $9, contact_name = $10, contact_email = $11,
-         contact_source = $12, planning_updated_at = $13, synced_at = now(), updated_at = now()
+         contact_source = $12, planning_updated_at = $13, synced_at = now(), updated_at = now(),
+         -- Date de diffusion modifiée : les alertes « diffusion incomplète » repartent pour la nouvelle date
+         alert_before_on = CASE WHEN date_diffusion IS DISTINCT FROM $7::date THEN NULL ELSE alert_before_on END,
+         alert_dayj_on = CASE WHEN date_diffusion IS DISTINCT FROM $7::date THEN NULL ELSE alert_dayj_on END
        WHERE planning_id = $1`,
       [planningId, f.sfOpportunityId, f.entreprise, f.media, f.sousMedia, f.format, f.dateDiffusion, f.planningStatut,
         f.state, f.contactName, f.contactEmail, f.contactSource, f.planningUpdatedAt]

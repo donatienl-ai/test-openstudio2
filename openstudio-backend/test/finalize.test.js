@@ -19,7 +19,7 @@ const opus = require('../src/opusclip/client');
 const pipeline = require('../src/pipeline');
 const { normalizeOptions } = require('../src/opusclip/payload');
 const mapping = require('../src/opusclip.config');
-// Habillage (ouverture + fin en fondu) ajouté à la durée choisie : 2 s + 2 s − 2 × 0,5 s de fondu
+// Habillage (ouverture + fin en fondu) compris dans la durée choisie : l'extrait est raccourci de 2 s + 2 s − 2 × 0,5 s
 const B = require('../src/opusclip.config').bumpers;
 const HABILLAGE_MS = B && B.enabled ? Math.round((B.introSec + B.outroSec - 2 * B.fadeSec) * 1000) : 0;
 
@@ -73,7 +73,7 @@ test('livraison « Capsules » (15 s) : 3 capsules, les mieux classées, nommée
   // c4 (9 s) est écarté malgré son score : trop court pour 15 s
   assert.deepEqual(delivered.map((d) => d.title), ['Moment 3', 'Moment 2', 'Moment 1']);
   // Durée réelle des fichiers livrés : exactement 15 s (et non 15,5 / 17,7 / 19 s)
-  for (const d of delivered) assert.ok(Math.abs(d.durationMs - (15000 + HABILLAGE_MS)) <= 100, `${d.fileName} : ${d.durationMs} ms`);
+  for (const d of delivered) assert.ok(Math.abs(d.durationMs - 15000) <= 100, `${d.fileName} : ${d.durationMs} ms`);
   assert.ok(delivered.every((d) => d.storageKey.startsWith('commandes/abcdef12-0000-4000-8000-000000000000/')));
 });
 
@@ -82,18 +82,18 @@ test('livraison « Teaser » : une seule vidéo de 15 s, la mieux classée, nomm
   assert.equal(status, 'ready');
   assert.deepEqual(delivered.map((d) => d.fileName), ['bfm-business_teaser_15s_9x16.mp4']);
   assert.equal(delivered[0].title, 'Moment 3');
-  assert.ok(Math.abs(delivered[0].durationMs - (15000 + HABILLAGE_MS)) <= 100, `${delivered[0].durationMs} ms`);
+  assert.ok(Math.abs(delivered[0].durationMs - 15000) <= 100, `${delivered[0].durationMs} ms`);
 });
 
 test('livraison « Capsules » 30 s : seuls les extraits assez longs, coupés à 30 s exactement', async () => {
   await pipeline.finalize(orderFor({ kind: 'capsules', duration: '30 s' }));
   // Seul c5 (35 s) atteint 30 s ; les autres (≤ 19 s) sont écartés
   assert.deepEqual(delivered.map((d) => d.title), ['Moment 5']);
-  assert.ok(Math.abs(delivered[0].durationMs - (30000 + HABILLAGE_MS)) <= 100, `${delivered[0].durationMs} ms`);
+  assert.ok(Math.abs(delivered[0].durationMs - 30000) <= 100, `${delivered[0].durationMs} ms`);
 });
 
 test('livraison : aucun extrait assez long → erreur explicite, rien de livré', async () => {
-  await assert.rejects(pipeline.finalize(orderFor({ kind: 'capsules', duration: '60 s' })), /Aucun extrait OpusClip d'au moins 60 s/);
+  await assert.rejects(pipeline.finalize(orderFor({ kind: 'capsules', duration: '60 s' })), /Aucun extrait OpusClip d'au moins 57 s/);
   assert.equal(delivered.length, 0);
 });
 
