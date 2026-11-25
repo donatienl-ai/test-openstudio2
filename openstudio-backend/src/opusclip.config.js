@@ -112,9 +112,11 @@ module.exports = {
     // « Langue parlée dans la vidéo » et « Langue des sous-titres »
     languages: { fr: 'fr', en: 'en' },
 
-    // Traduction (langue des sous-titres ≠ langue parlée) : non disponible dans l'API OpusClip.
-    // Laisser false tant qu'aucun service de traduction n'est branché (voir README).
-    translationEnabled: false,
+    // Traduction (langue des sous-titres ≠ langue parlée) : faite par DeepL (src/translation/deepl.js),
+    // active dès que DEEPL_API_KEY est renseignée sur Render (ou DEEPL_MOCK=1 pour simuler).
+    get translationEnabled() {
+      return require('./translation/deepl').enabled();
+    },
 
     // « Typographie » : DM Sans Regular, texte blanc, contour noir, sans fond.
     // Déposer DMSans-Regular.ttf dans assets/fonts/.

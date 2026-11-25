@@ -2317,9 +2317,16 @@ function flowOpt(on, act, arg, ill, mono, title, desc, extra = '') {
 }
 function flowSettingsHtml(v) {
   const k = S.cap; const kd = flowKind();
-  if (kd === 'subtitles') return `<section class="flow-card"><h2>Vos sous-titres</h2>
-      <div class="rows"><div class="r"><span class="k">Langue</span><span class="v">Français (langue parlée dans la vidéo)</span></div><div class="r"><span class="k">Transcription</span><span class="v">Automatique, à partir du son de la vidéo</span></div><div class="r"><span class="k">Format</span><span class="v">Celui de la vidéo d’origine</span></div></div>
-      <p class="small muted">La traduction dans une autre langue arrive bientôt. En attendant, nos monteurs peuvent sous-titrer votre vidéo dans la langue de votre choix.</p></section>`;
+  if (kd === 'subtitles') {
+    const cat = bkCatalog(); const tr = !!(cat && cat.subtitles && cat.subtitles.translationEnabled);
+    const lang = tr && k.subLang === 'en' ? 'en' : 'fr';
+    const n = v && v.duration > 0 ? Math.max(1, Math.ceil(v.duration / 300)) : null; const p = crPrices();
+    const extra = n ? `+${crN(n * (p.translationPer5Min != null ? p.translationPer5Min : p.subtitlesPer5Min))} crédits` : `+${crN(p.translationPer5Min != null ? p.translationPer5Min : p.subtitlesPer5Min)} crédits par tranche de 5 min`;
+    return `<section class="flow-card"><h2>Vos sous-titres</h2>
+      ${tr ? `<div class="seg-ctl" role="group" aria-label="Langue des sous-titres"><button data-a="sub-lang" data-arg="fr" aria-pressed="${lang === 'fr'}">Français</button><button data-a="sub-lang" data-arg="en" aria-pressed="${lang === 'en'}">Anglais</button></div>` : ''}
+      <div class="rows"><div class="r"><span class="k">Langue</span><span class="v">${lang === 'en' ? 'Anglais, traduit automatiquement de l’interview en français' : 'Français (langue parlée dans la vidéo)'}</span></div><div class="r"><span class="k">Transcription</span><span class="v">Automatique, à partir du son de la vidéo</span></div><div class="r"><span class="k">Format</span><span class="v">Celui de la vidéo d’origine</span></div></div>
+      <p class="small muted">${tr ? (lang === 'en' ? `Traduction automatique : ${extra} pour la traduction. Relisez le fichier .srt livré avant une diffusion importante.` : 'Besoin d’une version anglaise ? Choisissez « Anglais » : la traduction est faite automatiquement.') : 'La traduction dans une autre langue arrive bientôt. En attendant, nos monteurs peuvent sous-titrer votre vidéo dans la langue de votre choix.'}</p></section>`;
+  }
   const durs = CAP_OPTIONS.kinds[0].durs; const m = bkMedia(v);
   return `<section class="flow-card" aria-labelledby="q-fmt"><div><h2 id="q-fmt">Où allez-vous ${kd === 'teaser' ? 'le' : 'les'} publier ?</h2><p class="small muted" style="margin-top:4px">Le format est choisi selon le réseau.</p></div>
       <div class="opt-grid" role="group" aria-label="Format">${CAP_OPTIONS.fmts.map(([f, l, u, w, h]) => flowOpt(k.fmt === f, 'cap-fmt', f, `<i style="width:${w * 2.4}px;height:${h * 2.4}px"></i>`, f, l, u)).join('')}</div></section>
@@ -2457,11 +2464,20 @@ async function bkSubmitCapsules() {
   } catch (e) { BK.submitting = false; S.keepScroll = true; if (!crHandleOrderError(e)) { render(); toast(e.message); } }
 }
 /* Interview sous-titrée à partir d'une vidéo du package : le serveur reprend le fichier déjà stocké. */
+/** Catalogue du serveur (langues, traduction disponible…), lu une fois. */
+function bkCatalog() {
+  if (!BK.catalog && !BK.catLoading && window.OpenStudio && OpenStudio.getCatalog) {
+    BK.catLoading = true;
+    OpenStudio.getCatalog().then(c => { BK.catalog = c || {}; }).catch(() => { BK.catalog = {}; }).finally(() => { BK.catLoading = false; S.keepScroll = true; render(); });
+  }
+  return BK.catalog || null;
+}
 async function bkSubmitPkgSubtitles() {
   const k = S.cap; const v = flowVideo(); if (!v || BK.submitting) return;
   BK.submitting = true; S.keepScroll = true; render();
   try {
-    const { order } = await OpenStudio.submitOrder('subtitles', { videoId: v.bkId, spokenLanguage: LANGS.fr, subtitleLanguage: LANGS.fr, splitLongLines: true, programmeId: v.programmeId || null }, bkContact());
+    const cat = BK.catalog; const lang = cat && cat.subtitles && cat.subtitles.translationEnabled && S.cap.subLang === 'en' ? 'en' : 'fr';
+    const { order } = await OpenStudio.submitOrder('subtitles', { videoId: v.bkId, spokenLanguage: LANGS.fr, subtitleLanguage: LANGS[lang], splitLongLines: true, programmeId: v.programmeId || null }, bkContact());
     bkAfterSubmit(order); crLoad(true);
     BK.submitting = false; S.modal = null; k.lastKind = 'subtitles'; k.bkOrderId = order.id; k.bkStep = 5; S.keepScroll = false; render(); window.scrollTo(0, 0);
   } catch (e) { BK.submitting = false; S.keepScroll = true; if (!crHandleOrderError(e)) { render(); toast(e.message); } }
@@ -3474,10 +3490,15 @@ const crN = n => Number(n || 0).toLocaleString('fr-FR').replace(/\u202f/g, '\u00
 const crPrices = () => (CR.d && CR.d.prices) || CR_DEF;
 const crBal = () => CR.d ? CR.d.balance : null;
 /** Coût en crédits d'une création (même calcul que le serveur, qui fait foi). */
-function crCost(kind, v) {
+function crCost(kind, v, lang) {
   const p = crPrices();
   if (kind === 'teaser') return p.teaser;
-  if (kind === 'subtitles') { const d = v && v.duration; const n = d > 0 ? Math.max(1, Math.ceil(d / 300)) : 2; return n * p.subtitlesPer5Min; }
+  if (kind === 'subtitles') {
+    const d = v && v.duration; const n = d > 0 ? Math.max(1, Math.ceil(d / 300)) : 2;
+    // Traduction (langue des sous-titres ≠ français) : en plus, par tranche de 5 min
+    const l = lang !== undefined ? lang : (S.page === 'capsules' && S.cap ? S.cap.subLang : 'fr');
+    return n * p.subtitlesPer5Min + (l && l !== 'fr' ? n * (p.translationPer5Min != null ? p.translationPer5Min : p.subtitlesPer5Min) : 0);
+  }
   return p.capsules;
 }
 const crDur = d => { d = Math.round(d); const m = Math.floor(d / 60), r = d % 60; return m ? `${m} min${r ? ` ${r} s` : ''}` : `${r} s`; };
@@ -5787,6 +5808,7 @@ const A = {
   },
   'cap-video': a => { const vv = video(a); if (isOpusVideo(vv)) { S.cap.videoId = a; S.cap.moment = null; S.cap.opusKey = null; S.keepScroll = true; render(); return; } /* OpusClip */ if (vv && vv.url) { A['vid-test'](a); return; } S.cap.videoId = a; S.keepScroll = true; render(); },
   'cap-step': a => { S.cap.step = +a; S.keepScroll = true; render(); },
+  'sub-lang': a => { S.cap.subLang = a === 'en' ? 'en' : 'fr'; S.keepScroll = true; render(); },
   'cap-dur': a => { S.cap.dur = +a; S.keepScroll = true; render(); },
   'cap-fmt': a => { S.cap.fmt = a; S.keepScroll = true; render(); },
   'cap-settings': () => { S.cap.prev = S.cap.results; S.cap.results = null; S.cap.step = 2; render(); },

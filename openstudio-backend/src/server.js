@@ -34,7 +34,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/health', (req, res) => res.json({ ok: true, env: config.appEnv, invoices: config.invoicing.provider + (config.invoicing.pennylaneMock ? ' (simulation)' : ''), dryRun: config.opus.dryRun, social: Boolean(config.social.apiKey), payment: config.stripe.mock ? 'simulation' : 'stripe', captionsAi: Boolean(config.anthropic.apiKey), liveTestClients: config.opus.liveClients.length, storageCors: storage.storageStatus.cors, storageCorsError: storage.storageStatus.corsError }));
+app.get('/health', (req, res) => res.json({ ok: true, env: config.appEnv, translation: config.translation.deeplKey ? `deepl${/:fx$/.test(config.translation.deeplKey) ? ' (free)' : ''}` : config.translation.mock ? 'simulation' : 'off', invoices: config.invoicing.provider + (config.invoicing.pennylaneMock ? ' (simulation)' : ''), dryRun: config.opus.dryRun, social: Boolean(config.social.apiKey), payment: config.stripe.mock ? 'simulation' : 'stripe', captionsAi: Boolean(config.anthropic.apiKey), liveTestClients: config.opus.liveClients.length, storageCors: storage.storageStatus.cors, storageCorsError: storage.storageStatus.corsError }));
 // Identification de l'équipe (session du back-office) avant toutes les routes
 app.use('/api', adminSession.attach);
 app.use('/api', adminRoutes);
