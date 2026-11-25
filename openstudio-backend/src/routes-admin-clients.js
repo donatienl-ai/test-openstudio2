@@ -439,6 +439,35 @@ router.post('/admin/clients/:id/access/revoke', requireTeam, wrap(async (req, re
   res.json({ client: await fresh(c.id) });
 }));
 
+/* ------------------------------------------------------------------ Créations du client */
+
+/** Supprime une création (vidéos livrées comprises) ou toutes les créations terminées du client. */
+router.post('/admin/clients/:id/contents/delete', requireTeam, json, wrap(async (req, res) => {
+  const c = await clients.get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Client introuvable' });
+  const orders = require('./orders');
+  const { orderId, all } = req.body || {};
+  let ids;
+  if (all === true) {
+    const { rows } = await db.query("SELECT id FROM orders WHERE client_id = $1 AND status = ANY(string_to_array($2, ','))", [c.id, orders.DELETABLE.join(',')]);
+    ids = rows.map((r) => r.id);
+  } else if (/^[0-9a-f-]{36}$/i.test(String(orderId || ''))) ids = [orderId];
+  else return res.status(400).json({ error: 'Création introuvable' });
+  let deleted = 0; let files = 0;
+  try {
+    for (const id of ids) {
+      const r = await orders.deleteOrder(id, { clientId: c.id });
+      if (r) { deleted++; files += r.files; }
+    }
+  } catch (e) {
+    if (e.status === 409) return res.status(409).json({ error: e.message });
+    throw e;
+  }
+  if (!all && !deleted) return res.status(404).json({ error: 'Création introuvable' });
+  await audit.record(req, 'creations_supprimees', { targetType: 'client', targetId: c.id, detail: { creations: deleted, fichiers: files, tout: Boolean(all) } });
+  res.json({ deleted, files });
+}));
+
 /* ------------------------------------------------------------------ Logos des vidéos */
 
 const LOGO_EXTS = ['.png', '.jpg', '.jpeg', '.webp'];

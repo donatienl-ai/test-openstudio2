@@ -237,6 +237,31 @@ async function existingClipIds(orderId) {
   return new Set(rows.map((r) => r.opus_clip_id));
 }
 
+/** États où une création peut être supprimée (rien n'est en cours de fabrication). */
+const DELETABLE = ['draft', 'validated', 'ready', 'error', 'dry_run'];
+
+/**
+ * Supprime définitivement une création : fichiers livrés effacés du stockage, puis la commande
+ * (livrables, légendes et événements suivent ; les publications gardent leur historique).
+ * Les crédits ne sont pas rendus. Renvoie le nombre de fichiers effacés, ou null si impossible.
+ */
+async function deleteOrder(id, { clientId = null } = {}) {
+  const { rows } = await db.query(
+    `SELECT id, status FROM orders WHERE id = $1 ${clientId ? 'AND client_id = $2' : ''}`,
+    clientId ? [id, clientId] : [id]
+  );
+  const o = rows[0];
+  if (!o) return null;
+  if (!DELETABLE.includes(o.status)) throw Object.assign(new Error('Création en cours de fabrication : attendez qu’elle soit terminée pour la supprimer.'), { status: 409 });
+  const files = await db.query('SELECT storage_key FROM deliverables WHERE order_id = $1 AND purged = false', [id]);
+  let removed = 0;
+  for (const f of files.rows) {
+    try { await require('./storage').remove(f.storage_key); removed++; } catch (e) { console.error(`[order ${id}] fichier non effacé (${f.storage_key}) : ${e.message}`); }
+  }
+  await db.query(`DELETE FROM orders WHERE id = $1 AND status = ANY(string_to_array($2, ','))`, [id, DELETABLE.join(',')]);
+  return { files: removed };
+}
+
 async function listForClient(clientId) {
   const { rows } = await db.query(
     'SELECT * FROM orders WHERE client_id = $1 ORDER BY created_at DESC LIMIT 200',
@@ -287,6 +312,8 @@ module.exports = {
   existingClipIds,
   listEvents,
   listForClient,
+  deleteOrder,
+  DELETABLE,
   creditsUsed,
   recordCredits,
 };
