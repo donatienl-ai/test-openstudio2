@@ -216,4 +216,6 @@ ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS production_status TEXT;
 ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS production_note TEXT;
 ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS production_updated_at TIMESTAMPTZ;
 ALTER TABLE montage_requests ADD COLUMN IF NOT EXISTS production_by TEXT;
+-- Logo du média propre à un client : rattaché à l'émission pour laquelle il a été déposé
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS media_logo_programme_id TEXT;
 `;

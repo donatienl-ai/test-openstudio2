@@ -307,13 +307,22 @@
     }).join('');
     var missing = [!L.company.url && 'le logo de l’entreprise', !L.media.url && 'le logo du média'].filter(Boolean);
     var b = L.bumpers;
+    // Plusieurs émissions (ex. Le Figaro et BFM Business) : chaque vidéo reçoit le logo de SON émission
+    var progs = L.programmes || [];
+    var perProg = progs.length > 1 ? '<div class="prog-logos"><b class="small">Logo du média selon l’émission</b><span class="small muted">Ce client a ' + progs.length + ' émissions : chaque vidéo reçoit automatiquement le logo de la sienne.</span><div class="prog-logos-list">' + progs.map(function (p) {
+      return '<div class="prog-logo-row"><span class="logo-box sm">' + (busy === 'media@' + p.programmeId ? '<span class="small muted">Envoi…</span>' : p.url ? '<img src="' + esc(p.url) + '" alt="Logo ' + esc(p.title) + '">' : '<span class="small muted">Aucun</span>') + '</span>' +
+        '<div><b class="small">' + esc(p.title) + '</b><br><span class="small muted">' + (p.source === 'client' ? 'Logo propre à ce client' : p.source === 'programme' ? 'Logo de l’émission' : 'Aucun logo : à déposer dans <a href="#emissions">Émissions</a>') + '</span></div>' +
+        '<label class="btn small secondary file-btn">' + (p.source === 'client' ? 'Remplacer' : 'Logo propre à ce client') + '<input type="file" accept="image/png,image/jpeg,image/webp" data-logo="media@' + esc(p.programmeId) + '"' + (busy ? ' disabled' : '') + '></label></div>';
+    }).join('') + '</div></div>' : '';
     return '<div class="card"><div class="card-head"><h2>Logos</h2></div>' +
       (missing.length ? '<div class="warn mb">Il manque ' + esc(missing.join(' et ')) + ' : ' + (L.company.url ? 'les vidéos seront livrées sans le logo du média.' : 'le client ne pourra pas lancer de capsules tant qu’il manque.') + '</div>' : '') +
       '<div class="logos-grid">' + one('company', 'Logo de l’entreprise', 'PNG à fond transparent de préférence. Il apparaît aussi en ouverture des vidéos.') +
       one('media', 'Logo du média', 'PNG à fond transparent de préférence.') +
-      '<div class="logo-col"><h3>Aperçu</h3><div class="pv-frame">' + marks + '</div><span class="small muted">Vidéo verticale, logos à 14 % de la largeur.</span></div></div>' +
+      '<div class="logo-col"><h3>Aperçu</h3><div class="pv-frame">' + marks + '</div><span class="small muted">Vidéo verticale, logos à 14 % de la largeur.</span></div></div>' + perProg +
       (b ? '<div class="bumper-line"><div><b class="small">Habillage des ' + esc(b.kinds.map(function (k) { return k === 'teaser' ? 'teasers' : k; }).join(' et ')) + '</b>' +
-        '<span class="small muted">Ouverture (' + b.introSec + ' s) : logo de l’entreprise sur l’image floutée de la vidéo, couleurs d’origine, puis fondu vers la vidéo. Fin (' + b.outroSec + ' s) : fondu vers le logo OpenMedias blanc sur le bleu nuit OpenMedias.</span></div>' +
+        '<span class="small muted">Ouverture (' + b.introSec + ' s) : logo de l’entreprise sur l’image floutée de la vidéo, couleurs d’origine, puis fondu vers la vidéo. Fin (' + b.outroSec + ' s) : fondu vers le logo OpenMedias blanc sur le bleu nuit OpenMedias.</span>' +
+        '<figure class="bumper-visual"><img src="habillage-apercu.jpg" alt="Images successives d’une capsule habillée : ouverture avec le logo de l’entreprise sur l’image floutée, vidéo avec les logos, fin sur le logo OpenMedias" loading="lazy">' +
+        '<figcaption class="small muted">Résultat prévu pour chaque capsule et teaser (rendu réel de la plateforme ; exemple avec le logo d’entreprise « ACME » et l’émission « BFM ») : ouverture, passage à la vidéo, vidéo avec les logos, fondu de fin, logo OpenMedias.</figcaption></figure></div>' +
         '<div class="om-logo"><span class="logo-box dark sm">' + (busy === 'openmedias' ? '<span class="small">Envoi…</span>' : '<img src="' + esc(L.openmedias.url || 'om-default.png') + '" alt="Logo OpenMedias">') + '</span>' +
         '<label class="btn small secondary file-btn">Remplacer<input type="file" accept="image/png,image/webp" data-logo="openmedias"' + (busy ? ' disabled' : '') + '></label>' +
         (L.openmedias.custom ? '<button class="btn small secondary" type="button" data-a="logo-om-reset"' + (S.busy ? ' disabled' : '') + '>Logo par défaut</button>' : '') +
@@ -350,13 +359,16 @@
       }, function (e) { S.logoBusy = ''; throw e; }));
     }
     var c = S.client.client;
+    var forProg = null;
+    if (kind.indexOf('media@') === 0) { forProg = kind.slice(6); }
+    var busyKey = kind; if (forProg) kind = 'media';
     var om = kind === 'openmedias';
     var base = om ? '/admin/branding/openmedias-logo' : '/admin/clients/' + encodeURIComponent(c.id) + '/logos';
     if (file.size > 10 * 1024 * 1024) { S.error = 'Logo trop lourd (10 Mo maximum).'; return render(); }
-    S.logoBusy = kind;
+    S.logoBusy = busyKey;
     withBusy(api('POST', base + '/upload', { kind: kind, fileName: file.name, contentType: file.type }).then(function (u) {
       return putFile(u.uploadUrl, file, u.headers, function () {}).then(function () {
-        return api('POST', base, om ? { key: u.key } : { kind: kind, key: u.key });
+        return api('POST', base, om ? { key: u.key } : forProg ? { kind: kind, key: u.key, programmeId: forProg } : { kind: kind, key: u.key });
       });
     }).then(function () {
       S.logoBusy = '';
@@ -1125,13 +1137,18 @@
     var c = d.client;
     var up = S.upload && S.upload.clientId === c.id ? S.upload : null;
     var active = d.videos.filter(function (v) { return v.active; });
-    var list = d.videos.length ? '<table><thead><tr><th>Émission</th><th>Diffusion</th><th>Durée</th><th>Espace client</th><th></th></tr></thead><tbody>' + d.videos.map(function (v) {
+    var retired = d.videos.length - active.length;
+    // Vidéos retirées : repliées sur une ligne (elles prenaient trop de place)
+    var shown = S.showRetired ? d.videos : active;
+    var retiredLine = retired ? '<p class="small muted retired-line">' + retired + ' vidéo' + (retired > 1 ? 's' : '') + ' supprimée' + (retired > 1 ? 's' : '') +
+      ' · <button type="button" class="linkish" data-a="toggle-retired">' + (S.showRetired ? 'Masquer' : 'Afficher') + '</button></p>' : '';
+    var list = shown.length ? '<table><thead><tr><th>Émission</th><th>Diffusion</th><th>Durée</th><th>Espace client</th><th></th></tr></thead><tbody>' + shown.map(function (v) {
       return '<tr class="' + (v.active ? '' : 'retired') + '"><td><b>' + esc(v.title) + '</b><br><span class="small muted">' + esc(v.programmeTitle) + ' · ajoutée le ' + esc(fmtDate(v.createdAt)) + '</span></td>' +
         '<td class="small nowrap">' + esc(fmtDay(v.broadcastDate)) + '</td><td class="small nowrap">' + esc(fmtDuration(v.durationSec) || '—') + '</td>' +
-        '<td>' + (v.active ? '<span class="tag ok">Visible</span>' : '<span class="tag off">Retirée</span>') + '</td>' +
+        '<td>' + (v.active ? '<span class="tag ok">Visible</span>' : '<span class="tag off">Vidéo supprimée</span>') + '</td>' +
         '<td class="actions">' + (v.active ? '<button class="btn small secondary" type="button" data-a="video-preview" data-id="' + esc(v.id) + '">Voir</button>' +
         '<button class="btn small danger" type="button" data-a="video-remove" data-id="' + esc(v.id) + '">Retirer</button>' : '') + '</td></tr>';
-    }).join('') + '</tbody></table>' : '<p class="muted small">Aucune émission pour le moment : le code d’accès partira dès qu’une vidéo sera déposée.</p>';
+    }).join('') + '</tbody></table>' + retiredLine : (retired ? retiredLine : '<p class="muted small">Aucune émission pour le moment : le code d’accès partira dès qu’une vidéo sera déposée.</p>');
     var options = (d.programmes || []).map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.title) + '</option>'; }).join('');
     var form = up
       ? '<div class="upload"><p class="small"><b>Envoi de ' + esc(up.name) + '</b> — ne fermez pas cette page.</p>' +
@@ -1623,6 +1640,7 @@
         S.client.logos = d.logos; toast('Position enregistrée : ' + POS_LABELS[kp[1]].toLowerCase());
       }));
     },
+    'toggle-retired': function () { S.showRetired = !S.showRetired; render(); },
     'logo-remove': function (kind) {
       var c = S.client.client;
       if (!window.confirm('Retirer ce logo ?')) return;

@@ -484,10 +484,25 @@ async function logosView(c) {
       url: await preview(set.media.key), position: set.media.position, source: set.media.source,
       programmeId: set.media.programmeId, programmeTitle: set.media.programmeTitle,
     },
+    // Toutes les émissions du client (vidéos actives) : chaque vidéo reçoit le logo de SON émission
+    programmes: await clientProgrammesView(c),
     openmedias: { url: await preview(om.openmediasLogoKey), custom: Boolean(om.openmediasLogoKey) },
     positions: branding.POSITIONS,
     bumpers: mapping.bumpers ? { kinds: mapping.bumpers.kinds, introSec: mapping.bumpers.introSec, outroSec: mapping.bumpers.outroSec } : null,
   };
+}
+
+async function clientProgrammesView(c) {
+  const { rows } = await db.query(
+    'SELECT programme_id, MAX(created_at) AS last FROM client_videos WHERE client_id = $1 AND active = true AND programme_id IS NOT NULL GROUP BY programme_id ORDER BY last DESC',
+    [c.id]
+  ).catch(() => ({ rows: [] }));
+  const out = [];
+  for (const r of rows) {
+    const set = await branding.clientLogos(c, r.programme_id);
+    out.push({ programmeId: r.programme_id, title: set.media.programmeTitle || (mapping.programmes[r.programme_id] || {}).title || r.programme_id, url: await preview(set.media.key), source: set.media.source });
+  }
+  return out;
 }
 
 function logoUpload(prefix, { fileName, contentType }) {
@@ -522,6 +537,12 @@ router.post('/admin/clients/:id/logos', requireTeam, json, wrap(async (req, res)
     if (key !== null && !String(key).startsWith(`clients/${c.id}/logos/${kind}/`)) return res.status(400).json({ error: 'Fichier de logo invalide' });
     if (key && !((await storage.head(key).catch(() => null)) || {}).exists) return res.status(400).json({ error: 'Le logo n’a pas été reçu : recommencez l’envoi.' });
     params.push(key); sets.push(`${cols[0]} = $${params.length}`); detail.action = key ? 'remplacé' : 'retiré';
+    if (kind === 'media') {
+      // Rattaché à l'émission choisie (sinon celle de la dernière vidéo du client)
+      const pid = key ? ((req.body || {}).programmeId && mapping.programmes[req.body.programmeId] ? req.body.programmeId : (await branding.clientLogos(c)).media.programmeId) : null;
+      params.push(pid); sets.push(`media_logo_programme_id = $${params.length}`);
+      if (pid) detail.emission = (mapping.programmes[pid] || {}).title || pid;
+    }
   }
   if (position !== undefined) {
     if (!branding.POSITIONS.includes(position)) return res.status(400).json({ error: 'Position inconnue' });

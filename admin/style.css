@@ -280,3 +280,12 @@ tr.total td { border-top: 2px solid var(--line); }
 @media (max-width: 760px) { .email-head { flex-direction: column; } }
 .redirect-card { border-color: #f0d9a8; background: #fffbf2; }
 .redirect-card .chips { margin: 8px 0 4px; }
+
+/* Fiche client : vidéos supprimées repliées, logos par émission, visuel de l'habillage */
+.retired-line { margin: 8px 0 0; }
+.linkish { border: 0; background: none; padding: 0; font: inherit; color: var(--blue); cursor: pointer; text-decoration: underline; }
+.prog-logos { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.prog-logos-list { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+.prog-logo-row { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.bumper-visual { margin: 12px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.bumper-visual img { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); display: block; }
