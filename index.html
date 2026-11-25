@@ -2293,10 +2293,12 @@ const flowKind = () => FLOW_KINDS[S.cap.flowKind] ? S.cap.flowKind : 'capsules';
 const flowDur = () => flowKind() === 'teaser' ? 15 : S.cap.dur;
 const flowFmt = () => CAP_OPTIONS.fmts.find(x => x[0] === S.cap.fmt) || CAP_OPTIONS.fmts[0];
 const flowVideo = () => (BK.videos || []).find(x => x.bkId === S.cap.bkVideoId) || null;
+/** Langue des sous-titres choisie (anglais seulement si la traduction est disponible). */
+function flowSubLang() { const cat = BK.catalog; return cat && cat.subtitles && cat.subtitles.translationEnabled && S.cap && S.cap.subLang === 'en' ? 'en' : 'fr'; }
 function flowRows(v) {
   const kd = flowKind(); const f = flowFmt();
   const rows = [['Émission', v ? [v.media, v.title].filter(Boolean).join(' · ') : '—', 'step|1'], ['Type', FLOW_KINDS[kd].short, 'step|2']];
-  if (kd === 'subtitles') rows.push(['Sous-titres', 'En français, transcription automatique', 'mod']);
+  if (kd === 'subtitles') rows.push(['Sous-titres', flowSubLang() === 'en' ? 'En anglais (traduction automatique)' : 'En français, transcription automatique', 'mod']);
   else rows.push(['Format', `${f[1]} ${f[0]}`, 'mod'], ['Durée', kd === 'teaser' ? '15 s' : `${flowDur()} s par capsule`, 'mod'], ['Sous-titres', S.cap.subs === false ? 'Sans sous-titres' : 'En blanc, texte simple', 'mod']);
   rows.push(['Habillage', 'Logo de l’émission et logo de votre entreprise', ''], ['Livraison', 'À télécharger dans Mes créations', '']);
   return rows;
@@ -2361,7 +2363,17 @@ function bkCapsulesPage(c) {
       <div class="os-opts" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${Object.entries(FLOW_KINDS).map(([id, x]) => `<button type="button" class="os-opt" data-a="bk-kind" data-arg="${id}" aria-pressed="${kd === id}" style="gap:14px"><span class="ill" aria-hidden="true">${ill[id]}</span><span class="mono">${esc(x.tag)}</span><b style="font-size:16px">${esc(x.label)}</b><span class="d" style="font-size:14px;line-height:1.45">${esc(x.desc)}</span>${osLive() ? crTag(crCostTxt(id, v)) : ''}</button>`).join('')}</div>
       <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:16px 18px;border-radius:12px;background:var(--os-bg)"><span style="font-size:14px;line-height:1.5"><b style="font-weight:600">Envie d'un montage fait main ?</b> Nos monteurs réalisent votre vidéo de A à Z.</span><button class="os-link" style="font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;text-decoration:none;text-transform:uppercase" data-a="mt-open">Confier ma vidéo à un monteur ↗</button></div></section>`;
   } else if (n === 3) {
-    if (kd === 'subtitles') main = `<section class="os-card"><h2>Vos sous-titres</h2><div>${[['Langue', 'Français, la langue parlée dans la vidéo'], ['Transcription', 'Automatique, à partir du son de la vidéo'], ['Format', 'Celui de la vidéo d’origine']].map(([a1, b1]) => `<div class="os-row"><span class="k">${a1}</span><span class="v">${b1}</span></div>`).join('')}</div><p class="mut" style="margin:0;font-size:14px">La traduction dans une autre langue arrive bientôt.</p></section>`;
+    if (kd === 'subtitles') {
+      // Langue des sous-titres : choix proposé dès que la traduction (DeepL) est branchée sur le serveur
+      const cat = bkCatalog(); const tr = !!(cat && cat.subtitles && cat.subtitles.translationEnabled);
+      const lang = flowSubLang(); const p = crPrices(); const per = p.translationPer5Min != null ? p.translationPer5Min : p.subtitlesPer5Min;
+      const nT = v && v.duration > 0 ? Math.max(1, Math.ceil(v.duration / 300)) : null;
+      const extra = nT ? `${crN(nT * per)} crédits` : `${crN(per)} crédits par tranche de 5 min`;
+      main = `<section class="os-card"><h2>Vos sous-titres</h2>
+        ${tr ? `<div style="display:flex;flex-direction:column;gap:8px"><span class="mut" style="font-size:13px">Langue des sous-titres</span><div class="os-seg" role="group" aria-label="Langue des sous-titres" style="align-self:flex-start"><button type="button" data-a="sub-lang" data-arg="fr" aria-pressed="${lang === 'fr'}">Français</button><button type="button" data-a="sub-lang" data-arg="en" aria-pressed="${lang === 'en'}">Anglais</button></div></div>` : ''}
+        <div>${[['Langue', lang === 'en' ? 'Anglais, traduit automatiquement de l’interview en français' : 'Français, la langue parlée dans la vidéo'], ['Transcription', 'Automatique, à partir du son de la vidéo'], ['Format', 'Celui de la vidéo d’origine']].map(([a1, b1]) => `<div class="os-row"><span class="k">${a1}</span><span class="v">${b1}</span></div>`).join('')}</div>
+        <p class="mut" style="margin:0;font-size:14px">${tr ? (lang === 'en' ? `Traduction automatique : ${extra} en plus. Relisez le fichier .srt livré avant une diffusion importante.` : 'Besoin d’une version anglaise ? Choisissez « Anglais » : la traduction est faite automatiquement.') : 'La traduction dans une autre langue arrive bientôt.'}</p></section>`;
+    }
     else {
       const m = bkMedia(v);
       main = `<section class="os-card" aria-labelledby="q-format"><div><h2 id="q-format">Où allez-vous ${kd === 'teaser' ? 'le' : 'les'} publier ?</h2><div class="sub">On choisit le format pour vous selon le réseau.</div></div>
@@ -2428,7 +2440,11 @@ function flowSubsCheck() {
 }
 function flowModHtml() {
   const k = S.cap; const kd = flowKind();
-  if (kd === 'subtitles') return `<p style="margin:0">Les sous-titres sont en français, transcrits automatiquement à partir du son de la vidéo. Le format reste celui de la vidéo d’origine.</p>`;
+  if (kd === 'subtitles') {
+    const cat = bkCatalog(); const tr = !!(cat && cat.subtitles && cat.subtitles.translationEnabled); const lang = flowSubLang();
+    return `<div style="display:flex;flex-direction:column;gap:16px">${tr ? `<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Langue des sous-titres</span><div class="os-seg" role="group" aria-label="Langue des sous-titres" style="align-self:flex-start"><button type="button" data-a="sub-lang" data-arg="fr" aria-pressed="${lang === 'fr'}">Français</button><button type="button" data-a="sub-lang" data-arg="en" aria-pressed="${lang === 'en'}">Anglais</button></div></div>` : ''}
+      <p style="margin:0">${lang === 'en' ? 'Les sous-titres sont transcrits automatiquement à partir du son de la vidéo, puis traduits en anglais.' : 'Les sous-titres sont en français, transcrits automatiquement à partir du son de la vidéo.'} Le format reste celui de la vidéo d’origine.</p></div>`;
+  }
   return `<div style="display:flex;flex-direction:column;gap:22px">
     <div class="os-field" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Format</span><div class="os-fmt3">${[['9:16', 'Vertical 9:16', 34, 60], ['1:1', 'Carré 1:1', 52, 52], ['16:9', 'Horizontal 16:9', 92, 52]].map(([f, l, w, h]) => `<button type="button" class="os-opt" data-a="cap-fmt" data-arg="${f}" aria-pressed="${k.fmt === f}"><span class="shape"><i style="width:${w}px;height:${h}px;border-radius:4px"></i></span><b style="font-size:14px">${l}</b></button>`).join('')}</div></div>
     ${kd === 'teaser' ? '' : `<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Durée de chaque capsule</span><div class="os-seg" role="group" aria-label="Durée">${CAP_OPTIONS.kinds[0].durs.map(d => `<button type="button" data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>`}
@@ -2476,7 +2492,7 @@ async function bkSubmitPkgSubtitles() {
   const k = S.cap; const v = flowVideo(); if (!v || BK.submitting) return;
   BK.submitting = true; S.keepScroll = true; render();
   try {
-    const cat = BK.catalog; const lang = cat && cat.subtitles && cat.subtitles.translationEnabled && S.cap.subLang === 'en' ? 'en' : 'fr';
+    const lang = flowSubLang();
     const { order } = await OpenStudio.submitOrder('subtitles', { videoId: v.bkId, spokenLanguage: LANGS.fr, subtitleLanguage: LANGS[lang], splitLongLines: true, programmeId: v.programmeId || null }, bkContact());
     bkAfterSubmit(order); crLoad(true);
     BK.submitting = false; S.modal = null; k.lastKind = 'subtitles'; k.bkOrderId = order.id; k.bkStep = 5; S.keepScroll = false; render(); window.scrollTo(0, 0);
@@ -3496,7 +3512,7 @@ function crCost(kind, v, lang) {
   if (kind === 'subtitles') {
     const d = v && v.duration; const n = d > 0 ? Math.max(1, Math.ceil(d / 300)) : 2;
     // Traduction (langue des sous-titres ≠ français) : en plus, par tranche de 5 min
-    const l = lang !== undefined ? lang : (S.page === 'capsules' && S.cap ? S.cap.subLang : 'fr');
+    const l = lang !== undefined ? lang : (S.page === 'capsules' ? flowSubLang() : 'fr');
     return n * p.subtitlesPer5Min + (l && l !== 'fr' ? n * (p.translationPer5Min != null ? p.translationPer5Min : p.subtitlesPer5Min) : 0);
   }
   return p.capsules;
