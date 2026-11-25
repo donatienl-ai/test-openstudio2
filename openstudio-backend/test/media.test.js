@@ -143,3 +143,17 @@ test('rendu réel : habillage d’ouverture et de fin', { skip: !hasFfmpeg && 'f
   // Ouverture : couleur d'origine de la vidéo (vert), pas assombrie
   const [ri, gi] = edge(0.05); assert.ok(gi > 110 && ri < 60, `ouverture non assombrie : ${ri},${gi}`);
 });
+
+test('logos sur vidéo horizontale : même taille qu’en vertical, hauteur plafonnée', () => {
+  const opts = { widthRatio: 0.14, marginRatio: 0.03, maxHeightRatio: 0.08, subtitles: null };
+  const logos = [{ position: 'top-right', width: 800, height: 800 }, { position: 'top-right', width: 600, height: 150 }];
+  const h = buildFilterGraph({ ...opts, logos, videoWidth: 1920, videoHeight: 1080 }).filter;
+  const v = buildFilterGraph({ ...opts, logos, videoWidth: 1080, videoHeight: 1920 }).filter;
+  // Logo carré : limité par la hauteur (8 % de 1080 = 86 px) ; logo large : limité par la largeur (14 % = 152 px)
+  assert.match(h, /\[1:v\]scale=86:86,/);
+  assert.match(h, /\[2:v\]scale=152:38,/);
+  assert.equal(h.replace(/\[0:v\]|overlay=[^[]*/g, ''), v.replace(/\[0:v\]|overlay=[^[]*/g, ''));
+  // Côte à côte : le logo d'entreprise est décalé de la largeur du logo média + écart
+  assert.match(h, /\[v1\]\[lg2\]overlay=x=W-w-32:y=32/);
+  assert.match(h, /\[0:v\]\[lg1\]overlay=x=W-w-32-178:y=32/);
+});

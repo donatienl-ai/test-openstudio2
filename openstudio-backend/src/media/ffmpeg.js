@@ -74,8 +74,8 @@ const POSITIONS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
  * Position d'un logo. Plusieurs logos dans le même coin se rangent côte à côte :
  * `shift` = décalage horizontal (px) vers l'intérieur de l'image.
  */
-function overlayPosition(position, marginRatio, shift = 0) {
-  const m = `W*${marginRatio}`;
+function overlayPosition(position, marginRatio, shift = 0, marginPx = null) {
+  const m = marginPx != null ? String(marginPx) : `W*${marginRatio}`;
   const left = shift ? `${m}+${shift}` : m;
   const right = shift ? `W-w-${m}-${shift}` : `W-w-${m}`;
   switch (position) {
@@ -95,15 +95,19 @@ function overlayPosition(position, marginRatio, shift = 0) {
  * Décalages des logos partageant un coin. L'ordre de la liste = ordre de gauche à droite
  * (entreprise puis média) : à droite, le dernier logo est collé au bord.
  */
-function cornerShifts(logos, logoWidth) {
-  const gap = Math.round(logoWidth * 0.2);
-  const step = logoWidth + gap;
+function cornerShifts(logos, logoWidth, gapPx = null) {
+  // logoWidth : largeur commune, ou largeur de chaque logo (liste)
+  const widths = Array.isArray(logoWidth) ? logoWidth : logos.map(() => logoWidth);
+  const gap = gapPx != null ? gapPx : Math.round(Math.max(...widths, 0) * 0.2);
   const byCorner = {};
   logos.forEach((l, i) => { const pos = POSITIONS.includes(l.position) ? l.position : 'top-left'; (byCorner[pos] = byCorner[pos] || []).push(i); });
   const shifts = new Array(logos.length).fill(0);
   for (const [pos, idx] of Object.entries(byCorner)) {
     const right = pos.endsWith('right');
-    idx.forEach((i, k) => { shifts[i] = (right ? idx.length - 1 - k : k) * step; });
+    // Décalage = largeurs des logos placés avant lui depuis le bord + écarts
+    const order = right ? [...idx].reverse() : idx;
+    let acc = 0;
+    order.forEach((i) => { shifts[i] = acc; acc += widths[i] + gap; });
   }
   return shifts;
 }
@@ -121,18 +125,33 @@ function cornerShifts(logos, logoWidth) {
  * @param {number} [p.videoWidth]  largeur d'affichage de la vidéo source (obligatoire s'il y a des logos)
  * @returns {{filter: string, outLabel: string}}
  */
-function buildFilterGraph({ logos, widthRatio, marginRatio, subtitles, videoWidth }) {
+function buildFilterGraph({ logos, widthRatio, marginRatio, maxHeightRatio = null, subtitles, videoWidth, videoHeight = null }) {
   const parts = [];
   let current = '0:v';
   if (logos.length && !(videoWidth > 0)) throw new Error('Largeur de la vidéo inconnue : impossible de placer les logos');
-  const logoWidth = Math.max(2, Math.round((videoWidth * widthRatio) / 2) * 2);
-  const shifts = cornerShifts(logos, logoWidth);
+  const even = (n) => Math.max(2, Math.round(n / 2) * 2);
+  // Taille de référence : le petit côté de l'image. Une vidéo horizontale a donc les mêmes logos (en pixels)
+  // qu'une verticale de même définition, au lieu de logos 1,8 fois plus gros. Hauteur plafonnée (maxHeightRatio).
+  const ref = videoHeight > 0 ? Math.min(videoWidth, videoHeight) : videoWidth;
+  const boxW = even(ref * widthRatio);
+  const boxH = videoHeight > 0 && maxHeightRatio ? even(ref * maxHeightRatio) : null;
+  const dims = logos.map((l) => {
+    if (!boxH) return { w: boxW, scale: `scale=${boxW}:-1` };
+    if (l.width > 0 && l.height > 0) {
+      const k = Math.min(boxW / l.width, boxH / l.height);
+      const w = even(l.width * k); const h = even(l.height * k);
+      return { w, scale: `scale=${w}:${h}` };
+    }
+    return { w: boxW, scale: `scale=${boxW}:${boxH}:force_original_aspect_ratio=decrease` };
+  });
+  const marginPx = videoHeight > 0 ? Math.round(ref * marginRatio) : null;
+  const shifts = cornerShifts(logos, dims.map((d) => d.w), boxH ? Math.round(boxH * 0.3) : null);
   logos.forEach((logo, i) => {
     const inIdx = i + 1;
     const l = `lg${inIdx}`;
     const out = `v${inIdx}`;
-    parts.push(`[${inIdx}:v]scale=${logoWidth}:-1,format=rgba[${l}]`);
-    const { x, y } = overlayPosition(logo.position, marginRatio, shifts[i]);
+    parts.push(`[${inIdx}:v]${dims[i].scale},format=rgba[${l}]`);
+    const { x, y } = overlayPosition(logo.position, marginRatio, shifts[i], marginPx);
     parts.push(`[${current}][${l}]overlay=x=${x}:y=${y}:eof_action=repeat:format=auto[${out}]`);
     current = out;
   });
@@ -175,10 +194,12 @@ function buildForceStyle({ fontName, fontSize, outline, outlineColour, primaryCo
  * @param {null|{srtPath: string, forceStyle: string}} [p.subtitles]
  * @param {number} [p.maxDurationSec]  coupe la vidéo à cette durée exacte (fondu sonore de fin)
  */
-async function renderFinal({ input, output, logos, widthRatio, marginRatio, subtitles = null, maxDurationSec = null, startSec = 0 }) {
+async function renderFinal({ input, output, logos, widthRatio, marginRatio, maxHeightRatio = null, subtitles = null, maxDurationSec = null, startSec = 0 }) {
   const size = logos.length ? await probeVideoSize(input) : null;
   if (logos.length && !size) throw new Error('Vidéo illisible : dimensions introuvables');
-  const { filter, outLabel } = buildFilterGraph({ logos, widthRatio, marginRatio, subtitles, videoWidth: size && size.width });
+  // Dimensions de chaque logo : pour le ramener dans son cadre et les ranger côte à côte sans trou
+  const sized = await Promise.all(logos.map(async (l) => ({ ...l, ...((await probeVideoSize(l.path).catch(() => null)) || {}) })));
+  const { filter, outLabel } = buildFilterGraph({ logos: sized, widthRatio, marginRatio, maxHeightRatio, subtitles, videoWidth: size && size.width, videoHeight: size && size.height });
   // Mémoire limitée sur Render (512 Mo en offre gratuite) : peu de threads et une petite anticipation x264.
   const args = ['-hide_banner', '-y', '-filter_complex_threads', '1', ...(startSec > 0 ? ['-ss', String(startSec)] : []), '-i', input];
   for (const l of logos) args.push('-i', l.path);
@@ -214,10 +235,12 @@ async function hasAudio(input) {
  * Ouverture : logo sur la première image floutée, couleurs d'origine (ni assombrie ni fondu au noir).
  * Fin : fondu vers un fond uni (bleu nuit OpenMedias) avec le logo de fin, sans fondu au noir.
  */
-function buildBumperGraph({ width, height, mainSec, introSec, outroSec, fadeSec, logoWidthRatio, fps = 30, audio, outroColor = '#24244A' }) {
+function buildBumperGraph({ width, height, mainSec, introSec, outroSec, fadeSec, logoWidthRatio, logoHeightRatio = 0.25, fps = 30, audio, outroColor = '#24244A' }) {
   const W = width - (width % 2);
   const H = height - (height % 2);
-  const lw = Math.max(2, Math.round((W * logoWidthRatio) / 2) * 2);
+  // Logo centré : largeur rapportée au petit côté de l'image, hauteur plafonnée (vidéos horizontales)
+  const lw = Math.max(2, Math.round((Math.min(W, H) * logoWidthRatio) / 2) * 2);
+  const lh = Math.max(2, Math.round((Math.min(W, H) * logoHeightRatio) / 2) * 2);
   const blur = Math.max(4, Math.round(Math.min(W, H) / 30));
   const norm = `scale=${W}:${H},setsar=1,fps=${fps},format=yuv420p,settb=AVTB`;
   const color = /^#[0-9a-f]{6}$/i.test(outroColor) ? outroColor.replace('#', '0x') : '0x24244A';
@@ -228,10 +251,10 @@ function buildBumperGraph({ width, height, mainSec, introSec, outroSec, fadeSec,
     `[0:v]${norm}[main]`,
     // Première image fournie en PNG bouclé (et non extraite ici avec loop=-1, qui bloquait ffmpeg 7.0.2 dès le départ)
     `[1:v]scale=${W}:${H},boxblur=${blur}:2,trim=duration=${introSec},${norm}[ibg]`,
-    `[2:v]scale=${lw}:-1,format=rgba[ilogo]`,
+    `[2:v]scale=${lw}:${lh}:force_original_aspect_ratio=decrease,format=rgba[ilogo]`,
     `[ibg][ilogo]overlay=x=(W-w)/2:y=(H-h)/2:eof_action=repeat:shortest=1,format=yuv420p[intro]`,
     `color=c=${color}:s=${W}x${H}:r=${fps}:d=${outroSec},${norm}[obg]`,
-    `[3:v]scale=${lw}:-1,format=rgba[ologo]`,
+    `[3:v]scale=${lw}:${lh}:force_original_aspect_ratio=decrease,format=rgba[ologo]`,
     `[obg][ologo]overlay=x=(W-w)/2:y=(H-h)/2:eof_action=repeat:shortest=1,format=yuv420p[outro]`,
     `[intro][main]xfade=transition=fade:duration=${fadeSec}:offset=${xfade1}[x1]`,
     `[x1][outro]xfade=transition=fade:duration=${fadeSec}:offset=${xfade2}[vout]`,
