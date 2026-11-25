@@ -78,12 +78,15 @@ async function clientLogos(client, programmeId = null) {
   const progId = programmeId || (await clientProgrammeId(client.id));
   const progs = await programmeLogos();
   const prog = progId ? progs[progId] || null : null;
+  // Logo du média propre au client : seulement pour l'émission où il a été déposé (un client diffusé sur
+  // Le Figaro et sur BFM Business garde le bon logo sur chaque vidéo). Ancien logo sans émission : partout.
+  const own = client.media_logo_key && (!client.media_logo_programme_id || client.media_logo_programme_id === progId) ? client.media_logo_key : null;
   return {
     company: { key: client.logo_key || null, position: POSITIONS.includes(client.logo_position) ? client.logo_position : mapping.logos.clientPosition },
     media: {
-      key: client.media_logo_key || (prog && prog.key) || null,
+      key: own || (prog && prog.key) || null,
       position: POSITIONS.includes(client.media_logo_position) ? client.media_logo_position : mapping.logos.programmePosition,
-      source: client.media_logo_key ? 'client' : prog && prog.key ? 'programme' : null,
+      source: own ? 'client' : prog && prog.key ? 'programme' : null,
       programmeId: progId || null,
       programmeTitle: prog ? prog.title : null,
     },
