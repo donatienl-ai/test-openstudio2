@@ -281,7 +281,7 @@ async function finalizeCapsules(order, tmp) {
     const input = path.join(tmp, `clip-${n}.mp4`);
     const output = path.join(tmp, `final-${n}.mp4`);
     await downloadUrlToFile(clip.uriForExport, input);
-    await renderFinal({ input, output, logos, widthRatio: mapping.logos.widthRatio, marginRatio: mapping.logos.marginRatio, maxDurationSec: content, startSec });
+    await renderFinal({ input, output, logos, widthRatio: mapping.logos.widthRatio, marginRatio: mapping.logos.marginRatio, maxHeightRatio: mapping.logos.maxHeightRatio, maxDurationSec: content, startSec });
     await applyBumpers(output, delivery.kind, logos, tmp, n);
     const finalSec = await probeDurationSec(output).catch(() => null);
 
@@ -391,7 +391,7 @@ async function finalizeSubtitles(order, tmp) {
   const output = path.join(tmp, 'final.mp4');
   await renderFinal({
     input, output, logos,
-    widthRatio: mapping.logos.widthRatio, marginRatio: mapping.logos.marginRatio,
+    widthRatio: mapping.logos.widthRatio, marginRatio: mapping.logos.marginRatio, maxHeightRatio: mapping.logos.maxHeightRatio,
     subtitles: { srtPath, forceStyle },
   });
   const fileName = `video_${base}.mp4`;

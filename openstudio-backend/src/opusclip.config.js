@@ -158,8 +158,11 @@ module.exports = {
   // LOGOS (post-traitement ffmpeg, hors OpusClip)
   // ---------------------------------------------------------------------------
   logos: {
-    widthRatio: 0.14, // largeur du logo / largeur de la vidéo
-    marginRatio: 0.03,
+    // Taille des logos rapportée au PETIT côté de l'image (largeur d'une vidéo verticale, hauteur d'une
+    // horizontale) : sur une vidéo horizontale 1920×1080, un logo n'est plus 1,8 fois plus gros.
+    widthRatio: 0.14, // largeur maximale du logo (14 % du petit côté : 151 px en 1080p)
+    maxHeightRatio: 0.08, // hauteur maximale du logo (8 % du petit côté : 86 px en 1080p), pour qu'il reste discret dans le coin
+    marginRatio: 0.03, // marge au bord (3 % du petit côté)
     // Positions par défaut (modifiables client par client dans le back-office, bloc « Logos ») :
     // les deux en haut à droite, côte à côte, entreprise puis média.
     programmePosition: 'top-right',

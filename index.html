@@ -1437,6 +1437,11 @@ em,i:not([class]){font-style:normal}
 
 /* Commande prête : grille ; sur mobile les capsules verticales côte à côte */
 .liv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}
+/* Vidéo horizontale (interview sous-titrée…) : carte sur toute la largeur, la vidéo ne dépasse plus */
+.liv-grid.liv-wide{grid-template-columns:minmax(0,1fr)}
+.liv-card{min-width:0}.liv-card .stage{display:block!important;min-width:0;width:100%;align-self:stretch}.liv-card .stage video{display:block;max-width:100%}
+.liv-wide .liv-card .soc-foot,.liv-wide .liv-card .vc-act{max-width:520px}
+.liv-wide .liv-card .stage video{max-height:72vh!important;object-fit:contain!important}
 @media (max-width:760px){
   .liv-grid.liv-side{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
   .liv-side .liv-card{padding:6px!important;gap:6px!important;border-radius:10px!important}
@@ -3489,7 +3494,7 @@ function osLivraison(c, id) {
       ${n > 1 ? `<a class="os-cta" href="${esc(OpenStudio.zipUrl(id))}">Tout télécharger (.zip)</a>` : ''}</div>
     <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
       <div style="flex:999 1 640px;min-width:0;display:flex;flex-direction:column;gap:16px">${o.status !== 'ready' ? bkOrderCard(o) : !f || f === 'loading' ? `<div class="os-empty">Chargement de vos fichiers…</div>` : f.err ? `<div class="os-empty">Fichiers inaccessibles : ${esc(f.err)} <button class="os-link" data-a="bk-files" data-arg="${id}">Réessayer</button></div>`
-        : `<div class="liv-grid${fmt !== '16:9' && vids.length > 1 ? ' liv-side' : ''}">${vids.map(card).join('')}</div>${others.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap">${others.map(x => `<a class="os-pillbtn s" href="${esc(x.downloadUrl)}" download="${esc(x.fileName)}">${DL_SVG}Fichier .${esc(x.kind)}</a>`).join('')}</div>` : ''}${f[0] && f[0].expiresAt ? `<p class="mut" style="margin:0;font-size:13px">Fichiers conservés jusqu’au ${new Date(f[0].expiresAt).toLocaleDateString('fr-FR')}.</p>` : ''}`}</div>
+        : `<div class="liv-grid${fmt === '16:9' ? ' liv-wide' : vids.length > 1 ? ' liv-side' : ''}">${vids.map(card).join('')}</div>${others.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap">${others.map(x => `<a class="os-pillbtn s" href="${esc(x.downloadUrl)}" download="${esc(x.fileName)}">${DL_SVG}Fichier .${esc(x.kind)}</a>`).join('')}</div>` : ''}${f[0] && f[0].expiresAt ? `<p class="mut" style="margin:0;font-size:13px">Fichiers conservés jusqu’au ${new Date(f[0].expiresAt).toLocaleDateString('fr-FR')}.</p>` : ''}`}</div>
       <aside style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:16px">
         <div style="background:#fff;border:1px solid var(--os-line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:12px"><h2 style="margin:0;font-size:16px;font-weight:600;font-family:Inter,sans-serif">Et ensuite ?</h2>
           ${kd !== 'teaser' ? `<button class="os-opt" style="padding:14px 16px;border-width:1px;background:var(--os-bg)" data-a="em-go" data-arg="teaser|${esc(o.options && o.options.videoId || '')}"><b>Faire un teaser de 15 s</b><span class="d">À partir de la même interview</span></button>` : ''}
