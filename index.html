@@ -362,9 +362,6 @@ tbody tr:hover td{background:color-mix(in srgb,var(--surface-2) 55%,transparent)
 .prog{height:5px;border-radius:3px;background:var(--surface-2);overflow:hidden;width:100%}
 .prog i{display:block;height:100%;background:var(--ok);width:0;transition:width .4s}
 /* Suivi des commandes (back-end OpenStudio) */
-.bk-topbar{position:fixed;top:0;left:0;right:0;height:3px;z-index:80;overflow:hidden;background:var(--onair-soft)}
-.bk-topbar i{position:absolute;top:0;height:100%;width:35%;background:var(--onair);animation:bkslide 1.4s ease-in-out infinite}
-@keyframes bkslide{0%{left:-35%}100%{left:100%}}
 .bk-pill{position:fixed;top:12px;right:16px;z-index:80;display:flex;gap:8px;align-items:center;background:var(--surface);color:var(--text);border:1px solid var(--line-strong);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;box-shadow:var(--shadow);cursor:pointer}
 .bk-pill i,.bk-spin{width:14px;height:14px;border-radius:50%;border:2px solid var(--onair);border-top-color:transparent;animation:spin .8s linear infinite;flex:none;display:inline-block}
 .bk-steps{display:grid;gap:10px;margin:0;padding:0;list-style:none}
@@ -381,7 +378,7 @@ tbody tr:hover td{background:color-mix(in srgb,var(--surface-2) 55%,transparent)
 .bk-file video{width:100%;aspect-ratio:9/16;object-fit:contain;background:#000;display:block}
 .bk-file video.r169{aspect-ratio:16/9}.bk-file video.r11{aspect-ratio:1/1}
 .bk-file .in{padding:12px;display:grid;gap:8px;flex:1}
-@media (prefers-reduced-motion:reduce){.bk-topbar i,.bk-bar i::after,.bk-pill i,.bk-spin{animation:none}}
+@media (prefers-reduced-motion:reduce){.bk-bar i::after,.bk-pill i,.bk-spin{animation:none}}
 .toggle{position:relative;width:38px;height:22px;border-radius:999px;background:var(--line-strong);border:0;flex:none}
 .toggle::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
 .toggle[aria-checked="true"]{background:var(--ok)}
@@ -2198,7 +2195,8 @@ function bkBusyIndicator() {
   const b = bkBusyOrders(); if (!b.length) return '';
   const label = b.length > 1 ? `${b.length} préparations en cours` : (b[0].type === 'capsules' ? 'Préparation de vos capsules…' : 'Préparation de votre vidéo…');
   const since = b.map(o => o.createdAt).filter(Boolean).sort()[0]; // la plus ancienne
-  return `<div class="bk-topbar" aria-hidden="true"><i></i></div><button class="bk-pill" data-a="nav" data-arg="commandes" aria-label="${esc(label + ' ' + BK_ETA)}"><i aria-hidden="true"></i><span class="t" aria-hidden="true"><b>${label}${since ? ` · <span data-bk-since="${esc(since)}">${bkSince(since)}</span>` : ''}</b><small>${BK_ETA}</small></span></button>`;
+  // Seule la pastille en bas de l'écran signale une préparation en cours (plus de barre de chargement en haut)
+  return `<button class="bk-pill" data-a="nav" data-arg="commandes" aria-label="${esc(label + ' ' + BK_ETA)}"><i aria-hidden="true"></i><span class="t" aria-hidden="true"><b>${label}${since ? ` · <span data-bk-since="${esc(since)}">${bkSince(since)}</span>` : ''}</b><small>${BK_ETA}</small></span></button>`;
 }
 function bkAfterSubmit(order) {
   BKO.byId[order.id] = order;
