@@ -1313,6 +1313,7 @@ em,i:not([class]){font-style:normal}
 .modal textarea.os-in{padding:12px 14px;resize:vertical}
 .os-paysum{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 18px;border-radius:12px;background:#F4F3EF}
 .os-paysum .p{font-family:Garet,Outfit,Inter,sans-serif;font-weight:800;font-size:20px}
+.os-paysum .p.sm{font-family:inherit;font-weight:600;font-size:15px;white-space:nowrap}
 .os-fmt3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .os-fmt3 .os-opt{padding:14px}
 .os-fmt3 .os-opt .shape{height:64px}
@@ -2428,6 +2429,11 @@ function flowModHtml() {
 }
 function payModalHtml(m) {
   const v = flowVideo(); const kd = flowKind(); const paid = flowPrice() != null; const c = client() || {};
+  // Création payée en crédits : confirmation simple (ni solde, ni facture : ce n'est pas un paiement)
+  if (!paid && osLive()) return `<div style="display:flex;flex-direction:column;gap:16px">
+    <div class="os-paysum"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(FLOW_KINDS[kd].short)}</span><span class="small muted">${esc(v ? [v.media, v.title].filter(Boolean).join(' · ') : '')}${kd !== 'subtitles' ? ` · ${esc(flowFmt()[1].toLowerCase())} ${esc(flowFmt()[0])}` : ''}</span></div><span class="p sm" style="display:inline-flex;align-items:center;gap:6px">${CR_ICO}${crN(crCost(kd, v))} crédits</span></div>
+    ${bkNoSession() ? `<p class="small" style="color:var(--warn);margin:0">Pour commander, ouvrez le lien d'accès à votre espace envoyé par l'équipe OpenMedias.</p>` : ''}
+    <p class="small muted" id="bk-prog" aria-live="polite" style="margin:0">${esc(BK.prog || '')}</p></div>`;
   return `<div style="display:flex;flex-direction:column;gap:22px">
     <div class="os-paysum"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${esc(FLOW_KINDS[kd].short)}</span><span class="small muted">${esc(v ? [v.media, v.title].filter(Boolean).join(' · ') : '')}${kd !== 'subtitles' ? ` · ${esc(flowFmt()[1].toLowerCase())} ${esc(flowFmt()[0])}` : ''}</span></div><span class="p" style="display:inline-flex;align-items:center;gap:6px">${paid ? flowPriceTxt() : osLive() ? `${CR_ICO}${crN(crCost(kd, v))} crédits` : 'Inclus'}</span></div>
     <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">${paid || !osLive() ? 'Moyen de paiement' : 'Paiement en crédits'}</span>
@@ -3463,7 +3469,7 @@ function osLivraison(c, id) {
 /* ---------- Crédits : solde, coût des créations, recharges par carte ---------- */
 const CR = { d: null, loading: false, err: '' };
 const CR_DEF = { capsules: 300, teaser: 300, subtitlesPer5Min: 300 };
-const CR_ICO = `<svg class="cr-ico" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.6" fill="#FFD66B" stroke="#E0A526" stroke-width="1.3"/><circle cx="10" cy="10" r="6.2" fill="none" stroke="#F3BE45" stroke-width="1"/><path d="M10 5.2l1.2 3.1 3.1 1.2-3.1 1.2L10 13.8l-1.2-3.1-3.1-1.2 3.1-1.2z" fill="#fff" stroke="#E0A526" stroke-width=".8" stroke-linejoin="round"/></svg>`;
+const CR_ICO = `<svg class="cr-ico" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="10" cy="5.5" rx="6.2" ry="2.4"/><path d="M3.8 5.5v4.3c0 1.3 2.8 2.4 6.2 2.4s6.2-1.1 6.2-2.4V5.5"/><path d="M3.8 9.8v4.3c0 1.3 2.8 2.4 6.2 2.4s6.2-1.1 6.2-2.4V9.8"/></svg>`;
 const crN = n => Number(n || 0).toLocaleString('fr-FR').replace(/\u202f/g, '\u00a0');
 const crPrices = () => (CR.d && CR.d.prices) || CR_DEF;
 const crBal = () => CR.d ? CR.d.balance : null;
@@ -5577,9 +5583,9 @@ function modalHtml() {
     h = socFbPageHtml(m);
     foot = `<button class="os-pillbtn s" style="height:44px;padding:0 20px" data-a="close">Plus tard</button>`;
   } else if (m.type === 'pay') {
-    title = 'Paiement';
+    title = flowPrice() == null && osLive() ? 'Confirmer la création' : 'Paiement';
     h = payModalHtml(m);
-    foot = `<div style="display:flex;flex-direction:column;gap:10px;width:100%"><button class="os-cta big" style="width:100%" data-a="bk-submit" ${BK.submitting || bkNoSession() ? 'disabled' : ''}>${BK.submitting ? 'Validation en cours…' : flowPrice() == null ? 'Valider et lancer ↗' : `Payer ${flowPriceTxt()} et lancer ↗`}</button><span class="small muted" style="text-align:center">${flowPrice() == null ? (osLive() ? 'Les crédits sont débités au lancement de la création.' : 'Votre facture sera disponible dans l’onglet Factures.') : 'Paiement sécurisé. Votre facture sera disponible dans l’onglet Factures.'}</span></div>`;
+    foot = `<div style="display:flex;flex-direction:column;gap:10px;width:100%"><button class="os-cta big" style="width:100%" data-a="bk-submit" ${BK.submitting || bkNoSession() ? 'disabled' : ''}>${BK.submitting ? 'Validation en cours…' : flowPrice() == null ? 'Valider et lancer ↗' : `Payer ${flowPriceTxt()} et lancer ↗`}</button><span class="small muted" style="text-align:center">${flowPrice() == null ? (osLive() ? 'Les crédits sont utilisés au lancement, et rendus si la création échoue.' : 'Votre facture sera disponible dans l’onglet Factures.') : 'Paiement sécurisé. Votre facture sera disponible dans l’onglet Factures.'}</span></div>`;
   } else if (m.type === 'montage') {
     title = 'Confier ma vidéo à un monteur';
     h = mtHtml(m);
