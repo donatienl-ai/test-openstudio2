@@ -517,6 +517,7 @@
     acces_lien_cree: 'Code d’accès généré à la main',
     client_connexion: 'Connexion du client avec son code',
     logo_modifie: 'Logo modifié',
+    creations_supprimees: 'Créations supprimées',
     logo_openmedias_modifie: 'Logo OpenMedias de fin modifié',
     logo_emission_modifie: 'Logo d’émission modifié',
     acces_retabli: 'Accès rétabli',
@@ -544,6 +545,7 @@
     if (e.action === 'facture_creee') return 'facture ' + (d.numero || '');
     if (d.identifiant && !d.email) return d.identifiant + (d.motif ? ' — ' + d.motif : '');
     if (d.email) return d.email + (d.role ? ' (' + (d.role === 'super_admin' ? 'super admin' : 'admin') + ')' : '') + (d.motif ? ' — ' + d.motif : '');
+    if (d.creations !== undefined && d.fichiers !== undefined) return d.creations + ' création' + (d.creations > 1 ? 's' : '') + ' et ' + d.fichiers + ' fichier' + (d.fichiers > 1 ? 's' : '') + ' supprimé' + (d.creations + d.fichiers > 1 ? 's' : '');
     if (d.emission) return 'logo ' + d.emission + ' ' + (d.action || '');
     if (d.logo) return 'logo ' + d.logo + (d.action ? ' ' + d.action : '') + (d.position ? ' — position ' + (POS_LABELS[d.position] || d.position).toLowerCase() : '');
     if (d.credits !== undefined && d.motif) return (d.credits > 0 ? '+' : '') + nb(d.credits) + ' crédits — ' + d.motif + ' (solde ' + nb(d.solde) + ')';
@@ -1057,9 +1059,14 @@
         (m.status === 'envoye' ? '<span class="tag ok">Envoyé</span>' : '<span class="tag err">Échec</span>') + '</td></tr>';
     }).join('') + '</tbody></table>' : emptyLine('Aucun e-mail envoyé à ce client pour le moment.');
 
-    var contents = d.contents.length ? '<table><thead><tr><th>Date</th><th>Contenu</th><th>Émission</th><th>Fichiers</th><th>État</th></tr></thead><tbody>' + d.contents.map(function (o) {
+    var DELETABLE = ['draft', 'validated', 'ready', 'error', 'dry_run'];
+    var nDel = d.contents.filter(function (o) { return DELETABLE.indexOf(o.status) >= 0; }).length;
+    var contents = d.contents.length ? (nDel > 1 ? '<div class="btns left mb"><button class="btn small danger" type="button" data-a="contents-delete-all"' + (S.busy ? ' disabled' : '') + '>Supprimer toutes les créations (' + nDel + ')</button>' +
+        '<span class="small muted">Utile pour nettoyer un compte de test. Les créations en cours de fabrication sont conservées.</span></div>' : '') +
+      '<table><thead><tr><th>Date</th><th>Contenu</th><th>Émission</th><th>Fichiers</th><th>État</th><th></th></tr></thead><tbody>' + d.contents.map(function (o) {
       return '<tr><td class="small nowrap">' + esc(fmtDate(o.created_at)) + '</td><td>' + esc(ORDER_TYPES[o.type] || o.type) + '</td><td class="small">' + esc(o.programme || '—') +
-        '</td><td class="small">' + esc(o.files || 0) + '</td><td>' + tag(ORDER_STATUS[o.status], o.status) + (o.error ? '<br><span class="small muted">' + esc(o.error) + '</span>' : '') + '</td></tr>';
+        '</td><td class="small">' + esc(o.files || 0) + '</td><td>' + tag(ORDER_STATUS[o.status] || (o.status === 'opus_done' ? ['En finition', 'wait'] : o.status === 'dry_run' ? ['Simulation', 'off'] : null), o.status) + (o.error ? '<br><span class="small muted">' + esc(o.error) + '</span>' : '') + '</td>' +
+        '<td>' + (DELETABLE.indexOf(o.status) >= 0 ? '<button class="btn small secondary" type="button" data-a="content-delete" data-id="' + esc(o.id) + '"' + (S.busy ? ' disabled' : '') + ' title="Supprimer cette création et ses vidéos">Supprimer</button>' : '') + '</td></tr>';
     }).join('') + '</tbody></table>' : emptyLine('Le client n’a encore généré aucun contenu.');
     var pubs = d.publications.length ? '<h3>Publications sur les réseaux</h3><table class="compact"><tbody>' + d.publications.map(function (p) {
       return '<tr><td class="small nowrap">' + esc(fmtDate(p.scheduled_at || p.created_at)) + '</td><td class="small">' + esc(p.video_title || 'Vidéo') +
@@ -1588,6 +1595,22 @@
       var c = S.client.client;
       withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/access/restore').then(function () {
         toast('Accès rétabli : le même code fonctionne à nouveau');
+        return loadClients();
+      }));
+    },
+    'content-delete': function (id) {
+      var c = S.client.client;
+      if (!window.confirm('Supprimer définitivement cette création et ses vidéos ? Elle disparaîtra de l’espace du client. Les crédits ne sont pas rendus.')) return;
+      withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/contents/delete', { orderId: id }).then(function (r) {
+        toast('Création supprimée' + (r.files ? ' (' + r.files + ' fichier' + (r.files > 1 ? 's' : '') + ' effacé' + (r.files > 1 ? 's' : '') + ')' : ''));
+        return loadClients();
+      }));
+    },
+    'contents-delete-all': function () {
+      var c = S.client.client;
+      if (!window.confirm('Supprimer définitivement TOUTES les créations terminées de ' + (c.company || c.name) + ' et leurs vidéos ? Elles disparaîtront de son espace. Les crédits ne sont pas rendus. Cette action est irréversible.')) return;
+      withBusy(api('POST', '/admin/clients/' + encodeURIComponent(c.id) + '/contents/delete', { all: true }).then(function (r) {
+        toast(r.deleted + ' création' + (r.deleted > 1 ? 's' : '') + ' supprimée' + (r.deleted > 1 ? 's' : ''));
         return loadClients();
       }));
     },
