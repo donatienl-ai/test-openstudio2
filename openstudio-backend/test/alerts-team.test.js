@@ -83,7 +83,8 @@ test('e-mails automatiques : liste complète, pause et réactivation, chaque env
   assert.equal(sent, 0);
   // Code oublié : rien ne part
   const clients = require('../src/clients');
-  await clients.create({ name: 'Paul', company: 'P', email: 'paul@client.test' });
+  const paul = await clients.create({ name: 'Paul', company: 'P', email: 'paul@client.test' });
+  await db.query('UPDATE clients SET access_email_sent_at = now() WHERE id = $1', [paul.id]); // espace ouvert (envoi 1 parti)
   assert.match((await access.sendForgottenCode('paul@client.test', { send: async () => { sent += 1; return {}; } })).reason, /en pause/);
   // Compta : rien ne part
   assert.equal((await require('../src/montage/notify').notifyAccounting('00000000-0000-4000-8000-000000000000')).reason, 'en pause');

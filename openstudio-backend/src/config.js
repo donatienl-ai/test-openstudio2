@@ -147,6 +147,11 @@ const config = {
     },
   },
 
+  // Traduction des sous-titres (DeepL) : DEEPL_API_KEY sur Render ; DEEPL_MOCK=1 : simulation (tests, recette)
+  translation: {
+    deeplKey: (process.env.DEEPL_API_KEY || '').trim(),
+    mock: process.env.DEEPL_MOCK === '1',
+  },
   // Factures : Pennylane dès qu'un jeton est configuré (ou PENNYLANE_MOCK=1 pour simuler) ; sinon facture Stripe.
   invoicing: {
     pennylaneKey: (process.env.PENNYLANE_API_KEY || '').trim(),

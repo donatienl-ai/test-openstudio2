@@ -339,6 +339,20 @@ async function finalizeSubtitles(order, tmp) {
   }
   if (!cues.length) throw new Error('Aucun sous-titre à produire');
 
+  // Traduction (DeepL) : langue des sous-titres différente de la langue parlée ; le minutage est conservé
+  if (o.subtitleLanguage && o.spokenLanguage && o.subtitleLanguage !== o.spokenLanguage) {
+    const deepl = require('./translation/deepl');
+    console.log(`[order ${shortId(order.id)}] traduction de ${cues.length} sous-titres (${o.spokenLanguage} → ${o.subtitleLanguage})`);
+    try {
+      cues = await deepl.translateCues(cues, {
+        from: o.spokenLanguage, to: o.subtitleLanguage,
+        wrap: (t) => subs.wrapText(t, conf.splitting.maxCharsPerLine, conf.splitting.maxLines),
+      });
+    } catch (e) {
+      throw new Error(`Traduction des sous-titres impossible : ${e.message}`);
+    }
+  }
+
   const lang = o.subtitleLanguage;
   const base = `sous-titres_${lang}`;
   const done = await orders.existingClipIds(order.id);
