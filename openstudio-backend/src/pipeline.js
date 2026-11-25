@@ -265,7 +265,12 @@ async function finalizeCapsules(order, tmp) {
   const base = slug(mapping.programmes[order.options.programmeId]?.title);
   const fmt = order.options.format.replace(':', 'x');
 
-  const titleCtx = { programme: mapping.programmes[order.options.programmeId]?.title || null };
+  // Contexte du titre : émission et entreprise du client (le titre décrit le sujet de l'extrait)
+  const titleClient = order.client_id ? await clients.get(order.client_id).catch(() => null) : null;
+  const titleCtx = {
+    programme: mapping.programmes[order.options.programmeId]?.title || null,
+    company: (titleClient && (titleClient.company || titleClient.name)) || null,
+  };
   const usedTitles = new Set();
   let n = 0;
   for (const { clip, startSec, part } of plan) {

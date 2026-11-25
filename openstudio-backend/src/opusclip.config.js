@@ -80,6 +80,19 @@ module.exports = {
     // sans mot mis en avant, sans majuscules, sans emoji. Liste des templates : npm run opus:templates.
     brandTemplateId: 'cmc38f93j011vbbtl9d0nt51b',
 
+    // Sous-titres des capsules et du teaser : en option, cochée par défaut (case « Ajouter des sous-titres »
+    // à l'étape « Format et durée »).
+    captions: {
+      default: true,
+      // Garde-fous envoyés à OpusClip quand les sous-titres sont demandés : texte simple, sans mot
+      // surligné, sans emoji, sans majuscules forcées (en plus du brand template, qui reste la référence
+      // pour la police et la couleur blanche). Champs de renderPref présents dans le schéma de projet OpusClip.
+      plain: { enableHighlight: false, enableEmoji: false, enableUppercase: false },
+      // Facultatif : brand template OpusClip identique au précédent mais SANS sous-titres, utilisé quand le
+      // client décoche la case (en plus de renderPref.enableCaption = false). null = même template.
+      brandTemplateIdWithout: null,
+    },
+
     maxClips: 3, // nombre de propositions livrées au client (les mieux classées par OpusClip)
     // Teaser : même traitement OpusClip, mais une seule vidéo de 15 s (la mieux classée).
     teaser: { duration: '15', maxClips: 1 },

@@ -46,8 +46,33 @@ test('capsules : un seul brandTemplateId (celui de la config) et aucune option a
     assert.deepEqual(keys.filter((k) => /brandTemplateId$/i.test(k)), ['brandTemplateId']);
     assert.equal(p.brandTemplateId, real.capsules.brandTemplateId);
     assert.doesNotMatch(p.brandTemplateId, /^preset-/, 'pas de preset OpusClip');
-    assert.deepEqual(keys.filter((k) => k !== 'brandTemplateId' && TEXT_OPTIONS.test(k.split('.').pop())), []);
+    // Seuls garde-fous autorisés : sous-titres activés, sans surlignage, sans emoji, sans majuscules
+    const GUARDS = ['renderPref.enableCaption', 'renderPref.enableHighlight', 'renderPref.enableEmoji', 'renderPref.enableUppercase'];
+    assert.deepEqual(keys.filter((k) => k !== 'brandTemplateId' && !GUARDS.includes(k) && TEXT_OPTIONS.test(k.split('.').pop())), []);
+    assert.equal(p.renderPref.enableCaption, true);
+    assert.equal(p.renderPref.enableHighlight, false);
+    assert.equal(p.renderPref.enableEmoji, false);
+    assert.equal(p.renderPref.enableUppercase, false);
     assert.equal(p.renderPref.quickstartConfig, undefined);
+  }
+});
+
+test('capsules / teaser : sous-titres en option (cochés par défaut)', () => {
+  for (const kind of ['capsules', 'teaser']) {
+    // Par défaut (ancien site, option absente) : avec sous-titres simples
+    const def = normalizeOptions('capsules', { videoId: 'v1', kind, duration: '30 s', format: '9:16' }, real, { video });
+    assert.equal(def.captions, true);
+    // Décochés par le client : aucun sous-titre incrusté, aucun garde-fou de style envoyé
+    for (const v of [false, 'false', '0', 'non']) {
+      const o = normalizeOptions('capsules', { videoId: 'v1', kind, duration: '30 s', format: '9:16', captions: v }, real, { video });
+      assert.equal(o.captions, false);
+      const p = buildProjectPayload({ id: ID, type: 'capsules', options: o }, 'u', real, hook);
+      assert.equal(p.renderPref.enableCaption, false);
+      assert.equal(p.renderPref.enableHighlight, undefined);
+      assert.equal(p.brandTemplateId, real.capsules.captions.brandTemplateIdWithout || real.capsules.brandTemplateId);
+    }
+    const on = normalizeOptions('capsules', { videoId: 'v1', kind, duration: '30 s', format: '9:16', captions: true }, real, { video });
+    assert.equal(buildProjectPayload({ id: ID, type: 'capsules', options: on }, 'u', real, hook).renderPref.enableCaption, true);
   }
 });
 

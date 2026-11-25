@@ -2161,7 +2161,7 @@ function bkFilesHtml(o) {
   const ratio = (o.options && o.options.format) === '16:9' ? 'r169' : (o.options && o.options.format) === '1:1' ? 'r11' : '';
   const mmss = ms => ms ? `${Math.floor(ms / 60000)}:${String(Math.round(ms / 1000) % 60).padStart(2, '0')}` : '';
   const exp = f[0].expiresAt ? ` Fichiers conservés jusqu’au ${new Date(f[0].expiresAt).toLocaleDateString('fr-FR')}.` : '';
-  return `<div class="bk-files">${vids.map((x, i) => `<div class="bk-file"><video class="${ratio}" src="${esc(vsrc(x.previewUrl))}" controls playsinline preload="metadata"></video><div class="in"><b>${o.type === 'capsules' ? `Proposition ${i + 1}` : 'Vidéo sous-titrée'}</b><span class="small muted">${esc(x.title || '')}${x.durationMs ? ` · ${mmss(x.durationMs)}` : ''}</span><a class="btn btn-primary btn-sm" href="${esc(x.downloadUrl)}" download="${esc(x.fileName)}">${I('down')}Télécharger</a></div></div>`).join('')}</div>
+  return `<div class="bk-files">${vids.map((x, i) => `<div class="bk-file"><video class="${ratio}" src="${esc(vsrc(x.previewUrl))}" controls playsinline preload="metadata"></video><div class="in"><b>${o.type === 'capsules' ? esc(osClipTitle(osKindOf(o), x, i)) : 'Vidéo sous-titrée'}</b><span class="small muted">${o.type === 'capsules' ? `Proposition ${i + 1}` : ''}${x.durationMs ? `${o.type === 'capsules' ? ' · ' : ''}${mmss(x.durationMs)}` : ''}</span><a class="btn btn-primary btn-sm" href="${esc(x.downloadUrl)}" download="${esc(x.fileName)}">${I('down')}Télécharger</a></div></div>`).join('')}</div>
     ${others.length ? `<div class="row" style="gap:8px;flex-wrap:wrap">${others.map(x => `<a class="btn btn-ghost btn-sm" href="${esc(x.downloadUrl)}" download="${esc(x.fileName)}">${I('down')}Fichier .${esc(x.kind)}</a>`).join('')}</div>` : ''}
     <div class="row" style="gap:8px;flex-wrap:wrap">${f.length > 1 ? `<a class="btn btn-ghost btn-sm" href="${esc(OpenStudio.zipUrl(o.id))}">${I('down')}Tout télécharger (.zip)</a>` : ''}<button class="btn btn-quiet btn-sm" data-a="bk-files" data-arg="${o.id}">${I('refresh')}Actualiser les liens</button></div>
     <p class="small muted">Le téléchargement se fait directement depuis votre espace.${exp}</p>`;
@@ -2296,7 +2296,7 @@ function flowRows(v) {
   const kd = flowKind(); const f = flowFmt();
   const rows = [['Émission', v ? [v.media, v.title].filter(Boolean).join(' · ') : '—', 'step|1'], ['Type', FLOW_KINDS[kd].short, 'step|2']];
   if (kd === 'subtitles') rows.push(['Sous-titres', 'En français, transcription automatique', 'mod']);
-  else rows.push(['Format', `${f[1]} ${f[0]}`, 'mod'], ['Durée', kd === 'teaser' ? '15 s' : `${flowDur()} s par capsule`, 'mod'], ['Sous-titres', 'En blanc, ajoutés automatiquement', '']);
+  else rows.push(['Format', `${f[1]} ${f[0]}`, 'mod'], ['Durée', kd === 'teaser' ? '15 s' : `${flowDur()} s par capsule`, 'mod'], ['Sous-titres', S.cap.subs === false ? 'Sans sous-titres' : 'En blanc, texte simple', 'mod']);
   rows.push(['Habillage', 'Logo de l’émission et logo de votre entreprise', ''], ['Livraison', 'À télécharger dans Mes créations', '']);
   return rows;
 }
@@ -2362,7 +2362,7 @@ function bkCapsulesPage(c) {
         ${kd === 'teaser' ? `<p class="mut" style="margin:0">15 secondes : le bon format pour annoncer votre passage.</p>` : `<div style="display:flex;flex-direction:column;gap:8px"><span class="mut" style="font-size:13px">Durée de chaque capsule</span><div class="os-seg" role="group" aria-label="Durée">${CAP_OPTIONS.kinds[0].durs.map(d => `<button type="button" data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>`}
         <p class="mut" style="margin:0;font-size:14px;line-height:1.5">Les meilleurs moments de l'interview sont repérés automatiquement. Le logo de l'émission et le vôtre sont ajoutés sur chaque ${kd === 'teaser' ? 'vidéo' : 'capsule'}.</p></section>
       <section class="os-card" aria-labelledby="q-style"><h2 id="q-style">Sous-titres</h2>
-        <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center"><div class="frame ${fmtClass(k.fmt)}" data-style="${k.style}" style="--hl:${m.accent}">${scene(v)}${capMarks(m)}<p class="sub sub-${k.style}">${subHtml('Aperçu de vos sous-titres', k.style)}</p></div><p class="mut" style="margin:0;font-size:14px;line-height:1.5;max-width:36ch">En blanc, ajoutés automatiquement et identiques pour toutes vos vidéos.</p></div></section>`;
+        <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center"><div class="frame ${fmtClass(k.fmt)}" data-style="${k.style}" style="--hl:${m.accent}">${scene(v)}${capMarks(m)}${k.subs === false ? '' : `<p class="sub sub-${k.style}">${subHtml('Aperçu de vos sous-titres', k.style)}</p>`}</div><div style="display:flex;flex-direction:column;gap:10px;max-width:36ch">${flowSubsCheck()}<p class="mut" style="margin:0;font-size:14px;line-height:1.5">${k.subs === false ? 'Vos vidéos seront livrées sans sous-titres.' : 'En blanc, texte simple sans effet, identiques pour toutes vos vidéos.'}</p></div></div></section>`;
     }
   } else {
     const prev = kd === 'subtitles' ? '' : `<section class="os-card"><h2>Ce que vous allez recevoir</h2><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:520px">${[1, 2, 3].slice(0, kd === 'teaser' ? 1 : 3).map(i => `<div style="display:flex;flex-direction:column;gap:8px"><div class="frame ${fmtClass(k.fmt)}" style="width:100%">${scene(v)}</div><span style="font-size:14px;font-weight:600">${kd === 'teaser' ? 'Teaser' : 'Capsule ' + i}</span></div>`).join('')}</div><p class="mut" style="margin:0;font-size:14px;line-height:1.5">Aperçu indicatif : les extraits sont choisis automatiquement dans votre interview au moment de la création.</p></section>`;
@@ -2414,12 +2414,17 @@ function flowCostBlock(kd, v) {
 const FLOW_PRICES = { capsules: null, teaser: null, subtitles: null };
 const flowPrice = () => FLOW_PRICES[flowKind()];
 const flowPriceTxt = () => flowPrice() == null ? 'Inclus dans votre package' : `${flowPrice().toLocaleString('fr-FR')} € HT`;
+/* Case « Ajouter des sous-titres » (capsules et teaser), cochée par défaut */
+function flowSubsCheck() {
+  return `<label class="os-check"><input type="checkbox" data-in="cap-subs" ${S.cap.subs === false ? '' : 'checked'}><span>Ajouter des sous-titres (en blanc, texte simple)</span></label>`;
+}
 function flowModHtml() {
   const k = S.cap; const kd = flowKind();
   if (kd === 'subtitles') return `<p style="margin:0">Les sous-titres sont en français, transcrits automatiquement à partir du son de la vidéo. Le format reste celui de la vidéo d’origine.</p>`;
   return `<div style="display:flex;flex-direction:column;gap:22px">
     <div class="os-field" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Format</span><div class="os-fmt3">${[['9:16', 'Vertical 9:16', 34, 60], ['1:1', 'Carré 1:1', 52, 52], ['16:9', 'Horizontal 16:9', 92, 52]].map(([f, l, w, h]) => `<button type="button" class="os-opt" data-a="cap-fmt" data-arg="${f}" aria-pressed="${k.fmt === f}"><span class="shape"><i style="width:${w}px;height:${h}px;border-radius:4px"></i></span><b style="font-size:14px">${l}</b></button>`).join('')}</div></div>
-    ${kd === 'teaser' ? '' : `<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Durée de chaque capsule</span><div class="os-seg" role="group" aria-label="Durée">${CAP_OPTIONS.kinds[0].durs.map(d => `<button type="button" data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>`}</div>`;
+    ${kd === 'teaser' ? '' : `<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Durée de chaque capsule</span><div class="os-seg" role="group" aria-label="Durée">${CAP_OPTIONS.kinds[0].durs.map(d => `<button type="button" data-a="cap-dur" data-arg="${d}" aria-pressed="${k.dur === d}">${d} s</button>`).join('')}</div></div>`}
+    <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;font-weight:600">Sous-titres</span>${flowSubsCheck()}</div></div>`;
 }
 function payModalHtml(m) {
   const v = flowVideo(); const kd = flowKind(); const paid = flowPrice() != null; const c = client() || {};
@@ -2440,7 +2445,7 @@ async function bkSubmitCapsules() {
   BK.submitting = true; S.keepScroll = true; render();
   try {
     // kind : le serveur livre 1 vidéo de 15 s pour un teaser, plusieurs capsules sinon
-    const { order } = await OpenStudio.submitOrder('capsules', { videoId: v.bkId, kind: flowKind() === 'teaser' ? 'teaser' : 'capsules', duration: `${flowDur()} s`, format: `${fmt[1]} ${fmt[0]}` }, bkContact());
+    const { order } = await OpenStudio.submitOrder('capsules', { videoId: v.bkId, kind: flowKind() === 'teaser' ? 'teaser' : 'capsules', duration: `${flowDur()} s`, format: `${fmt[1]} ${fmt[0]}`, captions: k.subs !== false }, bkContact());
     bkAfterSubmit(order); crLoad(true);
     BK.submitting = false; S.modal = null; k.lastKind = flowKind(); k.bkOrderId = order.id; k.bkStep = 5; S.keepScroll = false; render(); window.scrollTo(0, 0);
   } catch (e) { BK.submitting = false; S.keepScroll = true; if (!crHandleOrderError(e)) { render(); toast(e.message); } }
@@ -2861,12 +2866,19 @@ function osClips() {
       if (!f) { setTimeout(() => bkLoadFiles(o.id), 0); return; }
       if (!Array.isArray(f)) return;
       const fmt = osFmtOf(o); const kd = osKindOf(o);
-      f.filter(x => x.kind === 'video').forEach((x, i) => out.push({ o, kd, fmt, title: kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`, meta: `${osFmtName(fmt)} · ${(o.options && o.options.videoTitle) || ''}`, dur: osMMSS(x.durationMs), url: x.previewUrl, dl: x.downloadUrl, name: x.fileName, date: o.createdAt, id: x.id }));
+      f.filter(x => x.kind === 'video').forEach((x, i) => out.push({ o, kd, fmt, title: osClipTitle(kd, x, i), meta: `${kd === 'subtitles' ? '' : (kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`) + ' · '}${osFmtName(fmt)} · ${(o.options && o.options.videoTitle) || ''}`, dur: osMMSS(x.durationMs), url: x.previewUrl, dl: x.downloadUrl, name: x.fileName, date: o.createdAt, id: x.id }));
     }
   });
   return out;
 }
 const osPrep = () => osOrders().filter(o => BK_BUSY.includes(o.status));
+/* Titre d'une vidéo livrée : le sujet de l'extrait (rédigé à la livraison), sinon « Capsule n » / « Teaser » */
+function osClipTitle(kd, x, i) {
+  if (kd === 'subtitles') return 'Interview sous-titrée';
+  const t = String((x && x.title) || '').trim();
+  const generic = !t || /^(capsule\s*\d+|teaser)(\s*\(\d+\))?$/i.test(t);
+  return generic ? (kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}`) : t;
+}
 function osClipCard(x) {
   return `<article class="os-clip"><div class="box ${osFmtCls(x.fmt)}">${x.dur ? `<span class="dur">${x.dur}</span>` : ''}<video src="${esc(vsrc(x.url))}" controls playsinline preload="metadata"></video></div>
     <div class="foot"><div style="min-width:0"><b>${esc(x.title)}</b><small>${esc(x.meta)}</small></div><div class="soc-foot"><a class="os-iconbtn" href="${esc(x.dl)}" download="${esc(x.name || '')}" aria-label="Télécharger ${esc(x.title)}" title="Télécharger">${DL_SVG}</a>${x.id && socEnabled() ? `<button type="button" class="soc-pubbtn" data-a="soc-open" data-arg="${esc(x.id)}">${SOC_PUB_SVG}Publier</button>` : ''}</div></div></article>`;
@@ -3048,7 +3060,7 @@ function socVideoInfo(videoId) {
   for (const o of osOrders()) {
     const f = BKO.files[o.id]; if (!Array.isArray(f)) continue;
     const vids = f.filter(x => x.kind === 'video'); const i = vids.findIndex(x => x.id === videoId);
-    if (i >= 0) { const kd = osKindOf(o); return { o, x: vids[i], fmt: osFmtOf(o), title: kd === 'subtitles' ? 'Interview sous-titrée' : kd === 'teaser' ? 'Teaser' : `Capsule ${i + 1}` }; }
+    if (i >= 0) { const kd = osKindOf(o); return { o, x: vids[i], fmt: osFmtOf(o), title: osClipTitle(kd, vids[i], i) }; }
   }
   return null;
 }
@@ -6013,7 +6025,7 @@ document.addEventListener('click', e => {
   if (el.tagName === 'A' && el.getAttribute('href') === '#') e.preventDefault();
   A[act](el.dataset.arg, el, e);
 });
-document.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.in; if (k === 'flow-check' || k === 'vf-em' || k === 'vf-fmt') e.target.dispatchEvent(new Event('input', { bubbles: true })); });
+document.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.in; if (k === 'flow-check' || k === 'cap-subs' || k === 'vf-em' || k === 'vf-fmt') e.target.dispatchEvent(new Event('input', { bubbles: true })); });
 document.addEventListener('input', e => {
   const el = e.target; const k = el.dataset && el.dataset.in; if (!k) return;
   if (k === 'a-q') { S.admin.q = el.value; const pos = el.selectionStart; S.keepScroll = true; render(); const n = document.querySelector('[data-in="a-q"]'); n.focus(); n.setSelectionRange(pos, pos); }
@@ -6027,6 +6039,7 @@ document.addEventListener('input', e => {
   else if (k === 'ord') { if (S.modal) S.modal[el.dataset.arg] = el.value; }
   else if (k === 'mt') { if (S.modal && S.modal.type === 'montage') S.modal.f[el.dataset.arg] = el.value; if (el.type === 'date') el.classList.toggle('empty', !el.value); }
   else if (k === 'flow-check') { S.cap.checked = el.checked; S.keepScroll = true; render(); }
+  else if (k === 'cap-subs') { S.cap.subs = el.checked; S.keepScroll = true; render(); }
   else if (k === 'vf-em') { S.vfe = el.value; S.keepScroll = true; render(); }
   else if (k === 'vf-fmt') { S.vff = el.value; S.keepScroll = true; render(); }
   else if (k === 'nf') { if (S.modal && S.modal.f) S.modal.f[el.dataset.arg] = el.value; }
