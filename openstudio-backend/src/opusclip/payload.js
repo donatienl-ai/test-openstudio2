@@ -91,6 +91,8 @@ function normalizeOptions(type, options, mapping, context = {}) {
       kind,
       duration,
       format,
+      // Sous-titres incrustés par OpusClip : option du client (cochée par défaut)
+      captions: toBool(options.captions, mapping.capsules.captions ? mapping.capsules.captions.default !== false : true),
       clientLogoKey: options.clientLogoKey || null,
     };
   }
@@ -172,12 +174,16 @@ function buildProjectPayload(order, videoRef, mapping, webhookUrl) {
   if (order.type === 'capsules') {
     const programme = mapping.programmes[o.programmeId];
     const lang = programme.sourceLang || 'auto';
+    const cap = mapping.capsules.captions || {};
+    const withCaptions = o.captions !== false;
+    // Avec sous-titres : texte simple (garde-fous) ; sans : aucun sous-titre incrusté par OpusClip
+    const captionPref = withCaptions ? { enableCaption: true, ...(cap.plain || {}) } : { enableCaption: false };
     return {
       videoUrl: videoRef,
       uploadedVideoAttr: {
         title: `${programme.title}${o.videoTitle ? ` — ${o.videoTitle}` : ''} — commande ${shortId(order.id)}`,
       },
-      brandTemplateId: mapping.capsules.brandTemplateId,
+      brandTemplateId: (!withCaptions && cap.brandTemplateIdWithout) || mapping.capsules.brandTemplateId,
       curationPref: {
         model: mapping.capsules.model,
         clipDurations: mapping.capsules.durations[o.duration],
@@ -186,6 +192,7 @@ function buildProjectPayload(order, videoRef, mapping, webhookUrl) {
       },
       renderPref: {
         layoutAspectRatio: mapping.capsules.formats[o.format],
+        ...captionPref,
         ...(mapping.capsules.removeFillerWords ? { quickstartConfig: { enableRemoveFillerWords: true } } : {}),
       },
       // La doc emploie tantôt "importPref", tantôt "importPreference" : on envoie les deux.
